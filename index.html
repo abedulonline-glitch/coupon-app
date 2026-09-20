@@ -104,9 +104,8 @@
       <div id="register-form" style="display:none;">
         <label data-t="company_name">Company Name</label>
         <input type="text" id="regCompany" placeholder="Adhesive Co.">
-        <label data-t="your_name">Your Name</label>
-        <input type="text" id="regName" placeholder="Your name">
-        <label data-t="email">Email</label>
+        <label data-t="whatsapp_number">WhatsApp Number</label>
+        <input type="tel" id="regName" placeholder="9876543210" maxlength="10">  <label data-t="email">Email</label>
         <input type="email" id="regEmail" placeholder="admin@company.com">
         <label data-t="password">Password</label>
         <input type="password" id="regPassword" placeholder="••••••••">
@@ -134,11 +133,14 @@
         <div class="stat-card"><div class="num" id="statPending">0</div><div class="lbl" data-t="pending_withdraw">Pending</div></div>
       </div>
       <div class="card" style="margin-top: 14px;">
-        <h3 data-t="share_link">🔗 Share Link with Customers</h3>
-        <p style="font-size:12px; color:#666; margin-bottom: 8px;" data-t="share_hint">এই লিংক আপনার কাস্টমারদের পাঠান। তারা এখান থেকে রেজিস্ট্রেশন করবে।</p>
-        <input type="text" id="customerLink" readonly>
-        <button class="success" onclick="copyCustomerLink()" data-t="copy_link">Copy Link</button>
-      </div>
+    <h3 data-t="share_link">🔗 Share Link with Customers</h3>
+    <p style="font-size:12px; color:#666; margin-bottom: 8px;" data-t="share_hint">...</p>
+    <input type="text" id="customerLink" readonly>
+    <div class="row" style="margin-top: 8px;">
+      <button class="secondary" onclick="copyCustomerLink()" data-t="copy_link">Copy Link</button>
+      <button onclick="shareOnWhatsApp()" style="background:#25D366;" data-t="share_whatsapp">Share on WhatsApp</button>
+    </div>
+</div>
     </div>
 
     <!-- Coupons -->
@@ -324,6 +326,8 @@ const firebaseConfig = {
       admin_exists: "এই ইমেইল আগেই রেজিস্টার্ড", wrong_login: "ভুল ইমেইল বা পাসওয়ার্ড",
       coupon_used: "এই কুপন আগেই ব্যবহৃত", coupon_invalid: "ভুল কুপন কোড",
       coupon_expired: "কুপনের মেয়াদ শেষ", coupon_added: "যোগ হয়েছে",
+      whatsapp_number: "হোয়াটসঅ্যাপ নাম্বার",
+      share_whatsapp: "হোয়াটসঅ্যাপে শেয়ার করুন",
       insufficient_balance: "ব্যালেন্স পর্যাপ্ত নয়"
     },
     en: {
@@ -347,7 +351,9 @@ const firebaseConfig = {
       admin_exists: "Email already registered", wrong_login: "Wrong email or password",
       coupon_used: "Coupon already used", coupon_invalid: "Invalid coupon code",
       coupon_expired: "Coupon expired", coupon_added: "Added",
-      insufficient_balance: "Insufficient balance"
+     whatsapp_number: "WhatsApp Number",
+     share_whatsapp: "Share on WhatsApp",
+     insufficient_balance: "Insufficient balance"
     },
     hi: {
       admin_panel: "एडमिन पैनल", login: "लॉगिन", register: "रजिस्टर",
@@ -370,6 +376,8 @@ const firebaseConfig = {
       admin_exists: "ईमेल पहले से पंजीकृत", wrong_login: "गलत ईमेल या पासवर्ड",
       coupon_used: "कूपन पहले उपयोग किया गया", coupon_invalid: "अमान्य कूपन कोड",
       coupon_expired: "कूपन समाप्त", coupon_added: "जोड़ा गया",
+      whatsapp_number: "व्हाट्सएप नंबर",
+      share_whatsapp: "व्हाट्सएप पर शेयर करें",
       insufficient_balance: "अपर्याप्त बैलेंस"
     },
     ta: {
@@ -393,7 +401,9 @@ const firebaseConfig = {
       admin_exists: "மின்னஞ்சல் ஏற்கனவே பதிவு", wrong_login: "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
       coupon_used: "கூப்பன் ஏற்கனவே பயன்படுத்தப்பட்டது", coupon_invalid: "தவறான கூப்பன் குறியீடு",
       coupon_expired: "கூப்பன் காலாவதியானது", coupon_added: "சேர்க்கப்பட்டது",
-      insufficient_balance: "போதுமான இருப்பு இல்லை"
+      whatsapp_number: "வாட்ஸ்அப் எண்",
+      share_whatsapp: "வாட்ஸ்அப்பில் பகிரவும்",
+     insufficient_balance: "போதுமான இருப்பு இல்லை"
     }
   };
 
@@ -457,13 +467,14 @@ const firebaseConfig = {
     document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
   };
 
-  window.adminRegister = async function() {
+window.adminRegister = async function() {
     const company = document.getElementById('regCompany').value.trim();
-    const name = document.getElementById('regName').value.trim();
+    const whatsapp = document.getElementById('regName').value.trim(); // Name থেকে WhatsApp
     const email = document.getElementById('regEmail').value.trim().toLowerCase();
     const password = document.getElementById('regPassword').value;
 
-    if (!company || !name || !email || !password) return alert("সব তথ্য দিন");
+    if (!company || !whatsapp || !email || !password) return alert("সব তথ্য দিন");
+    if (!/^\d{10}$/.test(whatsapp)) return alert("সঠিক ১০ ডিজিটের WhatsApp নাম্বার দিন");
 
     const statusEl = document.getElementById('regStatus');
     statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
@@ -476,7 +487,9 @@ const firebaseConfig = {
       }
 
       const ref = await addDoc(collection(db, "admins"), {
-        email, name, companyName: company,
+        email, 
+        whatsapp: whatsapp, // এখানে whatsapp সেভ হবে
+        companyName: company,
         password: hashPwd(password),
         language: currentLang,
         withdrawalMin: 500,
@@ -584,7 +597,18 @@ const firebaseConfig = {
     alert("✅ লিংক কপি হয়েছে");
   };
 
-  // ==================== GRADES ====================
+ window.shareOnWhatsApp = function() {
+    const link = document.getElementById('customerLink').value;
+    if (!link) return alert("লিংক তৈরি হয়নি");
+    
+    const companyName = adminData?.companyName || "কুপন অ্যাপ";
+    const message = `🎫 *${companyName}*\n\nআপনার কুপন অ্যাপ লিংক:\n${link}\n\nএই লিংকে ক্লিক করে রেজিস্ট্রেশন করুন এবং কুপন স্ক্যান করে পয়েন্ট জমা করুন।`;
+    
+    const encodedMsg = encodeURIComponent(message);
+    window.open('https://wa.me/?text=' + encodedMsg, '_blank');
+};
+ 
+ // ==================== GRADES ====================
   window.addGrade = async function() {
     const name = document.getElementById('newGradeName').value.trim();
     const amt = parseInt(document.getElementById('newGradeAmt').value);
