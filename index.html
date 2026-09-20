@@ -414,12 +414,14 @@ const firebaseConfig = {
   }
 
   window.setLanguage = function(lang) {
+  try {
     currentLang = lang;
     localStorage.setItem('lang', lang);
     applyTranslations();
-    // URL-এ adminId থাকলে কাস্টমার ভিউ, নাহলে ল্যান্ডিং
+    
     const params = new URLSearchParams(window.location.search);
     const urlAdmin = params.get('admin');
+    
     if (urlAdmin) {
       customerAdminId = urlAdmin;
       showView('view-customer');
@@ -429,7 +431,12 @@ const firebaseConfig = {
     } else {
       showView('view-auth');
     }
-  };
+  } catch (e) {
+    console.error("Language error:", e);
+    alert("সমস্যা হয়েছে: " + e.message);
+    showView('view-auth');
+  }
+};
 
   function showView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -521,20 +528,31 @@ const firebaseConfig = {
   };
 
   async function loadAdminSession() {
-    if (!adminId) { showView('view-auth'); return; }
+  if (!adminId) { showView('view-auth'); return; }
+  try {
     const snap = await getDoc(doc(db, "admins", adminId));
-    if (!snap.exists()) { adminLogout(); return; }
+    if (!snap.exists()) { 
+      // অ্যাডমিন খুঁজে না পেলে লগআউট করে লগইন স্ক্রিনে পাঠাবে
+      adminLogout(); 
+      return; 
+    }
     adminData = snap.data();
     if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
     document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
     document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
+    
     showView('view-admin');
     loadAdminDashboard();
     loadGrades();
     loadCustomerList();
     loadWithdrawals();
     fillSettings();
+  } catch (e) {
+    console.error("Admin load error:", e);
+    // কোনো এরর হলে জোর করে লগআউট করে লগইন স্ক্রিনে পাঠাবে
+    adminLogout();
   }
+}
 
   // ==================== ADMIN NAV ====================
   window.adminNav = function(page, el) {
