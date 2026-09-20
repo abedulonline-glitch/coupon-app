@@ -3,165 +3,282 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Adhesive Coupon System</title>
-
+<title>Coupon SaaS</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding-bottom: 70px; }
-  .topbar { background: #1a73e8; color: white; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; }
-  .tabs { display: flex; background: white; border-bottom: 2px solid #ddd; position: sticky; top: 56px; z-index: 99; }
-  .tab { flex: 1; padding: 14px; text-align: center; cursor: pointer; color: #555; font-weight: 600; border-bottom: 3px solid transparent; }
-  .tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
-  .content { padding: 15px; max-width: 600px; margin: 0 auto; }
-  .page { display: none; }
-  .page.active { display: block; }
-  .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  .card h3 { margin-bottom: 12px; color: #202124; font-size: 16px; }
-  label { display: block; font-size: 13px; color: #555; margin: 10px 0 5px; font-weight: 600; }
-  input, select { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; font-size: 15px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
+  .view { display: none; min-height: 100vh; padding-bottom: 70px; }
+  .view.active { display: block; }
+  .topbar { background: #1a73e8; color: white; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .topbar h2 { font-size: 16px; font-weight: 600; }
+  .topbar .logout { background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #e0e0e0; z-index: 99; }
+  .bottom-nav .nav-item { flex: 1; padding: 10px 4px; text-align: center; font-size: 11px; color: #777; cursor: pointer; border-top: 3px solid transparent; }
+  .bottom-nav .nav-item.active { color: #1a73e8; border-top-color: #1a73e8; }
+  .bottom-nav .nav-item .icon { font-size: 20px; display: block; margin-bottom: 2px; }
+  .container { padding: 14px; max-width: 600px; margin: 0 auto; }
+  .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .card h3 { font-size: 15px; color: #202124; margin-bottom: 12px; }
+  label { display: block; font-size: 12px; color: #555; margin: 10px 0 5px; font-weight: 600; }
+  input, select, textarea { width: 100%; padding: 11px; border: 1px solid #dadce0; border-radius: 8px; font-size: 14px; font-family: inherit; }
   input:focus, select:focus { outline: none; border-color: #1a73e8; }
-  button { background: #1a73e8; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; }
-  button:hover { background: #1557b0; }
+  button { background: #1a73e8; color: white; padding: 11px 18px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
+  button:active { transform: scale(0.98); }
   button.secondary { background: #5f6368; }
   button.success { background: #0f9d58; }
   button.danger { background: #d93025; }
+  button.small { padding: 6px 12px; font-size: 12px; width: auto; margin: 0; }
   .row { display: flex; gap: 10px; }
-  .row > div { flex: 1; }
-  .status { padding: 12px; border-radius: 8px; margin: 10px 0; font-weight: 600; text-align: center; }
+  .row > * { flex: 1; }
+  .status { padding: 10px; border-radius: 8px; margin: 10px 0; font-weight: 600; font-size: 13px; text-align: center; }
   .status.success { background: #e6f4ea; color: #0f9d58; }
   .status.error { background: #fce8e6; color: #d93025; }
   .status.info { background: #e8f0fe; color: #1a73e8; }
+  .balance-box { text-align: center; padding: 24px; background: linear-gradient(135deg, #1a73e8, #4285f4); color: white; border-radius: 12px; margin-bottom: 14px; }
+  .balance-amount { font-size: 40px; font-weight: bold; margin-top: 6px; }
+  .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+  .list-item:last-child { border-bottom: none; }
+  .code { font-family: monospace; font-size: 12px; color: #333; }
+  .amount-pos { color: #0f9d58; font-weight: bold; }
+  .amount-neg { color: #d93025; font-weight: bold; }
+  .empty { text-align: center; color: #999; padding: 20px; font-size: 13px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { background: white; padding: 14px; border-radius: 10px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .stat-card .num { font-size: 24px; font-weight: bold; color: #1a73e8; }
+  .stat-card .lbl { font-size: 11px; color: #666; margin-top: 4px; }
   #qr-reader { width: 100%; border-radius: 12px; overflow: hidden; }
-  .coupon-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
-  .coupon-item:last-child { border-bottom: none; }
-  .coupon-code { font-family: monospace; font-size: 13px; color: #333; }
-  .coupon-amount { color: #0f9d58; font-weight: bold; }
-  .balance-box { text-align: center; padding: 25px; background: linear-gradient(135deg, #1a73e8, #4285f4); color: white; border-radius: 12px; margin-bottom: 15px; }
-  .balance-amount { font-size: 42px; font-weight: bold; margin-top: 8px; }
-  .balance-label { font-size: 14px; opacity: 0.9; }
-  .loader { text-align: center; padding: 15px; color: #1a73e8; font-weight: 600; }
-  .hidden { display: none; }
-  .grade-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; padding: 8px; background: #f8f9fa; border-radius: 6px; }
-  .grade-row input { padding: 8px; font-size: 13px; }
-  .grade-row button { width: auto; padding: 8px 12px; margin: 0; font-size: 13px; background: #d93025; }
+  .lang-btn { display: inline-block; padding: 8px 14px; margin: 4px; border-radius: 6px; border: 1px solid #dadce0; background: white; cursor: pointer; font-size: 13px; }
+  .lang-btn.active { background: #1a73e8; color: white; border-color: #1a73e8; }
+  .loader { text-align: center; padding: 20px; color: #1a73e8; font-weight: 600; font-size: 13px; }
+  .auth-screen { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 20px; max-width: 500px; margin: 0 auto; }
+  .auth-logo { text-align: center; margin-bottom: 24px; }
+  .auth-logo h1 { font-size: 26px; color: #1a73e8; margin-bottom: 6px; }
+  .auth-logo p { color: #666; font-size: 13px; }
+  .tab-switch { display: flex; margin-bottom: 16px; background: #f0f2f5; border-radius: 8px; padding: 4px; }
+  .tab-switch > div { flex: 1; padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: #666; }
+  .tab-switch > div.active { background: white; color: #1a73e8; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 </style>
 </head>
 <body>
 
-<div class="topbar">🎫 Adhesive Coupon System</div>
-
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('admin', event)">👨‍💼 Admin</div>
-  <div class="tab" onclick="switchTab('scan', event)">📷 Scan</div>
-  <div class="tab" onclick="switchTab('wallet', event)">💰 Wallet</div>
+<!-- ============ LANGUAGE SELECT ============ -->
+<div id="view-lang" class="view active">
+  <div class="auth-screen">
+    <div class="auth-logo">
+      <h1>🌐 Language / ভাষা</h1>
+      <p>আপনার পছন্দের ভাষা সিলেক্ট করুন</p>
+    </div>
+    <div class="card" style="text-align: center;">
+      <div class="lang-btn" onclick="setLanguage('bn')">বাংলা</div>
+      <div class="lang-btn" onclick="setLanguage('en')">English</div>
+      <div class="lang-btn" onclick="setLanguage('hi')">हिन्दी</div>
+      <div class="lang-btn" onclick="setLanguage('ta')">தமிழ்</div>
+    </div>
+  </div>
 </div>
 
-<div class="content">
-
-  <!-- ============ ADMIN PAGE ============ -->
-  <div id="page-admin" class="page active">
-
-    <!-- কোম্পানির সেটিংস -->
-    <div class="card">
-      <h3>🏢 কোম্পানির তথ্য</h3>
-      <label>কোম্পানির নাম</label>
-      <input type="text" id="companyName" placeholder="যেমন: Adhesive Company" value="Adhesive Company">
-      <label>হেল্পলাইন নাম্বার</label>
-      <input type="tel" id="companyHelpline" placeholder="1800-XXX-XXXX" value="1800-000-0000">
-      <label>প্রিন্ট ফুটার টেক্সট</label>
-      <input type="text" id="companyFooter" value="কুপন স্ক্যান করে পয়েন্ট জিতুন">
-      <button class="secondary" onclick="saveCompanySettings()">💾 সেটিংস সেভ করুন</button>
-      <div id="settingsStatus"></div>
+<!-- ============ ADMIN LOGIN ============ -->
+<div id="view-auth" class="view">
+  <div class="auth-screen">
+    <div class="auth-logo">
+      <h1>🎫 Coupon SaaS</h1>
+      <p data-t="admin_panel">Admin Panel</p>
+    </div>
+    <div class="tab-switch">
+      <div id="tab-login" class="active" onclick="switchAuthTab('login')" data-t="login">Login</div>
+      <div id="tab-register" onclick="switchAuthTab('register')" data-t="register">Register</div>
     </div>
 
-    <!-- গ্রেড ম্যানেজার (ম্যানুয়াল এন্ট্রি) -->
     <div class="card">
-      <h3>📦 গ্রেড ও মূল্য (ম্যানুয়াল এন্ট্রি)</h3>
-      <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
-        যেকোনো সময় নতুন গ্রেড যোগ/মুছতে পারবেন। এগুলো কুপন জেনারেটে ড্রপডাউনে দেখাবে।
-      </p>
-      <div id="gradeList"></div>
-      <div class="grade-row" style="background: #e8f0fe; padding: 10px;">
-        <input type="text" id="newGradeName" placeholder="গ্রেড (যেমন: T3 25Kg)" style="flex:2;">
-        <input type="number" id="newGradeAmount" placeholder="₹" style="flex:1;">
-        <button class="success" onclick="addGrade()" style="flex:0;">+</button>
+      <div id="login-form">
+        <label data-t="email">Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@company.com">
+        <label data-t="password">Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••">
+        <button onclick="adminLogin()" data-t="login_btn">Login</button>
+        <div id="loginStatus"></div>
       </div>
-      <div id="gradeStatus"></div>
-    </div>
 
-    <!-- কুপন জেনারেটর -->
-    <div class="card">
-      <h3>🎫 নতুন কুপন জেনারেট করুন</h3>
-      <label>গ্রেড সিলেক্ট করুন</label>
-      <select id="gradeSelect"><option value="">-- আগে গ্রেড যোগ করুন --</option></select>
-
-      <label>পরিমাণ (Quantity)</label>
-      <input type="number" id="qtyInput" value="5" min="1" max="100">
-
-      <label>মেয়াদ শেষের তারিখ</label>
-      <input type="date" id="expiryDate">
-
-      <button onclick="generateCoupons()">🚀 কুপন জেনারেট করুন</button>
-      <div id="genStatus"></div>
-    </div>
-
-    <div class="card">
-      <h3>📋 শেষ জেনারেট করা কুপন</h3>
-      <div id="lastBatch"><p style="color:#999; text-align:center;">এখনো কিছু তৈরি হয়নি</p></div>
-    </div>
-
-    <div class="card">
-      <h3>💸 প্রত্যাহার অনুরোধ</h3>
-      <div id="withdrawList"><div class="loader">লোড হচ্ছে...</div></div>
-    </div>
-
-  </div>
-
-  <!-- ============ SCAN PAGE ============ -->
-  <div id="page-scan" class="page">
-    <div class="card">
-      <h3>📷 কুপন QR স্ক্যান করুন</h3>
-      <div id="qr-reader"></div>
-      <button class="secondary" onclick="stopScanner()">স্ক্যানার বন্ধ করুন</button>
-    </div>
-    <div class="card">
-      <h3>✍️ ম্যানুয়াল কোড এন্ট্রি</h3>
-      <label>কুপন কোড</label>
-      <input type="text" id="manualCode" placeholder="CUPN-XXXXXXXX-T1A">
-      <button onclick="redeemManual()">রিডিম করুন</button>
-    </div>
-    <div id="scanStatus"></div>
-  </div>
-
-  <!-- ============ WALLET PAGE ============ -->
-  <div id="page-wallet" class="page">
-    <div class="balance-box">
-      <div class="balance-label">আপনার ব্যালেন্স</div>
-      <div class="balance-amount" id="balanceAmount">₹0</div>
-    </div>
-    <div class="card">
-      <h3>👤 আপনার তথ্য</h3>
-      <label>মোবাইল নাম্বার</label>
-      <input type="tel" id="userPhone" placeholder="9876543210" maxlength="10">
-      <button onclick="saveUser()">সেভ করুন</button>
-    </div>
-    <div class="card">
-      <h3>💸 প্রত্যাহার</h3>
-      <p style="font-size: 13px; color: #666; margin-bottom: 10px;">₹500 হলে প্রত্যাহার করতে পারবেন।</p>
-      <label>UPI আইডি</label>
-      <input type="text" id="upiId" placeholder="example@upi">
-      <button class="success" onclick="requestWithdraw()">প্রত্যাহারের অনুরোধ পাঠান</button>
-      <div id="withdrawStatus"></div>
-    </div>
-    <div class="card">
-      <h3>📜 লেনদেনের ইতিহাস</h3>
-      <div id="txnHistory"><div class="loader">লোড হচ্ছে...</div></div>
+      <div id="register-form" style="display:none;">
+        <label data-t="company_name">Company Name</label>
+        <input type="text" id="regCompany" placeholder="Adhesive Co.">
+        <label data-t="your_name">Your Name</label>
+        <input type="text" id="regName" placeholder="Your name">
+        <label data-t="email">Email</label>
+        <input type="email" id="regEmail" placeholder="admin@company.com">
+        <label data-t="password">Password</label>
+        <input type="password" id="regPassword" placeholder="••••••••">
+        <button onclick="adminRegister()" data-t="register_btn">Register</button>
+        <div id="regStatus"></div>
+      </div>
     </div>
   </div>
+</div>
 
+<!-- ============ ADMIN VIEW ============ -->
+<div id="view-admin" class="view">
+  <div class="topbar">
+    <h2 id="adminCompanyName">Admin</h2>
+    <div class="logout" onclick="adminLogout()" data-t="logout">Logout</div>
+  </div>
+
+  <div class="container">
+    <!-- Dashboard -->
+    <div id="ap-dashboard" class="admin-page">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="num" id="statCoupons">0</div><div class="lbl" data-t="total_coupons">Total Coupons</div></div>
+        <div class="stat-card"><div class="num" id="statUsed">0</div><div class="lbl" data-t="used_coupons">Used</div></div>
+        <div class="stat-card"><div class="num" id="statCustomers">0</div><div class="lbl" data-t="customers">Customers</div></div>
+        <div class="stat-card"><div class="num" id="statPending">0</div><div class="lbl" data-t="pending_withdraw">Pending</div></div>
+      </div>
+      <div class="card" style="margin-top: 14px;">
+        <h3 data-t="share_link">🔗 Share Link with Customers</h3>
+        <p style="font-size:12px; color:#666; margin-bottom: 8px;" data-t="share_hint">এই লিংক আপনার কাস্টমারদের পাঠান। তারা এখান থেকে রেজিস্ট্রেশন করবে।</p>
+        <input type="text" id="customerLink" readonly>
+        <button class="success" onclick="copyCustomerLink()" data-t="copy_link">Copy Link</button>
+      </div>
+    </div>
+
+    <!-- Coupons -->
+    <div id="ap-coupons" class="admin-page" style="display:none;">
+      <div class="card">
+        <h3 data-t="grades">📦 Grades & Prices</h3>
+        <div id="gradeList"></div>
+        <div class="row" style="margin-top: 10px;">
+          <input type="text" id="newGradeName" placeholder="Grade (T1 20Kg)">
+          <input type="number" id="newGradeAmt" placeholder="₹">
+          <button class="success small" onclick="addGrade()">+</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 data-t="generate_coupons">🎫 Generate Coupons</h3>
+        <label data-t="select_grade">Select Grade</label>
+        <select id="gradeSelect"></select>
+        <label data-t="quantity">Quantity</label>
+        <input type="number" id="qtyInput" value="5" min="1" max="200">
+        <label data-t="expiry">Expiry Date</label>
+        <input type="date" id="expiryDate">
+        <button onclick="generateCoupons()" data-t="generate_btn">Generate</button>
+        <div id="genStatus"></div>
+      </div>
+
+      <div class="card">
+        <h3 data-t="recent_batch">📋 Recent Batch</h3>
+        <div id="lastBatch"><p class="empty" data-t="no_coupons">No coupons yet</p></div>
+      </div>
+    </div>
+
+    <!-- Customers -->
+    <div id="ap-customers" class="admin-page" style="display:none;">
+      <div class="card">
+        <h3 data-t="customers">👥 Customers</h3>
+        <div id="customerList"><div class="loader">...</div></div>
+      </div>
+    </div>
+
+    <!-- Withdrawals -->
+    <div id="ap-withdrawals" class="admin-page" style="display:none;">
+      <div class="card">
+        <h3 data-t="pending_withdraw">💸 Pending Withdrawals</h3>
+        <div id="withdrawList"><div class="loader">...</div></div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="ap-settings" class="admin-page" style="display:none;">
+      <div class="card">
+        <h3 data-t="company_settings">🏢 Company Settings</h3>
+        <label data-t="company_name">Company Name</label>
+        <input type="text" id="setCompany">
+        <label data-t="helpline">Helpline</label>
+        <input type="text" id="setHelpline">
+        <label data-t="footer_text">Footer Text</label>
+        <input type="text" id="setFooter">
+        <label data-t="withdrawal_min">Minimum Withdrawal (₹)</label>
+        <input type="number" id="setWithdrawMin" value="500">
+        <label data-t="language">Language</label>
+        <select id="setLanguage">
+          <option value="bn">বাংলা</option>
+          <option value="en">English</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ta">தமிழ்</option>
+        </select>
+        <button class="success" onclick="saveSettings()" data-t="save">Save</button>
+        <div id="settingsStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="adminNav('dashboard', this)"><span class="icon">🏠</span><span data-t="home">Home</span></div>
+    <div class="nav-item" onclick="adminNav('coupons', this)"><span class="icon">🎫</span><span data-t="coupons">Coupons</span></div>
+    <div class="nav-item" onclick="adminNav('customers', this)"><span class="icon">👥</span><span data-t="users">Users</span></div>
+    <div class="nav-item" onclick="adminNav('withdrawals', this)"><span class="icon">💸</span><span data-t="withdraw">Withdraw</span></div>
+    <div class="nav-item" onclick="adminNav('settings', this)"><span class="icon">⚙️</span><span data-t="settings">Settings</span></div>
+  </div>
+</div>
+
+<!-- ============ CUSTOMER VIEW ============ -->
+<div id="view-customer" class="view">
+  <div class="topbar">
+    <h2 id="custCompanyName">Coupon App</h2>
+    <div class="logout" onclick="customerLogout()" data-t="logout">Logout</div>
+  </div>
+
+  <div class="container">
+    <!-- Wallet -->
+    <div id="cp-wallet" class="customer-page">
+      <div class="balance-box">
+        <div data-t="your_balance">Your Balance</div>
+        <div class="balance-amount" id="custBalance">₹0</div>
+      </div>
+      <div class="card">
+        <h3 data-t="recent_txn">📜 Recent Transactions</h3>
+        <div id="custTxnList"><div class="loader">...</div></div>
+      </div>
+    </div>
+
+    <!-- Scan -->
+    <div id="cp-scan" class="customer-page" style="display:none;">
+      <div class="card">
+        <h3 data-t="scan_coupon">📷 Scan Coupon</h3>
+        <div id="qr-reader"></div>
+        <button class="secondary" onclick="stopScanner()" data-t="stop_scan">Stop Scanner</button>
+      </div>
+      <div class="card">
+        <h3 data-t="manual_entry">✍️ Manual Entry</h3>
+        <input type="text" id="manualCode" placeholder="CUPN-XXXXXXXXXX">
+        <button onclick="redeemManual()" data-t="redeem">Redeem</button>
+      </div>
+      <div id="scanStatus"></div>
+    </div>
+
+    <!-- Profile -->
+    <div id="cp-profile" class="customer-page" style="display:none;">
+      <div class="card">
+        <h3 data-t="profile">👤 Profile</h3>
+        <label data-t="phone">Phone</label>
+        <input type="tel" id="custPhone" readonly>
+      </div>
+      <div class="card">
+        <h3 data-t="withdraw">💸 Withdraw</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:8px;" id="withdrawHint">Minimum withdrawal: ₹500</p>
+        <label>UPI ID</label>
+        <input type="text" id="custUpi" placeholder="example@upi">
+        <button class="success" onclick="requestWithdraw()" data-t="request_withdraw">Request Withdrawal</button>
+        <div id="withdrawStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="customerNav('wallet', this)"><span class="icon">💰</span><span data-t="wallet">Wallet</span></div>
+    <div class="nav-item" onclick="customerNav('scan', this)"><span class="icon">📷</span><span data-t="scan">Scan</span></div>
+    <div class="nav-item" onclick="customerNav('profile', this)"><span class="icon">👤</span><span data-t="profile">Profile</span></div>
+  </div>
 </div>
 
 <script type="module">
@@ -170,7 +287,8 @@
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
-  const firebaseConfig = {
+  measurementId is optional
+const firebaseConfig = {
   apiKey: "AIzaSyBZCFgugZCLuyryQiuLYY-HjBin6QeFQd0",
   authDomain: "couponsystem-7c625.firebaseapp.com",
   projectId: "couponsystem-7c625",
@@ -183,146 +301,352 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  window.db = db;
-  window.fsApi = { collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction };
-
-  // বর্তমান ব্যবহারকারী
-  window.currentUserPhone = localStorage.getItem('userPhone') || '';
-  if (window.currentUserPhone) {
-    document.getElementById('userPhone').value = window.currentUserPhone;
-  }
-
-  // ==================== ইউনিক কোড ====================
-  window.generateUniqueCode = function() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let rand = '';
-    for (let i = 0; i < 10; i++) rand += chars[Math.floor(Math.random() * chars.length)];
-    return 'CUPN-' + rand;
-  };
-
-  // ==================== কোম্পানি সেটিংস ====================
-  const COMPANY_REF = () => doc(db, "settings", "company");
-
-  window.saveCompanySettings = async function() {
-    await setDoc(COMPANY_REF(), {
-      name: document.getElementById('companyName').value.trim(),
-      helpline: document.getElementById('companyHelpline').value.trim(),
-      footer: document.getElementById('companyFooter').value.trim(),
-      updatedAt: serverTimestamp()
-    });
-    document.getElementById('settingsStatus').innerHTML = '<div class="status success">✅ সেভ হয়েছে</div>';
-  };
-
-  async function loadCompanySettings() {
-    const snap = await getDoc(COMPANY_REF());
-    if (snap.exists()) {
-      const d = snap.data();
-      if (d.name) document.getElementById('companyName').value = d.name;
-      if (d.helpline) document.getElementById('companyHelpline').value = d.helpline;
-      if (d.footer) document.getElementById('companyFooter').value = d.footer;
+  // ==================== i18n TRANSLATIONS ====================
+  const T = {
+    bn: {
+      admin_panel: "অ্যাডমিন প্যানেল", login: "লগইন", register: "রেজিস্টার",
+      email: "ইমেইল", password: "পাসওয়ার্ড", login_btn: "লগইন করুন", register_btn: "রেজিস্টার করুন",
+      company_name: "কোম্পানির নাম", your_name: "আপনার নাম", logout: "লগআউট",
+      total_coupons: "মোট কুপন", used_coupons: "ব্যবহৃত", customers: "কাস্টমার", pending_withdraw: "অপেক্ষমাণ",
+      share_link: "🔗 কাস্টমারদের সাথে লিংক শেয়ার করুন",
+      share_hint: "এই লিংক কাস্টমারদের পাঠান। তারা এখান থেকে রেজিস্ট্রেশন করবে।",
+      copy_link: "লিংক কপি করুন", grades: "📦 গ্রেড ও মূল্য", generate_coupons: "🎫 নতুন কুপন তৈরি",
+      select_grade: "গ্রেড সিলেক্ট", quantity: "পরিমাণ", expiry: "মেয়াদ", generate_btn: "তৈরি করুন",
+      recent_batch: "📋 সর্বশেষ ব্যাচ", no_coupons: "এখনো কোনো কুপন নেই",
+      company_settings: "🏢 কোম্পানির সেটিংস", helpline: "হেল্পলাইন", footer_text: "ফুটার টেক্সট",
+      withdrawal_min: "ন্যূনতম প্রত্যাহার (₹)", language: "ভাষা", save: "সেভ",
+      home: "হোম", coupons: "কুপন", users: "ইউজার", withdraw: "প্রত্যাহার", settings: "সেটিংস",
+      your_balance: "আপনার ব্যালেন্স", recent_txn: "📜 সাম্প্রতিক লেনদেন",
+      scan_coupon: "📷 কুপন স্ক্যান", stop_scan: "স্ক্যানার বন্ধ", manual_entry: "✍️ ম্যানুয়াল এন্ট্রি",
+      redeem: "রিডিম", profile: "👤 প্রোফাইল", phone: "মোবাইল", request_withdraw: "প্রত্যাহার অনুরোধ",
+      wallet: "ওয়ালেট", scan: "স্ক্যান",
+      enter_phone: "মোবাইল নাম্বার দিন", invalid_phone: "সঠিক ১০ ডিজিটের নাম্বার দিন",
+      admin_exists: "এই ইমেইল আগেই রেজিস্টার্ড", wrong_login: "ভুল ইমেইল বা পাসওয়ার্ড",
+      coupon_used: "এই কুপন আগেই ব্যবহৃত", coupon_invalid: "ভুল কুপন কোড",
+      coupon_expired: "কুপনের মেয়াদ শেষ", coupon_added: "যোগ হয়েছে",
+      insufficient_balance: "ব্যালেন্স পর্যাপ্ত নয়"
+    },
+    en: {
+      admin_panel: "Admin Panel", login: "Login", register: "Register",
+      email: "Email", password: "Password", login_btn: "Login", register_btn: "Register",
+      company_name: "Company Name", your_name: "Your Name", logout: "Logout",
+      total_coupons: "Total Coupons", used_coupons: "Used", customers: "Customers", pending_withdraw: "Pending",
+      share_link: "🔗 Share Link with Customers",
+      share_hint: "Send this link to customers. They'll register from here.",
+      copy_link: "Copy Link", grades: "📦 Grades & Prices", generate_coupons: "🎫 Generate Coupons",
+      select_grade: "Select Grade", quantity: "Quantity", expiry: "Expiry", generate_btn: "Generate",
+      recent_batch: "📋 Recent Batch", no_coupons: "No coupons yet",
+      company_settings: "🏢 Company Settings", helpline: "Helpline", footer_text: "Footer Text",
+      withdrawal_min: "Minimum Withdrawal (₹)", language: "Language", save: "Save",
+      home: "Home", coupons: "Coupons", users: "Users", withdraw: "Withdraw", settings: "Settings",
+      your_balance: "Your Balance", recent_txn: "📜 Recent Transactions",
+      scan_coupon: "📷 Scan Coupon", stop_scan: "Stop Scanner", manual_entry: "✍️ Manual Entry",
+      redeem: "Redeem", profile: "👤 Profile", phone: "Phone", request_withdraw: "Request Withdrawal",
+      wallet: "Wallet", scan: "Scan",
+      enter_phone: "Enter your phone", invalid_phone: "Enter valid 10-digit number",
+      admin_exists: "Email already registered", wrong_login: "Wrong email or password",
+      coupon_used: "Coupon already used", coupon_invalid: "Invalid coupon code",
+      coupon_expired: "Coupon expired", coupon_added: "Added",
+      insufficient_balance: "Insufficient balance"
+    },
+    hi: {
+      admin_panel: "एडमिन पैनल", login: "लॉगिन", register: "रजिस्टर",
+      email: "ईमेल", password: "पासवर्ड", login_btn: "लॉगिन", register_btn: "रजिस्टर",
+      company_name: "कंपनी का नाम", your_name: "आपका नाम", logout: "लॉगआउट",
+      total_coupons: "कुल कूपन", used_coupons: "उपयोग किए", customers: "ग्राहक", pending_withdraw: "लंबित",
+      share_link: "🔗 ग्राहकों के साथ लिंक साझा करें",
+      share_hint: "यह लिंक ग्राहकों को भेजें। वे यहाँ से रजिस्टर करेंगे।",
+      copy_link: "लिंक कॉपी करें", grades: "📦 ग्रेड और मूल्य", generate_coupons: "🎫 कूपन जनरेट करें",
+      select_grade: "ग्रेड चुनें", quantity: "मात्रा", expiry: "समाप्ति", generate_btn: "जनरेट करें",
+      recent_batch: "📋 हालिया बैच", no_coupons: "अभी तक कोई कूपन नहीं",
+      company_settings: "🏢 कंपनी सेटिंग्स", helpline: "हेल्पलाइन", footer_text: "फुटर टेक्स्ट",
+      withdrawal_min: "न्यूनतम निकासी (₹)", language: "भाषा", save: "सेव",
+      home: "होम", coupons: "कूपन", users: "उपयोगकर्ता", withdraw: "निकासी", settings: "सेटिंग्स",
+      your_balance: "आपका बैलेंस", recent_txn: "📜 हाल के लेनदेन",
+      scan_coupon: "📷 कूपन स्कैन", stop_scan: "स्कैनर बंद करें", manual_entry: "✍️ मैन्युअल एंट्री",
+      redeem: "रिडीम", profile: "👤 प्रोफाइल", phone: "फोन", request_withdraw: "निकासी का अनुरोध",
+      wallet: "वॉलेट", scan: "स्कैन",
+      enter_phone: "फ़ोन नंबर दर्ज करें", invalid_phone: "10 अंकों का सही नंबर दर्ज करें",
+      admin_exists: "ईमेल पहले से पंजीकृत", wrong_login: "गलत ईमेल या पासवर्ड",
+      coupon_used: "कूपन पहले उपयोग किया गया", coupon_invalid: "अमान्य कूपन कोड",
+      coupon_expired: "कूपन समाप्त", coupon_added: "जोड़ा गया",
+      insufficient_balance: "अपर्याप्त बैलेंस"
+    },
+    ta: {
+      admin_panel: "நிர்வாக பலகை", login: "உள்நுழை", register: "பதிவு",
+      email: "மின்னஞ்சல்", password: "கடவுச்சொல்", login_btn: "உள்நுழை", register_btn: "பதிவு",
+      company_name: "நிறுவன பெயர்", your_name: "உங்கள் பெயர்", logout: "வெளியேறு",
+      total_coupons: "மொத்த கூப்பன்கள்", used_coupons: "பயன்படுத்தியது", customers: "வாடிக்கையாளர்கள்", pending_withdraw: "நிலுவை",
+      share_link: "🔗 வாடிக்கையாளர்களுடன் பகிரவும்",
+      share_hint: "இந்த இணைப்பை வாடிக்கையாளர்களுக்கு அனுப்பவும்.",
+      copy_link: "இணைப்பை நகலெடு", grades: "📦 தரம் & விலை", generate_coupons: "🎫 கூப்பன் உருவாக்கு",
+      select_grade: "தரம் தேர்வு", quantity: "எண்ணிக்கை", expiry: "காலாவதி", generate_btn: "உருவாக்கு",
+      recent_batch: "📋 சமீபத்திய தொகுதி", no_coupons: "இன்னும் கூப்பன் இல்லை",
+      company_settings: "🏢 நிறுவன அமைப்புகள்", helpline: "உதவி எண்", footer_text: "அடிக்குறிப்பு",
+      withdrawal_min: "குறைந்தபட்ச விலக்கு (₹)", language: "மொழி", save: "சேமி",
+      home: "முகப்பு", coupons: "கூப்பன்கள்", users: "பயனர்கள்", withdraw: "விலக்கு", settings: "அமைப்புகள்",
+      your_balance: "உங்கள் இருப்பு", recent_txn: "📜 சமீபத்திய பரிவர்த்தனைகள்",
+      scan_coupon: "📷 கூப்பன் ஸ்கேன்", stop_scan: "ஸ்கேனர் நிறுத்து", manual_entry: "✍️ கைமுறை உள்ளீடு",
+      redeem: "பயன்படுத்து", profile: "👤 சுயவிவரம்", phone: "தொலைபேசி", request_withdraw: "விலக்கு கோரிக்கை",
+      wallet: "பணப்பெட்டி", scan: "ஸ்கேன்",
+      enter_phone: "தொலைபேசி எண் உள்ளிடவும்", invalid_phone: "10 இலக்க எண் உள்ளிடவும்",
+      admin_exists: "மின்னஞ்சல் ஏற்கனவே பதிவு", wrong_login: "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
+      coupon_used: "கூப்பன் ஏற்கனவே பயன்படுத்தப்பட்டது", coupon_invalid: "தவறான கூப்பன் குறியீடு",
+      coupon_expired: "கூப்பன் காலாவதியானது", coupon_added: "சேர்க்கப்பட்டது",
+      insufficient_balance: "போதுமான இருப்பு இல்லை"
     }
+  };
+
+  let currentLang = localStorage.getItem('lang') || 'bn';
+  let adminId = localStorage.getItem('adminId') || null;
+  let adminData = null;
+  let customerAdminId = null;
+  let customerPhone = null;
+  let html5QrCode = null, scannerActive = false;
+
+  window.t = (key) => (T[currentLang] && T[currentLang][key]) || key;
+
+  function applyTranslations() {
+    document.querySelectorAll('[data-t]').forEach(el => {
+      el.innerText = t(el.getAttribute('data-t'));
+    });
+    document.documentElement.lang = currentLang;
   }
 
-  // ==================== গ্রেড ম্যানেজার (ম্যানুয়াল) ====================
+  window.setLanguage = function(lang) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    applyTranslations();
+    // URL-এ adminId থাকলে কাস্টমার ভিউ, নাহলে ল্যান্ডিং
+    const params = new URLSearchParams(window.location.search);
+    const urlAdmin = params.get('admin');
+    if (urlAdmin) {
+      customerAdminId = urlAdmin;
+      showView('view-customer');
+      initCustomer();
+    } else if (adminId) {
+      loadAdminSession();
+    } else {
+      showView('view-auth');
+    }
+  };
+
+  function showView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ==================== ADMIN AUTH ====================
+  function hashPwd(p) {
+    let h = 0;
+    for (let i = 0; i < p.length; i++) { h = ((h << 5) - h) + p.charCodeAt(i); h |= 0; }
+    return String(h);
+  }
+
+  window.switchAuthTab = function(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+  };
+
+  window.adminRegister = async function() {
+    const company = document.getElementById('regCompany').value.trim();
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim().toLowerCase();
+    const password = document.getElementById('regPassword').value;
+
+    if (!company || !name || !email || !password) return alert("সব তথ্য দিন");
+
+    const statusEl = document.getElementById('regStatus');
+    statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
+
+    try {
+      const existing = await getDocs(query(collection(db, "admins"), where("email", "==", email)));
+      if (!existing.empty) {
+        statusEl.innerHTML = `<div class="status error">❌ ${t('admin_exists')}</div>`;
+        return;
+      }
+
+      const ref = await addDoc(collection(db, "admins"), {
+        email, name, companyName: company,
+        password: hashPwd(password),
+        language: currentLang,
+        withdrawalMin: 500,
+        helpline: "1800-000-0000",
+        footer: "",
+        createdAt: serverTimestamp()
+      });
+
+      adminId = ref.id;
+      localStorage.setItem('adminId', adminId);
+      statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
+      setTimeout(() => loadAdminSession(), 600);
+    } catch (e) {
+      statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+    }
+  };
+
+  window.adminLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const statusEl = document.getElementById('loginStatus');
+    statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+
+    try {
+      const snap = await getDocs(query(collection(db, "admins"), where("email", "==", email)));
+      if (snap.empty) {
+        statusEl.innerHTML = `<div class="status error">❌ ${t('wrong_login')}</div>`;
+        return;
+      }
+      const doc0 = snap.docs[0];
+      const data = doc0.data();
+      if (data.password !== hashPwd(password)) {
+        statusEl.innerHTML = `<div class="status error">❌ ${t('wrong_login')}</div>`;
+        return;
+      }
+      adminId = doc0.id;
+      localStorage.setItem('adminId', adminId);
+      statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
+      setTimeout(() => loadAdminSession(), 500);
+    } catch (e) {
+      statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+    }
+  };
+
+  window.adminLogout = function() {
+    adminId = null; adminData = null;
+    localStorage.removeItem('adminId');
+    showView('view-auth');
+  };
+
+  async function loadAdminSession() {
+    if (!adminId) { showView('view-auth'); return; }
+    const snap = await getDoc(doc(db, "admins", adminId));
+    if (!snap.exists()) { adminLogout(); return; }
+    adminData = snap.data();
+    if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
+    document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
+    document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
+    showView('view-admin');
+    loadAdminDashboard();
+    loadGrades();
+    loadCustomerList();
+    loadWithdrawals();
+    fillSettings();
+  }
+
+  // ==================== ADMIN NAV ====================
+  window.adminNav = function(page, el) {
+    document.querySelectorAll('.admin-page').forEach(p => p.style.display = 'none');
+    document.getElementById('ap-' + page).style.display = 'block';
+    document.querySelectorAll('#view-admin .nav-item').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+  };
+
+  // ==================== DASHBOARD STATS ====================
+  async function loadAdminDashboard() {
+    const cSnap = await getDocs(query(collection(db, "coupons"), where("adminId", "==", adminId)));
+    let used = 0;
+    cSnap.forEach(d => { if (d.data().status === 'used') used++; });
+    document.getElementById('statCoupons').innerText = cSnap.size;
+    document.getElementById('statUsed').innerText = used;
+
+    const custSnap = await getDocs(query(collection(db, "customers"), where("adminId", "==", adminId)));
+    document.getElementById('statCustomers').innerText = custSnap.size;
+
+    const wSnap = await getDocs(query(collection(db, "withdrawals"), where("adminId", "==", adminId), where("status", "==", "pending")));
+    document.getElementById('statPending').innerText = wSnap.size;
+  }
+
+  window.copyCustomerLink = function() {
+    const el = document.getElementById('customerLink');
+    el.select();
+    document.execCommand('copy');
+    alert("✅ লিংক কপি হয়েছে");
+  };
+
+  // ==================== GRADES ====================
   window.addGrade = async function() {
     const name = document.getElementById('newGradeName').value.trim();
-    const amount = parseInt(document.getElementById('newGradeAmount').value);
-    if (!name || !amount) return alert("গ্রেড নাম ও মূল্য দিন");
-    
-    await setDoc(doc(db, "grades", name), {
-      name: name,
-      amount: amount,
-      createdAt: serverTimestamp()
+    const amt = parseInt(document.getElementById('newGradeAmt').value);
+    if (!name || !amt) return alert("নাম ও মূল্য দিন");
+    await addDoc(collection(db, "grades"), {
+      adminId, name, amount: amt, createdAt: serverTimestamp()
     });
-    
     document.getElementById('newGradeName').value = '';
-    document.getElementById('newGradeAmount').value = '';
-    document.getElementById('gradeStatus').innerHTML = '<div class="status success">✅ গ্রেড যোগ হয়েছে</div>';
-    setTimeout(() => document.getElementById('gradeStatus').innerHTML = '', 2000);
+    document.getElementById('newGradeAmt').value = '';
   };
 
-  window.deleteGrade = async function(name) {
-    if (!confirm(`"${name}" গ্রেডটি মুছবেন?`)) return;
-    await deleteDoc(doc(db, "grades", name));
+  window.deleteGrade = async function(id) {
+    if (!confirm("মুছবেন?")) return;
+    await deleteDoc(doc(db, "grades", id));
   };
-
-  function renderGrades(grades) {
-    const listEl = document.getElementById('gradeList');
-    const selectEl = document.getElementById('gradeSelect');
-    
-    if (grades.length === 0) {
-      listEl.innerHTML = '<p style="color:#999; font-size:13px; text-align:center;">এখনো কোনো গ্রেড যোগ করা হয়নি</p>';
-      selectEl.innerHTML = '<option value="">-- আগে গ্রেড যোগ করুন --</option>';
-      return;
-    }
-    
-    let listHtml = '';
-    grades.forEach(g => {
-      listHtml += `<div class="grade-row">
-        <span style="flex:2; font-size:13px; font-weight:600;">${g.name}</span>
-        <span style="flex:1; color:#0f9d58; font-weight:bold;">₹${g.amount}</span>
-        <button onclick="deleteGrade('${g.name}')" style="flex:0;">✕</button>
-      </div>`;
-    });
-    listEl.innerHTML = listHtml;
-    
-    selectEl.innerHTML = '<option value="">-- গ্রেড সিলেক্ট করুন --</option>';
-    grades.forEach(g => {
-      selectEl.innerHTML += `<option value="${g.name}" data-amount="${g.amount}">${g.name} — ₹${g.amount}</option>`;
-    });
-  }
 
   function loadGrades() {
-    const q = query(collection(db, "grades"), orderBy("createdAt", "asc"));
-    onSnapshot(q, (snap) => {
-      const grades = snap.docs.map(d => d.data());
-      renderGrades(grades);
+    onSnapshot(query(collection(db, "grades"), where("adminId", "==", adminId)), (snap) => {
+      const listEl = document.getElementById('gradeList');
+      const selEl = document.getElementById('gradeSelect');
+      let listH = '', selH = '<option value="">-- সিলেক্ট --</option>';
+      if (snap.empty) listH = '<p class="empty">কোনো গ্রেড নেই</p>';
+      snap.forEach(d => {
+        const g = d.data();
+        listH += `<div class="list-item"><span><b>${g.name}</b></span><span class="amount-pos">₹${g.amount}</span>
+          <button class="danger small" onclick="deleteGrade('${d.id}')">✕</button></div>`;
+        selH += `<option value="${d.id}" data-amount="${g.amount}" data-name="${g.name}">${g.name} — ₹${g.amount}</option>`;
+      });
+      listEl.innerHTML = listH;
+      selEl.innerHTML = selH;
     });
   }
 
-  // ==================== সিরিয়াল নাম্বার ====================
-  async function getNextSerial(batchId) {
-    const counterRef = doc(db, "counters", batchId);
-    const snap = await getDoc(counterRef);
-    let next = 1;
-    if (snap.exists()) next = (snap.data().lastSerial || 0) + 1;
-    await setDoc(counterRef, { lastSerial: next }, { merge: true });
-    return next;
+  // ==================== GENERATE COUPONS ====================
+  function genCode() {
+    const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let r = '';
+    for (let i = 0; i < 10; i++) r += c[Math.floor(Math.random() * c.length)];
+    return 'CUPN-' + r;
   }
 
-  // ==================== কুপন জেনারেট ====================
+  async function nextSerial(batchId) {
+    const ref = doc(db, "counters", adminId + "_" + batchId);
+    const s = await getDoc(ref);
+    let n = s.exists() ? (s.data().lastSerial || 0) + 1 : 1;
+    await setDoc(ref, { lastSerial: n }, { merge: true });
+    return n;
+  }
+
   window.generateCoupons = async function() {
-    const select = document.getElementById('gradeSelect');
-    const grade = select.value;
-    const amount = parseInt(select.selectedOptions[0]?.dataset.amount || 0);
+    const sel = document.getElementById('gradeSelect');
+    const opt = sel.selectedOptions[0];
+    if (!sel.value) return alert("গ্রেড সিলেক্ট করুন");
+    const gradeName = opt.dataset.name;
+    const amount = parseInt(opt.dataset.amount);
     const qty = parseInt(document.getElementById('qtyInput').value);
     const expiryInput = document.getElementById('expiryDate').value;
-    
-    if (!grade) return alert("গ্রেড সিলেক্ট করুন");
-    if (!expiryInput) return alert("মেয়াদ শেষের তারিখ দিন");
-    
+    if (!expiryInput) return alert("মেয়াদ দিন");
+
     const expiryDate = new Date(expiryInput);
-    const batchId = 'BATCH-' + Date.now();
-    document.getElementById('genStatus').innerHTML = '<div class="status info">⏳ জেনারেট হচ্ছে...</div>';
-    
+    const batchId = 'B' + Date.now();
+    document.getElementById('genStatus').innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
+
     const generated = [];
     try {
       for (let i = 0; i < qty; i++) {
-        const code = window.generateUniqueCode();
-        const serial = await getNextSerial(batchId);
-        const serialNo = 'SR' + String(serial).padStart(7, '0');
-        
-        const cData = {
-          code, serialNo, grade, amount,
-          status: "unused", batchId, expiryDate,
+        const code = genCode();
+        const srl = await nextSerial(batchId);
+        const serialNo = 'SR' + String(srl).padStart(7, '0');
+        const c = {
+          code, serialNo, adminId,
+          grade: gradeName, amount,
+          status: 'unused', batchId, expiryDate,
           createdAt: serverTimestamp()
         };
-        await addDoc(collection(db, "coupons"), cData);
-        generated.push(cData);
+        await addDoc(collection(db, "coupons"), c);
+        generated.push(c);
       }
-      
-      document.getElementById('genStatus').innerHTML = `<div class="status success">✅ ${qty}টি কুপন তৈরি হয়েছে!</div>`;
-      window.lastGeneratedBatch = generated;
+      document.getElementById('genStatus').innerHTML = `<div class="status success">✅ ${qty}টি তৈরি!</div>`;
+      window.lastBatch = generated;
       renderBatch(generated);
     } catch (e) {
       document.getElementById('genStatus').innerHTML = `<div class="status error">❌ ${e.message}</div>`;
@@ -330,114 +654,226 @@
   };
 
   function renderBatch(coupons) {
-    let html = '<div style="max-height:300px; overflow-y:auto;">';
+    let h = '<div style="max-height:280px; overflow-y:auto;">';
     coupons.forEach(c => {
-      html += `<div class="coupon-item">
-        <div>
-          <div class="coupon-code">${c.code}</div>
-          <div style="font-size:11px; color:#999;">${c.serialNo} • ${c.grade}</div>
-        </div>
-        <span class="coupon-amount">₹${c.amount}</span>
-      </div>`;
+      h += `<div class="list-item">
+        <div><div class="code">${c.code}</div><div style="font-size:11px;color:#999;">${c.serialNo} • ${c.grade}</div></div>
+        <div class="amount-pos">₹${c.amount}</div></div>`;
     });
-    html += '</div>';
-    html += `<button onclick="printBatch()" style="margin-top:12px;">🖨️ প্রিন্ট / PDF</button>`;
-    document.getElementById('lastBatch').innerHTML = html;
+    h += '</div><button onclick="printBatch()" style="margin-top:10px;">🖨️ Print / PDF</button>';
+    document.getElementById('lastBatch').innerHTML = h;
   }
 
-  // ==================== প্রিন্ট (Birla White স্টাইল) ====================
-  window.printBatch = async function() {
-    const coupons = window.lastGeneratedBatch || [];
-    if (coupons.length === 0) return alert("আগে কুপন জেনারেট করুন");
-    
-    const companySnap = await getDoc(COMPANY_REF());
-    const company = companySnap.exists() ? companySnap.data() : {
-      name: "Adhesive Company", helpline: "1800-000-0000", footer: "কুপন স্ক্যান করে পয়েন্ট জিতুন"
-    };
-    
-    let win = window.open('', '_blank');
-    let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Coupons</title>
+  // ==================== PRINT ====================
+  window.printBatch = function() {
+    const coupons = window.lastBatch || [];
+    if (!coupons.length) return;
+    const cname = adminData.companyName || "Company";
+    const footer = adminData.footer || "";
+    let w = window.open('', '_blank');
+    let h = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Coupons</title>
     <style>
-      @page { size: A4; margin: 10mm; }
-      body { font-family: Arial, sans-serif; margin: 0; }
-      .page-title { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 6px; }
-      .coupon-grid { display: flex; flex-wrap: wrap; gap: 5mm; }
-      .coupon-card {
-        width: 88mm; height: 54mm;
-        border: 1.5px solid #1a73e8; border-radius: 3mm;
-        padding: 3mm; box-sizing: border-box;
-        display: flex; flex-direction: column; justify-content: space-between;
-        page-break-inside: avoid;
-      }
-      .coupon-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 1.5mm; }
-      .company-name { font-size: 11px; font-weight: bold; color: #1a73e8; }
-      .token-label { font-size: 7px; color: #333; border: 1px solid #333; padding: 1px 3px; border-radius: 2px; }
-      .coupon-body { display: flex; justify-content: space-between; align-items: center; flex: 1; padding: 2mm 0; }
-      .qr-container { flex-shrink: 0; }
-      .coupon-info { text-align: right; flex: 1; padding-left: 2mm; }
-      .coupon-code { font-family: 'Courier New', monospace; font-size: 9px; color: #333; margin-bottom: 1mm; word-break: break-all; }
-      .grade-badge { display: inline-block; background: #e8f0fe; color: #1a73e8; font-size: 9px; font-weight: bold; padding: 1mm 2mm; border-radius: 1mm; margin-bottom: 1mm; }
-      .amount { font-size: 16px; font-weight: bold; color: #0f9d58; }
-      .serial { font-size: 8px; color: #666; margin-top: 1mm; }
-      .coupon-footer { display: flex; justify-content: space-between; border-top: 1px solid #ddd; padding-top: 1.5mm; font-size: 7px; color: #666; }
-    </style></head><body>`;
-    
-    for (let i = 0; i < coupons.length; i += 10) {
-      const chunk = coupons.slice(i, i + 10);
-      html += `<div class="page-title">${company.name} — লয়্যালটি টোকেন</div><div class="coupon-grid">`;
-      chunk.forEach((c, idx) => {
-        const gIdx = i + idx;
-        const exp = c.expiryDate?.toDate?.()?.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) || '';
-        html += `<div class="coupon-card">
-          <div class="coupon-header">
-            <div class="company-name">${company.name}</div>
-            <div class="token-label">LOYALTY TOKEN</div>
-          </div>
-          <div class="coupon-body">
-            <div class="qr-container" id="qr-${gIdx}"></div>
-            <div class="coupon-info">
-              <div class="coupon-code">${c.code}</div>
-              <div class="grade-badge">${c.grade}</div>
-              <div class="amount">₹${c.amount}</div>
-              <div class="serial">${c.serialNo}</div>
-            </div>
-          </div>
-          <div class="coupon-footer">
-            <div>${company.footer}</div>
-            <div>Valid till: ${exp}</div>
-          </div>
+      @page { size: A4; margin: 8mm; }
+      body { font-family: Arial; margin: 0; }
+      .grid { display: flex; flex-wrap: wrap; gap: 4mm; }
+      .card { width: 89mm; height: 54mm; border: 1.5px solid #1a73e8; border-radius: 3mm; padding: 3mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-inside: avoid; }
+      .hd { display: flex; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 1.5mm; }
+      .cn { font-size: 11px; font-weight: bold; color: #1a73e8; }
+      .tag { font-size: 7px; border: 1px solid #333; padding: 1px 3px; border-radius: 2px; }
+      .bd { display: flex; justify-content: space-between; align-items: center; flex: 1; padding: 2mm 0; }
+      .info { text-align: right; flex: 1; padding-left: 2mm; }
+      .cd { font-family: 'Courier New', monospace; font-size: 9px; margin-bottom: 1mm; word-break: break-all; }
+      .gb { display: inline-block; background: #e8f0fe; color: #1a73e8; font-size: 9px; font-weight: bold; padding: 1mm 2mm; border-radius: 1mm; margin-bottom: 1mm; }
+      .amt { font-size: 16px; font-weight: bold; color: #0f9d58; }
+      .srl { font-size: 8px; color: #666; margin-top: 1mm; }
+      .ft { display: flex; justify-content: space-between; border-top: 1px solid #ddd; padding-top: 1.5mm; font-size: 7px; color: #666; }
+    </style></head><body><div class="grid">`;
+    coupons.forEach((c, i) => {
+      const exp = c.expiryDate?.toDate?.()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) || '';
+      h += `<div class="card">
+        <div class="hd"><div class="cn">${cname}</div><div class="tag">LOYALTY TOKEN</div></div>
+        <div class="bd"><div id="qr-${i}"></div>
+          <div class="info"><div class="cd">${c.code}</div>
+          <div class="gb">${c.grade}</div>
+          <div class="amt">₹${c.amount}</div>
+          <div class="srl">${c.serialNo}</div></div></div>
+        <div class="ft"><div>${footer}</div><div>Valid till: ${exp}</div></div>
+      </div>`;
+    });
+    h += `</div><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+    <script>window.onload=function(){`;
+    coupons.forEach((c, i) => {
+      h += `new QRCode(document.getElementById("qr-${i}"),{text:"${c.code}",width:80,height:80,correctLevel:QRCode.CorrectLevel.H});`;
+    });
+    h += `};<\/script></body></html>`;
+    w.document.write(h);
+    w.document.close();
+  };
+
+  // ==================== CUSTOMERS ====================
+  function loadCustomerList() {
+    onSnapshot(query(collection(db, "customers"), where("adminId", "==", adminId), orderBy("createdAt", "desc")), (snap) => {
+      const el = document.getElementById('customerList');
+      if (snap.empty) { el.innerHTML = '<p class="empty">কোনো কাস্টমার নেই</p>'; return; }
+      let h = '';
+      snap.forEach(d => {
+        const c = d.data();
+        h += `<div class="list-item">
+          <div><b>${c.phone}</b><div style="font-size:11px;color:#999;">Balance: ₹${c.balance || 0}</div></div>
+          <div class="amount-pos">₹${c.balance || 0}</div></div>`;
+      });
+      el.innerHTML = h;
+    });
+  }
+
+  // ==================== WITHDRAWALS (ADMIN) ====================
+  function loadWithdrawals() {
+    onSnapshot(query(collection(db, "withdrawals"), where("adminId", "==", adminId), where("status", "==", "pending")), (snap) => {
+      const el = document.getElementById('withdrawList');
+      if (snap.empty) { el.innerHTML = '<p class="empty">কোনো অনুরোধ নেই</p>'; return; }
+      let h = '';
+      snap.forEach(d => {
+        const w = d.data();
+        h += `<div class="list-item">
+          <div><b>${w.phone}</b><div style="font-size:11px;color:#666;">UPI: ${w.upiId}</div></div>
+          <div style="text-align:right;"><div class="amount-pos">₹${w.amount}</div>
+          <button class="success small" onclick="approveWithdraw('${d.id}','${w.phone}',${w.amount})">✓ Pay</button></div>
         </div>`;
       });
-      html += `</div>`;
-      if (i + 10 < coupons.length) html += `<div style="page-break-after: always;"></div>`;
-    }
-    
-    html += `<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
-    <script>
-      window.onload = function() {`;
-    coupons.forEach((c, i) => {
-      html += `new QRCode(document.getElementById("qr-${i}"), { text: "${c.code}", width: 75, height: 75, correctLevel: QRCode.CorrectLevel.H });`;
+      el.innerHTML = h;
     });
-    html += `};<\/script></body></html>`;
-    win.document.write(html);
-    win.document.close();
+  }
+
+  window.approveWithdraw = async function(wid, phone, amount) {
+    if (!confirm(`${phone} কে ₹${amount} পাঠিয়েছেন?`)) return;
+    const custDocId = adminId + '_' + phone;
+    const custRef = doc(db, "customers", custDocId);
+    const cs = await getDoc(custRef);
+    if (!cs.exists()) return alert("কাস্টমার নেই");
+    const bal = cs.data().balance || 0;
+    if (bal < amount) return alert("ব্যালেন্স কম");
+    await updateDoc(custRef, { balance: bal - amount });
+    await updateDoc(doc(db, "withdrawals", wid), { status: 'paid', paidAt: serverTimestamp() });
+    await addDoc(collection(db, "transactions"), {
+      adminId, phone, type: 'debit', amount,
+      description: 'Withdrawal paid',
+      createdAt: serverTimestamp()
+    });
+    alert("✅ সম্পন্ন!");
+    loadAdminDashboard();
   };
 
-  // ==================== TAB SWITCH ====================
-  let html5QrCode = null, scannerActive = false;
+  // ==================== SETTINGS ====================
+  function fillSettings() {
+    if (!adminData) return;
+    document.getElementById('setCompany').value = adminData.companyName || '';
+    document.getElementById('setHelpline').value = adminData.helpline || '';
+    document.getElementById('setFooter').value = adminData.footer || '';
+    document.getElementById('setWithdrawMin').value = adminData.withdrawalMin || 500;
+    document.getElementById('setLanguage').value = adminData.language || currentLang;
+  }
 
-  window.switchTab = function(tab, event) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    if (event) event.target.classList.add('active');
-    document.getElementById('page-' + tab).classList.add('active');
-    
-    if (tab === 'scan') startScanner();
+  window.saveSettings = async function() {
+    const update = {
+      companyName: document.getElementById('setCompany').value.trim(),
+      helpline: document.getElementById('setHelpline').value.trim(),
+      footer: document.getElementById('setFooter').value.trim(),
+      withdrawalMin: parseInt(document.getElementById('setWithdrawMin').value) || 500,
+      language: document.getElementById('setLanguage').value
+    };
+    await updateDoc(doc(db, "admins", adminId), update);
+    adminData = { ...adminData, ...update };
+    currentLang = update.language;
+    applyTranslations();
+    document.getElementById('settingsStatus').innerHTML = '<div class="status success">✅ সেভ হয়েছে</div>';
+    setTimeout(() => document.getElementById('settingsStatus').innerHTML = '', 2000);
+  };
+
+  // ==================== CUSTOMER FLOW ====================
+  async function initCustomer() {
+    // কাস্টমার আগে রেজিস্টার্ড কিনা চেক
+    const savedPhone = localStorage.getItem('custPhone_' + customerAdminId);
+    const aSnap = await getDoc(doc(db, "admins", customerAdminId));
+    if (!aSnap.exists()) {
+      alert("এই লিংক ভুল");
+      return;
+    }
+    const a = aSnap.data();
+    document.getElementById('custCompanyName').innerText = a.companyName || 'Coupon App';
+    if (a.language) { currentLang = a.language; applyTranslations(); }
+    const min = a.withdrawalMin || 500;
+    document.getElementById('withdrawHint').innerText = `Minimum withdrawal: ₹${min}`;
+    window.customerWithdrawMin = min;
+
+    if (savedPhone) {
+      customerPhone = savedPhone;
+      startCustomerSession();
+    } else {
+      const phone = prompt(t('enter_phone'));
+      if (!phone || !/^\d{10}$/.test(phone)) { alert(t('invalid_phone')); return; }
+      customerPhone = phone;
+      localStorage.setItem('custPhone_' + customerAdminId, phone);
+      // কাস্টমার ডকুমেন্ট তৈরি
+      const cid = customerAdminId + '_' + phone;
+      const cref = doc(db, "customers", cid);
+      const cs = await getDoc(cref);
+      if (!cs.exists()) {
+        await setDoc(cref, {
+          adminId: customerAdminId, phone, balance: 0, createdAt: serverTimestamp()
+        });
+      }
+      startCustomerSession();
+    }
+  }
+
+  function startCustomerSession() {
+    document.getElementById('custPhone').value = customerPhone;
+    loadCustomerWallet();
+    showView('view-customer');
+  }
+
+  window.customerLogout = function() {
+    if (!confirm("লগআউট করবেন?")) return;
+    localStorage.removeItem('custPhone_' + customerAdminId);
+    customerPhone = null;
+    location.reload();
+  };
+
+  window.customerNav = function(page, el) {
+    document.querySelectorAll('.customer-page').forEach(p => p.style.display = 'none');
+    document.getElementById('cp-' + page).style.display = 'block';
+    document.querySelectorAll('#view-customer .nav-item').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+
+    if (page === 'scan') startScanner();
     else stopScanner();
-    if (tab === 'wallet' && window.currentUserPhone) loadWallet();
-    if (tab === 'admin') loadWithdrawals();
   };
 
+  function loadCustomerWallet() {
+    const cid = customerAdminId + '_' + customerPhone;
+    onSnapshot(doc(db, "customers", cid), (snap) => {
+      if (snap.exists()) {
+        document.getElementById('custBalance').innerText = '₹' + (snap.data().balance || 0);
+      }
+    });
+    onSnapshot(query(collection(db, "transactions"), where("adminId", "==", customerAdminId), where("phone", "==", customerPhone), orderBy("createdAt", "desc")), (snap) => {
+      const el = document.getElementById('custTxnList');
+      if (snap.empty) { el.innerHTML = '<p class="empty">কোনো লেনদেন নেই</p>'; return; }
+      let h = '';
+      snap.forEach(d => {
+        const x = d.data();
+        const pos = x.type === 'credit';
+        h += `<div class="list-item">
+          <div><div style="font-size:13px;">${x.description}</div>
+          <div style="font-size:11px;color:#999;">${x.createdAt?.toDate?.()?.toLocaleString('en-GB') || ''}</div></div>
+          <div class="${pos ? 'amount-pos' : 'amount-neg'}">${pos ? '+' : '-'}₹${x.amount}</div>
+        </div>`;
+      });
+      el.innerHTML = h;
+    });
+  }
+
+  // ==================== SCANNER ====================
   window.startScanner = function() {
     if (scannerActive) return;
     html5QrCode = new Html5Qrcode("qr-reader");
@@ -445,9 +881,7 @@
       (text) => { stopScanner(); redeemCode(text); },
       () => {}
     ).then(() => { scannerActive = true; })
-    .catch(err => {
-      document.getElementById('scanStatus').innerHTML = `<div class="status error">ক্যামেরা চালু হয়নি: ${err}</div>`;
-    });
+    .catch(e => alert("ক্যামেরা: " + e));
   };
 
   window.stopScanner = function() {
@@ -456,208 +890,92 @@
     }
   };
 
-  // ==================== REDEEM ====================
+  window.redeemManual = function() {
+    const c = document.getElementById('manualCode').value;
+    if (c) redeemCode(c);
+  };
+
   window.redeemCode = async function(code) {
     code = code.trim().toUpperCase();
-    document.getElementById('scanStatus').innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
-    
-    if (!window.currentUserPhone) {
-      document.getElementById('scanStatus').innerHTML = '<div class="status error">⚠️ আগে Wallet-এ মোবাইল নাম্বার সেভ করুন!</div>';
-      return;
-    }
-    
+    const st = document.getElementById('scanStatus');
+    st.innerHTML = '<div class="status info">⏳ যাচাই...</div>';
+
     try {
-      const snap = await getDocs(query(collection(db, "coupons"), where("code", "==", code)));
-      if (snap.empty) {
-        document.getElementById('scanStatus').innerHTML = '<div class="status error">❌ ভুল কুপন কোড!</div>';
-        return;
-      }
-      
-      const couponDoc = snap.docs[0];
-      const cData = couponDoc.data();
-      
-      if (cData.status !== 'unused') {
-        document.getElementById('scanStatus').innerHTML = '<div class="status error">⚠️ এই কুপন আগেই ব্যবহৃত!</div>';
-        return;
-      }
-      
-      // Expiry চেক
+      const snap = await getDocs(query(collection(db, "coupons"), where("code", "==", code), where("adminId", "==", customerAdminId)));
+      if (snap.empty) { st.innerHTML = `<div class="status error">❌ ${t('coupon_invalid')}</div>`; return; }
+      const cd = snap.docs[0];
+      const cData = cd.data();
+      if (cData.status !== 'unused') { st.innerHTML = `<div class="status error">⚠️ ${t('coupon_used')}</div>`; return; }
       if (cData.expiryDate?.toDate && cData.expiryDate.toDate() < new Date()) {
-        document.getElementById('scanStatus').innerHTML = '<div class="status error">⚠️ কুপনের মেয়াদ শেষ!</div>';
-        return;
+        st.innerHTML = `<div class="status error">⚠️ ${t('coupon_expired')}</div>`; return;
       }
-      
-      const userRef = doc(db, "users", window.currentUserPhone);
-      
+
+      const cid = customerAdminId + '_' + customerPhone;
+      const cref = doc(db, "customers", cid);
+
       await runTransaction(db, async (tx) => {
-        const uSnap = await tx.get(userRef);
-        const cSnap = await tx.get(couponDoc.ref);
-        
-        if (cSnap.data().status !== 'unused') throw new Error("কুপন ইতিমধ্যে ব্যবহৃত");
-        
-        const bal = uSnap.exists() ? (uSnap.data().balance || 0) : 0;
-        
-        tx.set(userRef, {
-          phone: window.currentUserPhone,
-          balance: bal + cData.amount,
-          updatedAt: serverTimestamp()
+        const uS = await tx.get(cref);
+        const cS = await tx.get(cd.ref);
+        if (cS.data().status !== 'unused') throw new Error(t('coupon_used'));
+        const bal = uS.exists() ? (uS.data().balance || 0) : 0;
+        tx.set(cref, {
+          adminId: customerAdminId, phone: customerPhone,
+          balance: bal + cData.amount
         }, { merge: true });
-        
-        tx.update(couponDoc.ref, {
-          status: 'used',
-          usedBy: window.currentUserPhone,
-          usedAt: serverTimestamp()
-        });
-        
+        tx.update(cd.ref, { status: 'used', usedBy: customerPhone, usedAt: serverTimestamp() });
         tx.set(doc(collection(db, "transactions")), {
-          phone: window.currentUserPhone,
-          type: 'credit',
-          amount: cData.amount,
-          couponCode: code,
-          description: `কুপন রিডিম: ${cData.grade}`,
+          adminId: customerAdminId, phone: customerPhone,
+          type: 'credit', amount: cData.amount,
+          description: `Coupon: ${cData.grade}`,
           createdAt: serverTimestamp()
         });
       });
-      
-      document.getElementById('scanStatus').innerHTML = `<div class="status success">✅ ₹${cData.amount} যোগ হয়েছে! (${cData.grade})</div>`;
-      loadWallet();
+
+      st.innerHTML = `<div class="status success">✅ ₹${cData.amount} ${t('coupon_added')}</div>`;
+      loadCustomerWallet();
     } catch (e) {
-      document.getElementById('scanStatus').innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+      st.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
     }
   };
 
-  window.redeemManual = function() {
-    const code = document.getElementById('manualCode').value;
-    if (!code) return alert("কোড লিখুন");
-    redeemCode(code);
-  };
-
-  // ==================== WALLET ====================
-  window.saveUser = async function() {
-    const phone = document.getElementById('userPhone').value.trim();
-    if (!/^\d{10}$/.test(phone)) return alert("১০ ডিজিটের নাম্বার দিন");
-    
-    window.currentUserPhone = phone;
-    localStorage.setItem('userPhone', phone);
-    
-    const userRef = doc(db, "users", phone);
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) {
-      await setDoc(userRef, { phone, balance: 0, createdAt: serverTimestamp() });
-    }
-    alert("✅ সেভ হয়েছে!");
-    loadWallet();
-  };
-
-  window.loadWallet = function() {
-    if (!window.currentUserPhone) return;
-    
-    onSnapshot(doc(db, "users", window.currentUserPhone), (snap) => {
-      if (snap.exists()) {
-        document.getElementById('balanceAmount').innerText = '₹' + (snap.data().balance || 0);
-      }
-    });
-    
-    const q = query(collection(db, "transactions"), where("phone", "==", window.currentUserPhone), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snap) => {
-      let html = '';
-      if (snap.empty) {
-        html = '<p style="color:#999; text-align:center;">কোনো লেনদেন নেই</p>';
-      } else {
-        snap.forEach(d => {
-          const t = d.data();
-          const color = t.type === 'credit' ? '#0f9d58' : '#d93025';
-          const sign = t.type === 'credit' ? '+' : '-';
-          const date = t.createdAt?.toDate?.()?.toLocaleString('en-GB') || '';
-          html += `<div class="coupon-item">
-            <div>
-              <div style="font-size:13px;">${t.description}</div>
-              <div style="font-size:11px; color:#999;">${date}</div>
-            </div>
-            <div style="color:${color}; font-weight:bold;">${sign}₹${t.amount}</div>
-          </div>`;
-        });
-      }
-      document.getElementById('txnHistory').innerHTML = html;
-    });
-  };
-
-  // ==================== WITHDRAW ====================
+  // ==================== CUSTOMER WITHDRAW ====================
   window.requestWithdraw = async function() {
-    const upi = document.getElementById('upiId').value.trim();
-    if (!upi) return alert("UPI আইডি দিন");
-    if (!window.currentUserPhone) return alert("আগে নাম্বার সেভ করুন");
-    
-    const snap = await getDoc(doc(db, "users", window.currentUserPhone));
-    const balance = snap.data()?.balance || 0;
-    
-    if (balance < 500) {
-      document.getElementById('withdrawStatus').innerHTML = `<div class="status error">⚠️ ন্যূনতম ₹500 প্রয়োজন। আপনার ₹${balance}</div>`;
+    const upi = document.getElementById('custUpi').value.trim();
+    if (!upi) return alert("UPI দিন");
+    const cid = customerAdminId + '_' + customerPhone;
+    const cs = await getDoc(doc(db, "customers", cid));
+    const bal = cs.data()?.balance || 0;
+    const min = window.customerWithdrawMin || 500;
+
+    if (bal < min) {
+      document.getElementById('withdrawStatus').innerHTML = `<div class="status error">⚠️ Minimum ₹${min}. আপনার ₹${bal}</div>`;
       return;
     }
-    
+
     await addDoc(collection(db, "withdrawals"), {
-      phone: window.currentUserPhone,
-      amount: balance,
-      upiId: upi,
-      status: 'pending',
+      adminId: customerAdminId, phone: customerPhone,
+      amount: bal, upiId: upi, status: 'pending',
       requestedAt: serverTimestamp()
     });
-    
     document.getElementById('withdrawStatus').innerHTML = '<div class="status success">✅ অনুরোধ পাঠানো হয়েছে</div>';
   };
 
-  window.loadWithdrawals = function() {
-    const q = query(collection(db, "withdrawals"), where("status", "==", "pending"), orderBy("requestedAt", "desc"));
-    onSnapshot(q, (snap) => {
-      let html = '';
-      if (snap.empty) {
-        html = '<p style="color:#999; text-align:center;">কোনো অনুরোধ নেই</p>';
-      } else {
-        snap.forEach(d => {
-          const w = d.data();
-          html += `<div class="coupon-item">
-            <div>
-              <div style="font-weight:bold;">${w.phone}</div>
-              <div style="font-size:12px; color:#666;">UPI: ${w.upiId}</div>
-            </div>
-            <div style="text-align:right;">
-              <div class="coupon-amount">₹${w.amount}</div>
-              <button style="width:auto; padding:5px 10px; font-size:12px; margin-top:5px;"
-                onclick="approveWithdraw('${d.id}', '${w.phone}', ${w.amount})">অনুমোদন</button>
-            </div>
-          </div>`;
-        });
-      }
-      document.getElementById('withdrawList').innerHTML = html;
-    });
-  };
+  // ==================== INIT ====================
+  applyTranslations();
+  // যদি ভাষা আগে সেট না থাকে
+  if (!localStorage.getItem('lang')) {
+    showView('view-lang');
+  } else {
+    setLanguage(currentLang);
+  }
 
-  window.approveWithdraw = async function(wid, phone, amount) {
-    if (!confirm(`${phone} কে ₹${amount} পাঠিয়েছেন?`)) return;
-    try {
-      const userRef = doc(db, "users", phone);
-      const uSnap = await getDoc(userRef);
-      const bal = uSnap.data().balance || 0;
-      if (bal < amount) return alert("⚠️ ব্যালেন্স পর্যাপ্ত নয়!");
-      
-      await updateDoc(userRef, { balance: bal - amount, updatedAt: serverTimestamp() });
-      await updateDoc(doc(db, "withdrawals", wid), { status: 'paid', paidAt: serverTimestamp() });
-      await addDoc(collection(db, "transactions"), {
-        phone, type: 'debit', amount,
-        description: 'প্রত্যাহার সম্পন্ন',
-        createdAt: serverTimestamp()
-      });
-      alert("✅ সম্পন্ন!");
-    } catch (e) { alert("❌ " + e.message); }
-  };
-
-  // ==================== পেজ লোড ====================
-  loadCompanySettings();
-  loadGrades();
-  loadWithdrawals();
+  // ভাষা সেট করার পর কল হবে
+  window.addEventListener('load', () => {
+    if (localStorage.getItem('lang') && !document.getElementById('view-lang').classList.contains('active')) {
+      setLanguage(currentLang);
+    }
+  });
 
 </script>
-
 </body>
 </html>
