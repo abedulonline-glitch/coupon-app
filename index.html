@@ -4,27 +4,177 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Adhesive Coupon System</title>
+
+<!-- QR Code Scanner Library (html5-qrcode) -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<!-- QR Code Generator Library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-  .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-  button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding-bottom: 70px; }
+  
+  /* Top Header */
+  .topbar { background: #1a73e8; color: white; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; }
+  
+  /* Tab Bar */
+  .tabs { display: flex; background: white; border-bottom: 2px solid #ddd; position: sticky; top: 56px; z-index: 99; }
+  .tab { flex: 1; padding: 14px; text-align: center; cursor: pointer; color: #555; font-weight: 600; border-bottom: 3px solid transparent; }
+  .tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+  
+  /* Content */
+  .content { padding: 15px; max-width: 600px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+  
+  /* Cards */
+  .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .card h3 { margin-bottom: 12px; color: #202124; font-size: 16px; }
+  
+  /* Form */
+  label { display: block; font-size: 13px; color: #555; margin: 10px 0 5px; font-weight: 600; }
+  input, select { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; font-size: 15px; }
+  input:focus, select:focus { outline: none; border-color: #1a73e8; }
+  
+  /* Buttons */
+  button { background: #1a73e8; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 12px; }
+  button:hover { background: #1557b0; }
+  button.secondary { background: #5f6368; }
+  button.success { background: #0f9d58; }
+  button.danger { background: #d93025; }
+  
+  /* Status */
+  .status { padding: 12px; border-radius: 8px; margin: 10px 0; font-weight: 600; text-align: center; }
+  .status.success { background: #e6f4ea; color: #0f9d58; }
+  .status.error { background: #fce8e6; color: #d93025; }
+  .status.info { background: #e8f0fe; color: #1a73e8; }
+  
+  /* QR Scanner */
+  #qr-reader { width: 100%; border-radius: 12px; overflow: hidden; }
+  
+  /* Coupon List */
+  .coupon-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+  .coupon-item:last-child { border-bottom: none; }
+  .coupon-code { font-family: monospace; font-size: 13px; color: #333; }
+  .coupon-amount { color: #0f9d58; font-weight: bold; }
+  
+  /* QR Preview */
+  .qr-preview { text-align: center; padding: 15px; background: white; border: 1px dashed #ccc; border-radius: 12px; }
+  .qr-preview canvas, .qr-preview img { margin: 0 auto; display: block; }
+  
+  /* Balance */
+  .balance-box { text-align: center; padding: 25px; background: linear-gradient(135deg, #1a73e8, #4285f4); color: white; border-radius: 12px; margin-bottom: 15px; }
+  .balance-amount { font-size: 42px; font-weight: bold; margin-top: 8px; }
+  .balance-label { font-size: 14px; opacity: 0.9; }
+  
+  /* Loader */
+  .loader { text-align: center; padding: 15px; color: #1a73e8; font-weight: 600; }
+  
+  .hidden { display: none; }
 </style>
 </head>
 <body>
 
-<h2>Coupon System (Firebase Test)</h2>
-<div class="card">
-  <p id="status">Firebase লোড হচ্ছে...</p>
-  <button onclick="testFirebase()">Firebase টেস্ট করুন</button>
-  <ul id="couponList"></ul>
+<div class="topbar">🎫 Adhesive Coupon System</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('admin')">👨‍💼 Admin</div>
+  <div class="tab" onclick="switchTab('scan')">📷 Scan</div>
+  <div class="tab" onclick="switchTab('wallet')">💰 Wallet</div>
 </div>
 
+<div class="content">
+
+  <!-- ============ ADMIN PAGE ============ -->
+  <div id="page-admin" class="page active">
+    <div class="card">
+      <h3>🎫 নতুন কুপন জেনারেট করুন</h3>
+      
+      <label>গ্রেড (Grade)</label>
+      <select id="gradeSelect">
+        <option value="T1_20Kg">T1 (20Kg) — ₹25</option>
+        <option value="T1_30Kg">T1 (30Kg) — ₹40</option>
+        <option value="T2_20Kg">T2 (20Kg) — ₹50</option>
+        <option value="W1_20Kg">W1 (20Kg) — ₹30</option>
+      </select>
+      
+      <label>পরিমাণ (Quantity)</label>
+      <input type="number" id="qtyInput" value="5" min="1" max="100">
+      
+      <button onclick="generateCoupons()">🚀 কুপন জেনারেট করুন</button>
+      <div id="genStatus"></div>
+    </div>
+    
+    <div class="card">
+      <h3>📋 শেষ জেনারেট করা কুপন</h3>
+      <div id="lastBatch"></div>
+    </div>
+    
+    <div class="card">
+      <h3>💸 প্রত্যাহার অনুরোধ</h3>
+      <div id="withdrawList"><div class="loader">লোড হচ্ছে...</div></div>
+    </div>
+  </div>
+
+  <!-- ============ SCAN PAGE ============ -->
+  <div id="page-scan" class="page">
+    <div class="card">
+      <h3>📷 কুপন QR স্ক্যান করুন</h3>
+      <div id="qr-reader"></div>
+      <button class="secondary" onclick="stopScanner()">স্ক্যানার বন্ধ করুন</button>
+    </div>
+    
+    <div class="card">
+      <h3>✍️ ম্যানুয়াল কোড এন্ট্রি</h3>
+      <label>কুপন কোড</label>
+      <input type="text" id="manualCode" placeholder="CUPN-XXXXXXXX-T1A">
+      <button onclick="redeemManual()">রিডিম করুন</button>
+    </div>
+    
+    <div id="scanStatus"></div>
+  </div>
+
+  <!-- ============ WALLET PAGE ============ -->
+  <div id="page-wallet" class="page">
+    <div class="balance-box">
+      <div class="balance-label">আপনার ব্যালেন্স</div>
+      <div class="balance-amount" id="balanceAmount">₹0</div>
+    </div>
+    
+    <div class="card">
+      <h3>👤 আপনার তথ্য</h3>
+      <label>আপনার মোবাইল নাম্বার</label>
+      <input type="tel" id="userPhone" placeholder="9876543210" maxlength="10">
+      <button onclick="saveUser()">সেভ করুন</button>
+    </div>
+    
+    <div class="card">
+      <h3>💸 প্রত্যাহার (Withdrawal)</h3>
+      <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+        ₹500 হলে প্রত্যাহার করতে পারবেন। আপনার UPI আইডি দিন।
+      </p>
+      <label>UPI আইডি</label>
+      <input type="text" id="upiId" placeholder="example@upi">
+      <button class="success" onclick="requestWithdraw()">প্রত্যাহারের অনুরোধ পাঠান</button>
+      <div id="withdrawStatus"></div>
+    </div>
+    
+    <div class="card">
+      <h3>📜 লেনদেনের ইতিহাস</h3>
+      <div id="txnHistory"><div class="loader">লোড হচ্ছে...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Firebase SDKs -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, orderBy } 
+  import { getFirestore, collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-
+  // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
   const firebaseConfig = {
   apiKey: "AIzaSyBZCFgugZCLuyryQiuLYY-HjBin6QeFQd0",
   authDomain: "couponsystem-7c625.firebaseapp.com",
@@ -38,27 +188,424 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  document.getElementById('status').innerText = "✅ Firebase সংযুক্ত হয়েছে!";
+  // গ্লোবাল করে দিচ্ছি
+  window.db = db;
+  window.fsApi = { collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction };
 
-  window.testFirebase = async function() {
-    await addDoc(collection(db, "coupons"), {
-      code: "CUPN-TEST001-T1A",
-      grade: "T1_20Kg",
-      amount: 25,
-      status: "unused",
-      createdAt: new Date()
+  // গ্রেড → মান ম্যাপিং (এখানে পরিবর্তন করলে সব জায়গায় পরিবর্তন হবে)
+  const GRADE_AMOUNTS = {
+    "T1_20Kg": 25,
+    "T1_30Kg": 40,
+    "T2_20Kg": 50,
+    "W1_20Kg": 30
+  };
+  const GRADE_SUFFIX = {
+    "T1_20Kg": "T1A",
+    "T1_30Kg": "T1B",
+    "T2_20Kg": "T2A",
+    "W1_20Kg": "W1A"
+  };
+  window.GRADE_AMOUNTS = GRADE_AMOUNTS;
+  window.GRADE_SUFFIX = GRADE_SUFFIX;
+
+  // বর্তমান ব্যবহারকারীর মোবাইল নাম্বার (localStorage-এ সেভ)
+  window.currentUserPhone = localStorage.getItem('userPhone') || '';
+  if (window.currentUserPhone) {
+    document.getElementById('userPhone').value = window.currentUserPhone;
+    loadWallet();
+  }
+
+  // ============ ইউটিলিটি: ইউনিক কোড জেনারেট ============
+  window.generateUniqueCode = function(suffix) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let rand = '';
+    for (let i = 0; i < 8; i++) {
+      rand += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return `CUPN-${rand}-${suffix}`;
+  };
+
+  // ============ ADMIN: কুপন জেনারেট ============
+  window.generateCoupons = async function() {
+    const grade = document.getElementById('gradeSelect').value;
+    const qty = parseInt(document.getElementById('qtyInput').value);
+    const amount = GRADE_AMOUNTS[grade];
+    const suffix = GRADE_SUFFIX[grade];
+    
+    document.getElementById('genStatus').innerHTML = '<div class="status info">⏳ জেনারেট হচ্ছে...</div>';
+    
+    const generatedCodes = [];
+    const batchId = 'BATCH-' + Date.now();
+    
+    try {
+      for (let i = 0; i < qty; i++) {
+        const code = window.generateUniqueCode(suffix);
+        generatedCodes.push(code);
+        
+        await addDoc(collection(db, "coupons"), {
+          code: code,
+          grade: grade,
+          amount: amount,
+          status: "unused",
+          batchId: batchId,
+          createdAt: serverTimestamp()
+        });
+      }
+      
+      document.getElementById('genStatus').innerHTML = 
+        `<div class="status success">✅ ${qty}টি কুপন তৈরি হয়েছে!</div>`;
+      
+      // শেষ ব্যাচ দেখাও
+      let html = '<div style="max-height:300px; overflow-y:auto;">';
+      generatedCodes.forEach(code => {
+        html += `<div class="coupon-item">
+          <span class="coupon-code">${code}</span>
+          <span class="coupon-amount">₹${amount}</span>
+        </div>`;
+      });
+      html += '</div>';
+      html += `<button onclick="printBatch()" style="margin-top:10px;">🖨️ প্রিন্ট / PDF</button>`;
+      document.getElementById('lastBatch').innerHTML = html;
+      
+      window.lastGeneratedBatch = generatedCodes;
+      
+    } catch (e) {
+      document.getElementById('genStatus').innerHTML = 
+        `<div class="status error">❌ এরর: ${e.message}</div>`;
+    }
+  };
+
+  // ============ ADMIN: ব্যাচ প্রিন্ট ============
+  window.printBatch = function() {
+    const codes = window.lastGeneratedBatch || [];
+    let win = window.open('', '_blank');
+    let html = `<html><head><title>Coupons</title>
+      <style>
+        body { font-family: Arial; padding: 20px; }
+        .qr-item { display: inline-block; width: 150px; margin: 10px; padding: 10px; border: 1px dashed #999; text-align: center; page-break-inside: avoid; }
+        .qr-item .code { font-size: 9px; font-family: monospace; margin-top: 5px; word-break: break-all; }
+        .qr-item .amt { font-size: 12px; font-weight: bold; color: #0f9d58; }
+      </style></head><body>`;
+    
+    html += `<h2>Adhesive Coupons — ${codes.length}টি</h2>`;
+    codes.forEach((c, i) => {
+      const id = 'qr' + i;
+      html += `<div class="qr-item"><div id="${id}"></div>
+        <div class="code">${c}</div></div>`;
     });
-    alert("✅ ডেটা সেভ হয়েছে!");
+    
+    html += `<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>
+      <script>
+        window.onload = function() {`;
+    codes.forEach((c, i) => {
+      html += `new QRCode(document.getElementById("qr${i}"), { text: "${c}", width: 110, height: 110 });`;
+    });
+    html += `};<\/script></body></html>`;
+    
+    win.document.write(html);
+    win.document.close();
+  };
 
-    const q = query(collection(db, "coupons"), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-    const list = document.getElementById('couponList');
-    list.innerHTML = "";
-    snap.forEach(doc => {
-      const d = doc.data();
-      list.innerHTML += `<li>${d.code} - ₹${d.amount} (${d.grade})</li>`;
+  // ============ SCANNER ============
+  let html5QrCode = null;
+  let scannerActive = false;
+
+  window.switchTab = function(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('page-' + tab).classList.add('active');
+    
+    if (tab === 'scan') {
+      startScanner();
+    } else {
+      stopScanner();
+    }
+    if (tab === 'wallet') {
+      loadWallet();
+    }
+    if (tab === 'admin') {
+      loadWithdrawals();
+    }
+  };
+
+  window.startScanner = function() {
+    if (scannerActive) return;
+    html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        stopScanner();
+        redeemCode(decodedText);
+      },
+      (err) => {}
+    ).then(() => { scannerActive = true; })
+    .catch(err => {
+      document.getElementById('scanStatus').innerHTML = 
+        `<div class="status error">ক্যামেরা চালু করা যায়নি: ${err}</div>`;
     });
   };
+
+  window.stopScanner = function() {
+    if (html5QrCode && scannerActive) {
+      html5QrCode.stop().then(() => { scannerActive = false; }).catch(() => {});
+    }
+  };
+
+  // ============ COUPON REDEEM ============
+  window.redeemCode = async function(code) {
+    code = code.trim().toUpperCase();
+    document.getElementById('scanStatus').innerHTML = 
+      '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+    
+    if (!window.currentUserPhone) {
+      document.getElementById('scanStatus').innerHTML = 
+        '<div class="status error">⚠️ আগে Wallet ট্যাবে আপনার মোবাইল নাম্বার সেভ করুন!</div>';
+      return;
+    }
+    
+    try {
+      // কুপন খুঁজে বের করো
+      const q = query(collection(db, "coupons"), where("code", "==", code));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        document.getElementById('scanStatus').innerHTML = 
+          '<div class="status error">❌ ভুল কুপন কোড!</div>';
+        return;
+      }
+      
+      const couponDoc = snap.docs[0];
+      const couponData = couponDoc.data();
+      
+      if (couponData.status !== 'unused') {
+        document.getElementById('scanStatus').innerHTML = 
+          '<div class="status error">⚠️ এই কুপন আগেই ব্যবহার হয়েছে!</div>';
+        return;
+      }
+      
+      // ট্রানজেকশন: কুপন used + ব্যালেন্স যোগ
+      const userRef = doc(db, "users", window.currentUserPhone);
+      
+      await runTransaction(db, async (transaction) => {
+        const userSnap = await transaction.get(userRef);
+        const couponSnap = await transaction.get(couponDoc.ref);
+        
+        if (couponSnap.data().status !== 'unused') {
+          throw new Error("কুপন ইতিমধ্যে ব্যবহৃত");
+        }
+        
+        let currentBalance = 0;
+        if (userSnap.exists()) {
+          currentBalance = userSnap.data().balance || 0;
+        }
+        
+        const newBalance = currentBalance + couponData.amount;
+        
+        transaction.set(userRef, {
+          phone: window.currentUserPhone,
+          balance: newBalance,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        
+        transaction.update(couponDoc.ref, {
+          status: 'used',
+          usedBy: window.currentUserPhone,
+          usedAt: serverTimestamp()
+        });
+        
+        // ট্রানজেকশন রেকর্ড
+        const txnRef = doc(collection(db, "transactions"));
+        transaction.set(txnRef, {
+          phone: window.currentUserPhone,
+          type: 'credit',
+          amount: couponData.amount,
+          couponCode: code,
+          description: `কুপন রিডিম: ${couponData.grade}`,
+          createdAt: serverTimestamp()
+        });
+      });
+      
+      document.getElementById('scanStatus').innerHTML = 
+        `<div class="status success">✅ ₹${couponData.amount} যোগ হয়েছে! (${couponData.grade})</div>`;
+      
+      loadWallet();
+      
+    } catch (e) {
+      document.getElementById('scanStatus').innerHTML = 
+        `<div class="status error">❌ ${e.message}</div>`;
+    }
+  };
+
+  window.redeemManual = function() {
+    const code = document.getElementById('manualCode').value;
+    if (!code) return alert("কোড লিখুন");
+    redeemCode(code);
+  };
+
+  // ============ WALLET ============
+  window.saveUser = async function() {
+    const phone = document.getElementById('userPhone').value.trim();
+    if (!/^\d{10}$/.test(phone)) {
+      alert("সঠিক ১০ ডিজিটের মোবাইল নাম্বার দিন");
+      return;
+    }
+    window.currentUserPhone = phone;
+    localStorage.setItem('userPhone', phone);
+    
+    // ইউজার ডকুমেন্ট তৈরি করো (না থাকলে)
+    const userRef = doc(db, "users", phone);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        phone: phone,
+        balance: 0,
+        createdAt: serverTimestamp()
+      });
+    }
+    
+    alert("✅ সেভ হয়েছে!");
+    loadWallet();
+  };
+
+  window.loadWallet = async function() {
+    if (!window.currentUserPhone) return;
+    
+    const userRef = doc(db, "users", window.currentUserPhone);
+    onSnapshot(userRef, (snap) => {
+      if (snap.exists()) {
+        document.getElementById('balanceAmount').innerText = '₹' + (snap.data().balance || 0);
+      }
+    });
+    
+    // লেনদেনের ইতিহাস
+    const q = query(
+      collection(db, "transactions"),
+      where("phone", "==", window.currentUserPhone),
+      orderBy("createdAt", "desc")
+    );
+    onSnapshot(q, (snap) => {
+      let html = '';
+      if (snap.empty) {
+        html = '<p style="color:#999; text-align:center;">কোনো লেনদেন নেই</p>';
+      } else {
+        snap.forEach(d => {
+          const t = d.data();
+          const color = t.type === 'credit' ? '#0f9d58' : '#d93025';
+          const sign = t.type === 'credit' ? '+' : '-';
+          const date = t.createdAt?.toDate?.()?.toLocaleString('bn-BD') || '';
+          html += `<div class="coupon-item">
+            <div><div style="font-size:13px;">${t.description}</div>
+            <div style="font-size:11px; color:#999;">${date}</div></div>
+            <div style="color:${color}; font-weight:bold;">${sign}₹${t.amount}</div>
+          </div>`;
+        });
+      }
+      document.getElementById('txnHistory').innerHTML = html;
+    });
+  };
+
+  // ============ WITHDRAWAL ============
+  window.requestWithdraw = async function() {
+    const upi = document.getElementById('upiId').value.trim();
+    if (!upi) return alert("UPI আইডি দিন");
+    
+    if (!window.currentUserPhone) return alert("আগে মোবাইল নাম্বার সেভ করুন");
+    
+    const userRef = doc(db, "users", window.currentUserPhone);
+    const snap = await getDoc(userRef);
+    const balance = snap.data()?.balance || 0;
+    
+    if (balance < 500) {
+      document.getElementById('withdrawStatus').innerHTML = 
+        `<div class="status error">⚠️ ন্যূনতম ₹500 প্রয়োজন। আপনার ব্যালেন্স ₹${balance}</div>`;
+      return;
+    }
+    
+    // অনুরোধ তৈরি (ব্যালেন্স এখনই কাটবো না, অ্যাডমিন অনুমোদনের পর কাটবো)
+    await addDoc(collection(db, "withdrawals"), {
+      phone: window.currentUserPhone,
+      amount: balance,
+      upiId: upi,
+      status: 'pending',
+      requestedAt: serverTimestamp()
+    });
+    
+    document.getElementById('withdrawStatus').innerHTML = 
+      `<div class="status success">✅ অনুরোধ পাঠানো হয়েছে। অ্যাডমিন শীঘ্রই প্রক্রিয়া করবে।</div>`;
+  };
+
+  // ============ ADMIN: প্রত্যাহার লিস্ট ============
+  window.loadWithdrawals = function() {
+    const q = query(collection(db, "withdrawals"), where("status", "==", "pending"), orderBy("requestedAt", "desc"));
+    onSnapshot(q, (snap) => {
+      let html = '';
+      if (snap.empty) {
+        html = '<p style="color:#999; text-align:center;">কোনো প্রত্যাহার অনুরোধ নেই</p>';
+      } else {
+        snap.forEach(d => {
+          const w = d.data();
+          html += `<div class="coupon-item">
+            <div>
+              <div style="font-weight:bold;">${w.phone}</div>
+              <div style="font-size:12px; color:#666;">UPI: ${w.upiId}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="coupon-amount">₹${w.amount}</div>
+              <button style="width:auto; padding:5px 10px; font-size:12px; margin-top:5px;" 
+                onclick="approveWithdraw('${d.id}', '${w.phone}', ${w.amount})">অনুমোদন</button>
+            </div>
+          </div>`;
+        });
+      }
+      document.getElementById('withdrawList').innerHTML = html;
+    });
+  };
+
+  window.approveWithdraw = async function(withdrawId, phone, amount) {
+    if (!confirm(`${phone} কে ₹${amount} পাঠিয়েছেন? (প্রথমে ব্যাংক/UPI থেকে পাঠান, তারপর এখানে ক্লিক করুন)`)) return;
+    
+    try {
+      // ব্যালেন্স কাটো + withdrawal status আপডেট
+      const userRef = doc(db, "users", phone);
+      const userSnap = await getDoc(userRef);
+      const currentBalance = userSnap.data().balance || 0;
+      
+      if (currentBalance < amount) {
+        alert("⚠️ ইউজারের ব্যালেন্স পর্যাপ্ত নয়!");
+        return;
+      }
+      
+      await updateDoc(userRef, {
+        balance: currentBalance - amount,
+        updatedAt: serverTimestamp()
+      });
+      
+      await updateDoc(doc(db, "withdrawals", withdrawId), {
+        status: 'paid',
+        paidAt: serverTimestamp()
+      });
+      
+      // ট্রানজেকশন রেকর্ড
+      await addDoc(collection(db, "transactions"), {
+        phone: phone,
+        type: 'debit',
+        amount: amount,
+        description: 'প্রত্যাহার সম্পন্ন',
+        createdAt: serverTimestamp()
+      });
+      
+      alert("✅ প্রত্যাহার সম্পন্ন হয়েছে!");
+    } catch (e) {
+      alert("❌ এরর: " + e.message);
+    }
+  };
+
+  // ============ পেজ লোড হলে যা হবে ============
+  document.getElementById('genStatus').innerHTML = '';
+  window.loadWithdrawals();
+
 </script>
 
 </body>
