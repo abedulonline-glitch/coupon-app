@@ -59,6 +59,27 @@
   .tab-switch { display: flex; margin-bottom: 16px; background: #f0f2f5; border-radius: 8px; padding: 4px; }
   .tab-switch > div { flex: 1; padding: 10px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: #666; }
   .tab-switch > div.active { background: white; color: #1a73e8; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+/* রোল কার্ড */
+.role-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 14px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.role-card:hover {
+  border-color: #1a73e8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+}
+.role-card.selected {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+}
 </style>
 </head>
 <body>
@@ -102,16 +123,86 @@
       </div>
 
       <div id="register-form" style="display:none;">
-        <label data-t="company_name">Company Name</label>
-        <input type="text" id="regCompany" placeholder="Adhesive Co.">
-        <label data-t="whatsapp_number">WhatsApp Number</label>
-        <input type="tel" id="regName" placeholder="9876543210" maxlength="10">  <label data-t="email">Email</label>
-        <input type="email" id="regEmail" placeholder="admin@company.com">
-        <label data-t="password">Password</label>
-        <input type="password" id="regPassword" placeholder="••••••••">
-        <button onclick="adminRegister()" data-t="register_btn">Register</button>
-        <div id="regStatus"></div>
+  
+  <!-- ধাপ ১: রোল সিলেকশন -->
+  <div id="roleSelection">
+    <h3 style="font-size: 15px; color: #202124; margin-bottom: 12px; text-align: center;">
+      আপনি কে?
+    </h3>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+      <div class="role-card" onclick="selectRole('admin')" id="role-admin">
+        <div style="font-size: 28px;">🏢</div>
+        <div style="font-size: 12px; font-weight: 600; margin-top: 4px;">ব্যবসার মালিক</div>
+        <div style="font-size: 10px; color: #999;">Admin</div>
       </div>
+      <div class="role-card" onclick="selectRole('manufacturer')" id="role-manufacturer">
+        <div style="font-size: 28px;">🏭</div>
+        <div style="font-size: 12px; font-weight: 600; margin-top: 4px;">উৎপাদনকারী</div>
+        <div style="font-size: 10px; color: #999;">Manufacturer</div>
+      </div>
+      <div class="role-card" onclick="selectRole('wholesaler')" id="role-wholesaler">
+        <div style="font-size: 28px;">📦</div>
+        <div style="font-size: 12px; font-weight: 600; margin-top: 4px;">পাইকার</div>
+        <div style="font-size: 10px; color: #999;">Wholesaler</div>
+      </div>
+      <div class="role-card" onclick="selectRole('retailer')" id="role-retailer">
+        <div style="font-size: 28px;">🏪</div>
+        <div style="font-size: 12px; font-weight: 600; margin-top: 4px;">খুচরা বিক্রেতা</div>
+        <div style="font-size: 10px; color: #999;">Retailer</div>
+      </div>
+      <div class="role-card" onclick="selectRole('mistri')" id="role-mistri">
+        <div style="font-size: 28px;">🔧</div>
+        <div style="font-size: 12px; font-weight: 600; margin-top: 4px;">কারিগর</div>
+        <div style="font-size: 10px; color: #999;">Mistri</div>
+      </div>
+      <div class="role-card" onclick="selectRole('customer')" id="role-customer">
+        <div style="font-size: 28px;">🧑</div>
+        <div style="font-size: 12px; font-weight: 600; margin-top: 4px;">গ্রাহক</div>
+        <div style="font-size: 10px; color: #999;">Customer</div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin: 15px 0; color: #999; font-size: 12px;">
+      ──── অথবা ────
+    </div>
+
+    <div class="role-card" style="width: 100%; box-sizing: border-box;" onclick="selectRole('invite')">
+      <div style="font-size: 20px;">🔑</div>
+      <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">আমার Invite Code আছে</div>
+      <div style="font-size: 10px; color: #999;">Manager / Salesman / Delivery Boy</div>
+    </div>
+  </div>
+
+  <!-- ধাপ ২: ফর্ম (রোল সিলেক্ট করলে দেখাবে) -->
+  <div id="registerFormFields" style="display: none;">
+    <div id="selectedRoleBadge" style="background: #e8f0fe; color: #1a73e8; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-align: center;"></div>
+    
+    <label>Company / Business Name</label>
+    <input type="text" id="regCompany" placeholder="Adhesive Co.">
+    
+    <label>আপনার নাম</label>
+    <input type="text" id="regName" placeholder="Your name">
+    
+    <label>WhatsApp Number</label>
+    <input type="tel" id="regWhatsapp" placeholder="9876543210" maxlength="10">
+    
+    <label>Email</label>
+    <input type="email" id="regEmail" placeholder="admin@company.com">
+    
+    <label>Password (কমপক্ষে ৬ অক্ষর)</label>
+    <input type="password" id="regPassword" placeholder="••••••••">
+    
+    <label>Confirm Password</label>
+    <input type="password" id="regPassword2" placeholder="••••••••">
+    
+    <button onclick="adminRegister()" data-t="register_btn">Register</button>
+    <button class="secondary" onclick="backToRoleSelection()" style="margin-top: 6px;">← পিছনে যান</button>
+    
+    <div id="regStatus"></div>
+  </div>
+  
+</div>
     </div>
   </div>
 </div>
@@ -466,10 +557,62 @@ const firebaseConfig = {
     document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
     document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
   };
+ // ==================== রোল সিলেকশন ====================
+let selectedRole = null;
 
+window.selectRole = function(role) {
+  selectedRole = role;
+  
+  // সব কার্ড থেকে selected ক্লাস সরান
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  
+  // সিলেক্ট করা কার্ডে ক্লাস যোগ করুন
+  const card = document.getElementById('role-' + role);
+  if (card) card.classList.add('selected');
+  
+  // রোল নাম দেখানোর জন্য
+  const roleNames = {
+    'admin': '🏢 ব্যবসার মালিক (Admin)',
+    'manufacturer': '🏭 উৎপাদনকারী (Manufacturer)',
+    'wholesaler': '📦 পাইকার (Wholesaler)',
+    'retailer': '🏪 খুচরা বিক্রেতা (Retailer)',
+    'mistri': '🔧 কারিগর (Mistri)',
+    'customer': '🧑 গ্রাহক (Customer)',
+    'invite': '🔑 Invite Code দিয়ে যোগ দিন'
+  };
+  
+  document.getElementById('selectedRoleBadge').innerText = roleNames[role] || role;
+  
+  // রোল সিলেকশন লুকান, ফর্ম দেখান
+  document.getElementById('roleSelection').style.display = 'none';
+  document.getElementById('registerFormFields').style.display = 'block';
+  
+  // Invite সিলেক্ট করলে অতিরিক্ত ফিল্ড দেখাও (পরের ধাপে যোগ করব)
+  if (role === 'invite') {
+    // পরে এখানে Invite Code ফিল্ড যোগ করব
+    alert("Invite Code ফিচার পরের ধাপে যোগ করব। এখন শুধু UI টেস্ট করছি।");
+  }
+};
+
+window.backToRoleSelection = function() {
+  selectedRole = null;
+  document.getElementById('roleSelection').style.display = 'block';
+  document.getElementById('registerFormFields').style.display = 'none';
+  document.getElementById('regStatus').innerHTML = '';
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+};
+ 
+// ==================== Admin Register (UI Test Only) ====================
 window.adminRegister = async function() {
+    // ⚠️ আজ এই ফাংশন শুধু UI টেস্ট করবে
+    // আগামী ধাপে আসল Firebase Authentication যোগ হবে
+    alert("✅ রোল সিস্টেম কাজ করছে!\n\nআসল রেজিস্ট্রেশন (Firebase Authentication সহ) পরের ধাপে চালু হবে।");
+    return;
+};
+ /* পুরনো কোড — পরের ধাপে আবার ব্যবহার করব
+window.adminRegister_OLD = async function() {
     const company = document.getElementById('regCompany').value.trim();
-    const whatsapp = document.getElementById('regName').value.trim(); // Name থেকে WhatsApp
+    const whatsapp = document.getElementById('regName').value.trim();
     const email = document.getElementById('regEmail').value.trim().toLowerCase();
     const password = document.getElementById('regPassword').value;
 
@@ -488,7 +631,7 @@ window.adminRegister = async function() {
 
       const ref = await addDoc(collection(db, "admins"), {
         email, 
-        whatsapp: whatsapp, // এখানে whatsapp সেভ হবে
+        whatsapp: whatsapp,
         companyName: company,
         password: hashPwd(password),
         language: currentLang,
@@ -505,7 +648,8 @@ window.adminRegister = async function() {
     } catch (e) {
       statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
     }
-  };
+};
+*/
 
   window.adminLogin = async function() {
     const email = document.getElementById('loginEmail').value.trim().toLowerCase();
