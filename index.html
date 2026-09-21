@@ -102,7 +102,31 @@
       </div>
 
       <div id="register-form" style="display:none;">
-        <label data-t="company_name">Company Name</label>
+        <div id="register-form" style="display:none;">
+  <label data-t="who_are_you">আপনি কে?</label>
+  <select id="regRole" style="margin-bottom: 10px;">
+    <option value="admin">🏢 ব্যবসার মালিক (Admin)</option>
+    <option value="manufacturer">🏭 উৎপাদনকারী (Manufacturer)</option>
+    <option value="wholesaler">📦 পাইকারি বিক্রেতা (Wholesaler)</option>
+    <option value="retailer">🏪 খুচরা বিক্রেতা (Retailer)</option>
+  </select>
+
+  <label data-t="company_name">Company Name</label>
+  <input type="text" id="regCompany" placeholder="Adhesive Co.">
+  
+  <label data-t="whatsapp_number">WhatsApp Number</label>
+  <input type="tel" id="regName" placeholder="9876543210" maxlength="10">
+  
+  <label data-t="email">Email</label>
+  <input type="email" id="regEmail" placeholder="admin@company.com">
+  
+  <label data-t="password">Password</label>
+  <input type="password" id="regPassword" placeholder="••••••••">
+  
+  <button onclick="adminRegister()" data-t="register_btn">Register</button>
+  <div id="regStatus"></div>
+</div>
+       <label data-t="company_name">Company Name</label>
         <input type="text" id="regCompany" placeholder="Adhesive Co.">
         <label data-t="whatsapp_number">WhatsApp Number</label>
         <input type="tel" id="regName" placeholder="9876543210" maxlength="10">  <label data-t="email">Email</label>
@@ -285,8 +309,10 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction }
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
 //  measurementId is optional
@@ -302,8 +328,10 @@ const firebaseConfig = {
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-
-  // ==================== i18n TRANSLATIONS ====================
+  const auth = getAuth(app);
+   window.auth = auth;
+ 
+ // ==================== i18n TRANSLATIONS ====================
   const T = {
     bn: {
       admin_panel: "অ্যাডমিন প্যানেল", login: "লগইন", register: "রেজিস্টার",
@@ -424,26 +452,18 @@ const firebaseConfig = {
   }
 
   window.setLanguage = function(lang) {
-  try {
-    currentLang = lang;
-    localStorage.setItem('lang', lang);
-    applyTranslations();
-    
-    const params = new URLSearchParams(window.location.search);
-    const urlAdmin = params.get('admin');
-    
-    if (urlAdmin) {
-      customerAdminId = urlAdmin;
-      showView('view-customer');
-      initCustomer();
-    } else if (adminId) {
-      loadAdminSession();
-    } else {
-      showView('view-auth');
-    }
-  } catch (e) {
-    console.error("Language error:", e);
-    alert("সমস্যা হয়েছে: " + e.message);
+  currentLang = lang;
+  localStorage.setItem('lang', lang);
+  applyTranslations();
+  
+  const params = new URLSearchParams(window.location.search);
+  const urlAdmin = params.get('admin');
+  
+  if (urlAdmin) {
+    customerAdminId = urlAdmin;
+    showView('view-customer');
+    initCustomer();
+  } else {
     showView('view-auth');
   }
 };
@@ -468,104 +488,82 @@ const firebaseConfig = {
   };
 
 window.adminRegister = async function() {
-    const company = document.getElementById('regCompany').value.trim();
-    const whatsapp = document.getElementById('regName').value.trim(); // Name থেকে WhatsApp
-    const email = document.getElementById('regEmail').value.trim().toLowerCase();
-    const password = document.getElementById('regPassword').value;
+  const role = document.getElementById('regRole').value;
+  const company = document.getElementById('regCompany').value.trim();
+  const whatsapp = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value;
 
-    if (!company || !whatsapp || !email || !password) return alert("সব তথ্য দিন");
-    if (!/^\d{10}$/.test(whatsapp)) return alert("সঠিক ১০ ডিজিটের WhatsApp নাম্বার দিন");
+  if (!company || !whatsapp || !email || !password) return alert("সব তথ্য দিন");
+  if (!/^\d{10}$/.test(whatsapp)) return alert("সঠিক ১০ ডিজিটের WhatsApp নাম্বার দিন");
+  if (password.length < 6) return alert("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
 
-    const statusEl = document.getElementById('regStatus');
-    statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
+  const statusEl = document.getElementById('regStatus');
+  statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
 
-    try {
-      const existing = await getDocs(query(collection(db, "admins"), where("email", "==", email)));
-      if (!existing.empty) {
-        statusEl.innerHTML = `<div class="status error">❌ ${t('admin_exists')}</div>`;
-        return;
-      }
+  try {
+    // ১. Firebase Auth-এ ইউজার তৈরি
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = userCred.user.uid;
 
-      const ref = await addDoc(collection(db, "admins"), {
-        email, 
-        whatsapp: whatsapp, // এখানে whatsapp সেভ হবে
-        companyName: company,
-        password: hashPwd(password),
-        language: currentLang,
-        withdrawalMin: 500,
-        helpline: "1800-000-0000",
-        footer: "",
-        createdAt: serverTimestamp()
-      });
+    // ২. Firestore-এ ইউজার ডেটা সেভ
+    await setDoc(doc(db, "admins", uid), {
+      uid: uid,
+      email: email,
+      whatsapp: whatsapp,
+      companyName: company,
+      role: role,
+      language: currentLang,
+      withdrawalMin: 500,
+      helpline: "1800-000-0000",
+      footer: "",
+      subscription: {
+        plan: "trial",
+        status: "active",
+        trialStartDate: new Date(),
+        trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // ৩০ দিন
+      },
+      createdAt: serverTimestamp()
+    });
 
-      adminId = ref.id;
-      localStorage.setItem('adminId', adminId);
-      statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
-      setTimeout(() => loadAdminSession(), 600);
-    } catch (e) {
-      statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
-    }
-  };
+    statusEl.innerHTML = '<div class="status success">✅ সফল! লোড হচ্ছে...</div>';
+    // onAuthStateChanged নিজেই পরের কাজ করবে
+  } catch (e) {
+    let msg = e.message;
+    if (e.code === 'auth/email-already-in-use') msg = "এই ইমেইল আগেই রেজিস্টার্ড";
+    if (e.code === 'auth/weak-password') msg = "পাসওয়ার্ড দুর্বল";
+    if (e.code === 'auth/invalid-email') msg = "ভুল ইমেইল";
+    statusEl.innerHTML = `<div class="status error">❌ ${msg}</div>`;
+  }
+};
 
   window.adminLogin = async function() {
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword').value;
-    const statusEl = document.getElementById('loginStatus');
-    statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const statusEl = document.getElementById('loginStatus');
+  statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
 
-    try {
-      const snap = await getDocs(query(collection(db, "admins"), where("email", "==", email)));
-      if (snap.empty) {
-        statusEl.innerHTML = `<div class="status error">❌ ${t('wrong_login')}</div>`;
-        return;
-      }
-      const doc0 = snap.docs[0];
-      const data = doc0.data();
-      if (data.password !== hashPwd(password)) {
-        statusEl.innerHTML = `<div class="status error">❌ ${t('wrong_login')}</div>`;
-        return;
-      }
-      adminId = doc0.id;
-      localStorage.setItem('adminId', adminId);
-      statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
-      setTimeout(() => loadAdminSession(), 500);
-    } catch (e) {
-      statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
-    }
-  };
-
-  window.adminLogout = function() {
-    adminId = null; adminData = null;
-    localStorage.removeItem('adminId');
-    showView('view-auth');
-  };
-
-  async function loadAdminSession() {
-  if (!adminId) { showView('view-auth'); return; }
   try {
-    const snap = await getDoc(doc(db, "admins", adminId));
-    if (!snap.exists()) { 
-      // অ্যাডমিন খুঁজে না পেলে লগআউট করে লগইন স্ক্রিনে পাঠাবে
-      adminLogout(); 
-      return; 
-    }
-    adminData = snap.data();
-    if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
-    document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
-    document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
-    
-    showView('view-admin');
-    loadAdminDashboard();
-    loadGrades();
-    loadCustomerList();
-    loadWithdrawals();
-    fillSettings();
+    await signInWithEmailAndPassword(auth, email, password);
+    statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
+    // onAuthStateChanged নিজেই পরের কাজ করবে
   } catch (e) {
-    console.error("Admin load error:", e);
-    // কোনো এরর হলে জোর করে লগআউট করে লগইন স্ক্রিনে পাঠাবে
-    adminLogout();
+    let msg = "ভুল ইমেইল বা পাসওয়ার্ড";
+    if (e.code === 'auth/too-many-requests') msg = "অনেকবার চেষ্টা করেছেন। কিছুক্ষণ অপেক্ষা করুন";
+    if (e.code === 'auth/user-not-found') msg = "এই ইমেইল রেজিস্টার্ড নয়";
+    statusEl.innerHTML = `<div class="status error">❌ ${msg}</div>`;
   }
-}
+};
+
+  window.adminLogout = async function() {
+  if (!confirm("লগআউট করবেন?")) return;
+  await signOut(auth);
+  adminId = null;
+  adminData = null;
+  showView('view-auth');
+};
+
+// onAuthStateChanged দিয়ে সেশন হ্যান্ডেল করব (নিচে দেখুন)
 
   // ==================== ADMIN NAV ====================
   window.adminNav = function(page, el) {
@@ -1090,11 +1088,65 @@ window.closeCustomerModal = function() {
   // ==================== INIT ====================
   applyTranslations();
   // যদি ভাষা আগে সেট না থাকে
-  if (!localStorage.getItem('lang')) {
-    showView('view-lang');
+  // ==================== AUTH STATE LISTENER ====================
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    // ইউজার লগইন করা আছে
+    try {
+      const snap = await getDoc(doc(db, "admins", user.uid));
+      if (!snap.exists()) {
+        // Auth-এ আছে কিন্তু Firestore-এ ডেটা নেই — লগআউট করে দিই
+        await signOut(auth);
+        showView('view-auth');
+        return;
+      }
+      adminId = user.uid;
+      adminData = snap.data();
+      
+      // ভাষা সেট
+      if (adminData.language) {
+        currentLang = adminData.language;
+        applyTranslations();
+      }
+      
+      // রোল অনুযায়ী UI
+      document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
+      document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
+      showView('view-admin');
+      
+      // ডেটা লোড
+      loadAdminDashboard();
+      loadGrades();
+      loadCustomerList();
+      loadWithdrawals();
+      fillSettings();
+    } catch (e) {
+      console.error(e);
+      await signOut(auth);
+      showView('view-auth');
+    }
   } else {
-    setLanguage(currentLang);
+    // লগইন করা নেই
+    adminId = null;
+    adminData = null;
+    
+    // কাস্টমার লিংক চেক
+    const params = new URLSearchParams(window.location.search);
+    const urlAdmin = params.get('admin');
+    if (urlAdmin) {
+      customerAdminId = urlAdmin;
+      showView('view-customer');
+      initCustomer();
+    } else {
+      // ভাষা আগে সেট হয়েছে?
+      if (localStorage.getItem('lang')) {
+        showView('view-auth');
+      } else {
+        showView('view-lang');
+      }
+    }
   }
+});
 
   // ভাষা সেট করার পর কল হবে
   window.addEventListener('load', () => {
