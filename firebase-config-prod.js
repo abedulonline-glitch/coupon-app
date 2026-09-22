@@ -7,12 +7,13 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth
 
 // ⬇⬇⬇ Production Firebase (CouponSystem) কনফিগ এখানে বসান ⬇⬇⬇
 const firebaseConfig = {
-  apiKey: "PROD_API_KEY",
-  authDomain: "PROD_AUTH_DOMAIN",
-  projectId: "PROD_PROJECT_ID",
-  storageBucket: "PROD_STORAGE_BUCKET",
-  messagingSenderId: "PROD_SENDER_ID",
-  appId: "PROD_APP_ID"
+  apiKey: "AIzaSyBZCFgugZCLuyryQiuLYY-HjBin6QeFQd0",
+  authDomain: "couponsystem-7c625.firebaseapp.com",
+  projectId: "couponsystem-7c625",
+  storageBucket: "couponsystem-7c625.firebasestorage.app",
+  messagingSenderId: "211989339411",
+  appId: "1:211989339411:web:5efe34a6db6b006b434ee6",
+  measurementId: "G-76WETNMGGL"
 };
 
 export const app = initializeApp(firebaseConfig);
