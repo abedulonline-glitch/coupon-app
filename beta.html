@@ -80,6 +80,47 @@
   background: #e8f0fe;
   box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
 }
+/* Invite Code কার্ড */
+.invite-card {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.invite-code-text {
+  font-family: 'Courier New', monospace;
+  font-size: 15px;
+  font-weight: bold;
+  color: #1a73e8;
+  letter-spacing: 0.5px;
+}
+.invite-meta {
+  font-size: 11px;
+  color: #666;
+  margin-top: 4px;
+}
+.invite-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+.badge-unused { background: #e6f4ea; color: #0f9d58; }
+.badge-used { background: #fce8e6; color: #d93025; }
+.badge-expired { background: #fef7e0; color: #b06000; }
+.invite-actions button {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 11px;
+  margin: 0 0 0 4px;
+}
+
 </style>
 </head>
 <body>
@@ -282,7 +323,34 @@
 
     <!-- Settings -->
     <div id="ap-settings" class="admin-page" style="display:none;">
+      <!-- ==================== Team Management (Invite Codes) ==================== -->
       <div class="card">
+        <h3>👥 Team Management</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:12px;">
+          নতুন কর্মী যোগ করতে Invite Code তৈরি করুন। কোডটি WhatsApp-এ পাঠালে সে সেটি দিয়ে রেজিস্ট্রেশন করতে পারবে।
+        </p>
+        
+        <!-- কোড জেনারেট করার অংশ -->
+        <label>রোল সিলেক্ট করুন</label>
+        <select id="inviteRoleSelect">
+          <option value="manager">🟢 Manager</option>
+          <option value="salesman">🟡 Salesman</option>
+          <option value="delivery_boy">🟠 Delivery Boy</option>
+          <option value="dispatch_boy">🔴 Dispatch Boy</option>
+          <option value="consignor">🟫 Consignor</option>
+        </select>
+        
+        <label>কোডের মেয়াদ (দিন)</label>
+        <input type="number" id="inviteExpiryDays" value="7" min="1" max="365">
+        
+        <button class="success" onclick="generateInvite()">🔑 কোড তৈরি করুন</button>
+        <div id="inviteGenStatus"></div>
+        
+        <!-- তৈরি করা কোডগুলোর তালিকা -->
+        <h4 style="margin-top:20px; margin-bottom:10px; font-size:14px; color:#202124;">📋 আপনার কোডগুলো</h4>
+        <div id="inviteList"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+     
         <h3 data-t="company_settings">🏢 Company Settings</h3>
         <label data-t="company_name">Company Name</label>
         <input type="text" id="setCompany">
@@ -758,12 +826,13 @@ window.adminLogout = async function() {
     document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
     document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
     
-    showView('view-admin');
-    loadAdminDashboard();
-    loadGrades();
-    loadCustomerList();
-    loadWithdrawals();
-    fillSettings();
+ showView('view-admin');
+loadAdminDashboard();
+loadGrades();
+loadCustomerList();
+loadWithdrawals();
+fillSettings();
+loadInvites();  // ⬅️ নতুন লাইন
   } catch (e) {
     console.error("Admin load error:", e);
     // কোনো এরর হলে জোর করে লগআউট করে লগইন স্ক্রিনে পাঠাবে
@@ -1120,7 +1189,183 @@ window.closeCustomerModal = function() {
     setTimeout(() => document.getElementById('settingsStatus').innerHTML = '', 2000);
   };
 
-  // ==================== CUSTOMER FLOW ====================
+  // ============================================================
+// INVITE CODE SYSTEM (অ্যাডমিন দিক)
+// ============================================================
+
+// রোলের সংক্ষিপ্ত নাম
+const ROLE_SHORT = {
+  manager: 'MGR',
+  salesman: 'SLS',
+  delivery_boy: 'DLV',
+  dispatch_boy: 'DSP',
+  consignor: 'CNS'
+};
+
+// রোলের বাংলা নাম
+const ROLE_BN = {
+  manager: 'ম্যানেজার',
+  salesman: 'সেলসম্যান',
+  delivery_boy: 'ডেলিভারি বয়',
+  dispatch_boy: 'ডিসপ্যাচ বয়',
+  consignor: 'কনসাইনার'
+};
+
+// কোম্পানির নাম থেকে ৩ অক্ষরের সংক্ষিপ্ত রূপ
+function getCompanyPrefix() {
+  const name = adminData?.companyName || 'COM';
+  // ফাঁকা বাদ দিয়ে প্রথম ৩টি অক্ষর
+  const clean = name.replace(/\s/g, '').toUpperCase();
+  return clean.substring(0, 3).padEnd(3, 'X');
+}
+
+// ==================== কোড জেনারেট ====================
+window.generateInvite = async function() {
+  const role = document.getElementById('inviteRoleSelect').value;
+  const days = parseInt(document.getElementById('inviteExpiryDays').value) || 7;
+  const statusEl = document.getElementById('inviteGenStatus');
+  
+  statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
+  
+  try {
+    // ইউনিক কোড তৈরি: KOH-MGR-4829
+    const prefix = getCompanyPrefix();
+    const roleShort = ROLE_SHORT[role];
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const code = `${prefix}-${roleShort}-${randomNum}`;
+    
+    // মেয়াদ শেষের তারিখ
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + days);
+    
+    // Firestore-এ সেভ
+    await addDoc(collection(db, "invites"), {
+      code: code,
+      adminId: adminId,
+      adminCompanyName: adminData?.companyName || '',
+      role: role,
+      status: 'unused',
+      usedBy: null,
+      expiresAt: expiresAt,
+      createdAt: serverTimestamp()
+    });
+    
+    statusEl.innerHTML = 
+      `<div class="status success">
+        ✅ কোড তৈরি হয়েছে: <b>${code}</b><br>
+        <span style="font-size:11px;">মেয়াদ: ${days} দিন</span>
+      </div>`;
+    
+    // ১ সেকেন্ড পর স্ট্যাটাস মেসেজ মুছে ফেলো
+    setTimeout(() => statusEl.innerHTML = '', 5000);
+    
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+
+// ==================== কোডের তালিকা লোড ====================
+function loadInvites() {
+  if (!adminId) return;
+  
+  const q = query(
+    collection(db, "invites"),
+    where("adminId", "==", adminId)
+  );
+  
+  onSnapshot(q, (snap) => {
+    const el = document.getElementById('inviteList');
+    
+    if (snap.empty) {
+      el.innerHTML = '<p class="empty" style="padding:12px;">এখনো কোনো কোড তৈরি করা হয়নি</p>';
+      return;
+    }
+    
+    // ডেটা লোকালি সর্ট (নতুন আগে)
+    const invites = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    invites.sort((a, b) => {
+      const tA = a.createdAt?.toMillis?.() || 0;
+      const tB = b.createdAt?.toMillis?.() || 0;
+      return tB - tA;
+    });
+    
+    let html = '';
+    invites.forEach(inv => {
+      // স্ট্যাটাস চেক
+      let statusBadge = '';
+      let statusClass = '';
+      
+      const now = new Date();
+      const expDate = inv.expiresAt?.toDate?.() || null;
+      const isExpired = expDate && expDate < now;
+      
+      if (inv.status === 'used') {
+        statusBadge = '✅ ব্যবহৃত';
+        statusClass = 'badge-used';
+      } else if (isExpired) {
+        statusBadge = '⏰ মেয়াদ শেষ';
+        statusClass = 'badge-expired';
+      } else {
+        statusBadge = '🟢 অব্যবহৃত';
+        statusClass = 'badge-unused';
+      }
+      
+      // মেয়াদ শেষের তারিখ ফরম্যাট
+      const expStr = expDate ? expDate.toLocaleDateString('en-GB') : 'N/A';
+      
+      html += `
+        <div class="invite-card">
+          <div style="flex:1;">
+            <div class="invite-code-text">${inv.code}</div>
+            <div class="invite-meta">
+              <span class="invite-badge ${statusClass}">${statusBadge}</span>
+              ${ROLE_BN[inv.role] || inv.role}
+            </div>
+            <div class="invite-meta">মেয়াদ: ${expStr}</div>
+          </div>
+          <div class="invite-actions">
+            ${inv.status === 'unused' && !isExpired ? 
+              `<button class="secondary" onclick="copyInviteCode('${inv.code}')">📋</button>
+               <button class="danger" onclick="deleteInvite('${inv.id}')">✕</button>` 
+              : 
+              `<button class="danger" onclick="deleteInvite('${inv.id}')">✕</button>`
+            }
+          </div>
+        </div>
+      `;
+    });
+    
+    el.innerHTML = html;
+  });
+}
+
+// ==================== কোড কপি ====================
+window.copyInviteCode = function(code) {
+  // ক্লিপবোর্ডে কপি
+  navigator.clipboard.writeText(code).then(() => {
+    // WhatsApp মেসেজ তৈরি করে সেটাও কপি করি
+    const msg = `🎫 ${adminData?.companyName || 'কুপন অ্যাপ'}\n\nআপনার Invite Code: ${code}\n\nএই কোডটি দিয়ে অ্যাপে রেজিস্ট্রেশন করুন:\n${location.origin}${location.pathname.replace('beta.html','')}beta.html\n\nরেজিস্ট্রেশনের সময় "আমার Invite Code আছে" বাটনে ক্লিক করে কোডটি লিখুন।`;
+    
+    navigator.clipboard.writeText(msg).then(() => {
+      alert(`✅ কোড কপি হয়েছে: ${code}\n\n(WhatsApp-এ পাঠানোর জন্য মেসেজ সহ কপি হয়েছে)`);
+    });
+  }).catch(() => {
+    alert(`আপনার কোড: ${code}`);
+  });
+};
+
+// ==================== কোড ডিলিট ====================
+window.deleteInvite = async function(inviteId) {
+  if (!confirm("এই কোডটি মুছে ফেলবেন? কেউ আর এটি ব্যবহার করতে পারবে না।")) return;
+  
+  try {
+    await deleteDoc(doc(db, "invites", inviteId));
+  } catch (e) {
+    alert("❌ " + e.message);
+  }
+};
+ // ==================== CUSTOMER FLOW ====================
   async function initCustomer() {
     // কাস্টমার আগে রেজিস্টার্ড কিনা চেক
     const savedPhone = localStorage.getItem('custPhone_' + customerAdminId);
