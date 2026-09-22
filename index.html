@@ -375,24 +375,38 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction }
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+ // ==================== Firebase Imports ====================
+import { db, auth } from './firebase-config-prod.js';
 
+import { 
+  collection, doc, addDoc, getDoc, getDocs, 
+  setDoc, updateDoc, deleteDoc, query, where, 
+  orderBy, onSnapshot, serverTimestamp, runTransaction 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
 //  measurementId is optional
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBZCFgugZCLuyryQiuLYY-HjBin6QeFQd0",
-  authDomain: "couponsystem-7c625.firebaseapp.com",
-  projectId: "couponsystem-7c625",
-  storageBucket: "couponsystem-7c625.firebasestorage.app",
-  messagingSenderId: "211989339411",
-  appId: "1:211989339411:web:5efe34a6db6b006b434ee6",
-  measurementId: "G-76WETNMGGL"
+  apiKey: "AIzaSyC59_zbUP1xlqpowS-dfCyeUmQPR1VhPLk",
+  authDomain: "couponsystem-beta.firebaseapp.com",
+  databaseURL: "https://couponsystem-beta-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "couponsystem-beta",
+  storageBucket: "couponsystem-beta.firebasestorage.app",
+  messagingSenderId: "420484645883",
+  appId: "1:420484645883:web:e0df430315104d2b10015e",
+  measurementId: "G-Y5YECTQ61J"
 };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+
+ // const app = initializeApp(firebaseConfig);
+ // const db = getFirestore(app);
 
   // ==================== i18n TRANSLATIONS ====================
   const T = {
@@ -603,86 +617,132 @@ window.backToRoleSelection = function() {
 };
  
 // ==================== Admin Register (UI Test Only) ====================
+// ==================== Admin Registration (Firebase Auth) ====================
 window.adminRegister = async function() {
-    // ⚠️ আজ এই ফাংশন শুধু UI টেস্ট করবে
-    // আগামী ধাপে আসল Firebase Authentication যোগ হবে
-    alert("✅ রোল সিস্টেম কাজ করছে!\n\nআসল রেজিস্ট্রেশন (Firebase Authentication সহ) পরের ধাপে চালু হবে।");
+  if (!selectedRole) return alert("আগে রোল সিলেক্ট করুন");
+  
+  const company = document.getElementById('regCompany').value.trim();
+  const name = document.getElementById('regName').value.trim();
+  const whatsapp = document.getElementById('regWhatsapp').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPassword').value;
+  const password2 = document.getElementById('regPassword2').value;
+  
+  const statusEl = document.getElementById('regStatus');
+  
+  // ভ্যালিডেশন
+  if (!company || !name || !whatsapp || !email || !password) {
+    statusEl.innerHTML = '<div class="status error">⚠️ সব তথ্য দিন</div>';
     return;
-};
- /* পুরনো কোড — পরের ধাপে আবার ব্যবহার করব
-window.adminRegister_OLD = async function() {
-    const company = document.getElementById('regCompany').value.trim();
-    const whatsapp = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim().toLowerCase();
-    const password = document.getElementById('regPassword').value;
-
-    if (!company || !whatsapp || !email || !password) return alert("সব তথ্য দিন");
-    if (!/^\d{10}$/.test(whatsapp)) return alert("সঠিক ১০ ডিজিটের WhatsApp নাম্বার দিন");
-
-    const statusEl = document.getElementById('regStatus');
-    statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
-
-    try {
-      const existing = await getDocs(query(collection(db, "admins"), where("email", "==", email)));
-      if (!existing.empty) {
-        statusEl.innerHTML = `<div class="status error">❌ ${t('admin_exists')}</div>`;
-        return;
-      }
-
-      const ref = await addDoc(collection(db, "admins"), {
-        email, 
-        whatsapp: whatsapp,
-        companyName: company,
-        password: hashPwd(password),
-        language: currentLang,
-        withdrawalMin: 500,
-        helpline: "1800-000-0000",
-        footer: "",
-        createdAt: serverTimestamp()
-      });
-
-      adminId = ref.id;
-      localStorage.setItem('adminId', adminId);
-      statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
-      setTimeout(() => loadAdminSession(), 600);
-    } catch (e) {
-      statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+  if (!/^\d{10}$/.test(whatsapp)) {
+    statusEl.innerHTML = '<div class="status error">⚠️ সঠিক ১০ ডিজিটের WhatsApp নাম্বার দিন</div>';
+    return;
+  }
+  if (password.length < 6) {
+    statusEl.innerHTML = '<div class="status error">⚠️ পাসওয়ার্ড কমপক্ষে ৬ অক্ষর</div>';
+    return;
+  }
+  if (password !== password2) {
+    statusEl.innerHTML = '<div class="status error">⚠️ পাসওয়ার্ড দুইটি মিলছে না</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ অ্যাকাউন্ট তৈরি হচ্ছে...</div>';
+  
+  try {
+    // ১. Firebase Authentication-এ ইউজার তৈরি
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
+    
+    // ২. Firestore-এ ইউজারের বিস্তারিত তথ্য সেভ
+    await setDoc(doc(db, "admins", uid), {
+      uid: uid,
+      email: email,
+      name: name,
+      whatsapp: whatsapp,
+      companyName: company,
+      role: selectedRole,
+      language: currentLang,
+      withdrawalMin: 500,
+      helpline: "1800-000-0000",
+      footer: "",
+      createdAt: serverTimestamp()
+    });
+    
+    statusEl.innerHTML = '<div class="status success">✅ সফল! ড্যাশবোর্ডে নিয়ে যাচ্ছি...</div>';
+    
+    // ৩. adminId সেভ করে ড্যাশবোর্ডে যাও
+    adminId = uid;
+    localStorage.setItem('adminId', uid);
+    
+    setTimeout(() => loadAdminSession(), 800);
+    
+  } catch (error) {
+    console.error("Registration error:", error);
+    let msg = "❌ রেজিস্ট্রেশন ব্যর্থ";
+    if (error.code === 'auth/email-already-in-use') {
+      msg = "❌ এই ইমেইল আগেই রেজিস্টার্ড";
+    } else if (error.code === 'auth/invalid-email') {
+      msg = "❌ ইমেইল সঠিক নয়";
+    } else if (error.code === 'auth/weak-password') {
+      msg = "❌ পাসওয়ার্ড দুর্বল";
+    } else {
+      msg = "❌ " + error.message;
     }
+    statusEl.innerHTML = `<div class="status error">${msg}</div>`;
+  }
 };
-*/
 
-  window.adminLogin = async function() {
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-    const password = document.getElementById('loginPassword').value;
-    const statusEl = document.getElementById('loginStatus');
-    statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
-
-    try {
-      const snap = await getDocs(query(collection(db, "admins"), where("email", "==", email)));
-      if (snap.empty) {
-        statusEl.innerHTML = `<div class="status error">❌ ${t('wrong_login')}</div>`;
-        return;
-      }
-      const doc0 = snap.docs[0];
-      const data = doc0.data();
-      if (data.password !== hashPwd(password)) {
-        statusEl.innerHTML = `<div class="status error">❌ ${t('wrong_login')}</div>`;
-        return;
-      }
-      adminId = doc0.id;
-      localStorage.setItem('adminId', adminId);
-      statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
-      setTimeout(() => loadAdminSession(), 500);
-    } catch (e) {
-      statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+ // ==================== Admin Login (Firebase Auth) ====================
+window.adminLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const statusEl = document.getElementById('loginStatus');
+  
+  if (!email || !password) {
+    statusEl.innerHTML = '<div class="status error">⚠️ ইমেইল ও পাসওয়ার্ড দিন</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+  
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    adminId = userCredential.user.uid;
+    localStorage.setItem('adminId', adminId);
+    
+    statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
+    setTimeout(() => loadAdminSession(), 500);
+    
+  } catch (error) {
+    console.error("Login error:", error);
+    let msg = "❌ লগইন ব্যর্থ";
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = "❌ ভুল ইমেইল বা পাসওয়ার্ড";
+    } else if (error.code === 'auth/invalid-email') {
+      msg = "❌ ইমেইল সঠিক নয়";
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = "❌ অনেকবার চেষ্টা করেছেন, কিছুক্ষণ পর আবার চেষ্টা করুন";
+    } else {
+      msg = "❌ " + error.message;
     }
-  };
+    statusEl.innerHTML = `<div class="status error">${msg}</div>`;
+  }
+};
 
-  window.adminLogout = function() {
-    adminId = null; adminData = null;
-    localStorage.removeItem('adminId');
-    showView('view-auth');
-  };
+  // ==================== Admin Logout ====================
+window.adminLogout = async function() {
+  try {
+    await signOut(auth);
+  } catch (e) {
+    console.error("Logout error:", e);
+  }
+  adminId = null;
+  adminData = null;
+  localStorage.removeItem('adminId');
+  location.reload();
+};
 
   async function loadAdminSession() {
   if (!adminId) { showView('view-auth'); return; }
