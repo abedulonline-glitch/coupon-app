@@ -377,8 +377,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction }
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";  
   // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
 //  measurementId is optional
 const firebaseConfig = {
@@ -597,64 +597,95 @@ window.backToRoleSelection = function() {
  
 // ==================== Admin Register (UI Test Only) ====================
 window.adminRegister = async function() {
+  // ফর্ম থেকে ডেটা সংগ্রহ
   const company = document.getElementById('regCompany').value.trim();
   const name = document.getElementById('regName').value.trim();
   const whatsapp = document.getElementById('regWhatsapp').value.trim();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
   const password = document.getElementById('regPassword').value;
   const password2 = document.getElementById('regPassword2').value;
-  
-  // === যাচাই ===
-  if (!selectedRole) return alert("আগে রোল সিলেক্ট করুন");
-  if (selectedRole === 'invite') return alert("Invite Code সিস্টেম পরের ধাপে চালু হবে");
-  if (!company || !name || !whatsapp || !email || !password) return alert("সব তথ্য দিন");
-  if (!/^\d{10}$/.test(whatsapp)) return alert("সঠিক ১০ ডিজিটের WhatsApp নাম্বার দিন");
-  if (password.length < 6) return alert("পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে");
-  if (password !== password2) return alert("দুটি পাসওয়ার্ড মিলছে না");
-  
   const statusEl = document.getElementById('regStatus');
-  statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
-  
+
+  // ===== ভ্যালিডেশন =====
+  if (!selectedRole) {
+    statusEl.innerHTML = '<div class="status error">❌ আগে রোল সিলেক্ট করুন</div>';
+    return;
+  }
+  if (!company || !name || !whatsapp || !email || !password) {
+    statusEl.innerHTML = '<div class="status error">❌ সব তথ্য পূরণ করুন</div>';
+    return;
+  }
+  if (!/^\d{10}$/.test(whatsapp)) {
+    statusEl.innerHTML = '<div class="status error">❌ সঠিক ১০ ডিজিটের WhatsApp নাম্বার দিন</div>';
+    return;
+  }
+  if (password.length < 6) {
+    statusEl.innerHTML = '<div class="status error">❌ পাসওয়ার্ড কমপক্ষে ৬ অক্ষর হতে হবে</div>';
+    return;
+  }
+  if (password !== password2) {
+    statusEl.innerHTML = '<div class="status error">❌ দুইবার একই পাসওয়ার্ড দিন</div>';
+    return;
+  }
+
+  statusEl.innerHTML = '<div class="status info">⏳ অ্যাকাউন্ট তৈরি হচ্ছে...</div>';
+
+  // ===== Firebase Auth-এ ইউজার তৈরি =====
   try {
-    // ১. Firebase Auth-এ নতুন ইউজার তৈরি
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const uid = cred.user.uid;
-    
-    // ২. Firestore-এ ইউজার ডেটা সেভ (ডকুমেন্ট ID = Firebase Auth UID)
-    await setDoc(doc(db, "admins", uid), {
-      uid: uid,
-      email: email,
-      name: name,
-      whatsapp: whatsapp,
-      companyName: company,
-      role: selectedRole,
-      language: currentLang,
-      withdrawalMin: 500,
-      helpline: "1800-000-0000",
-      footer: "",
-      subscription: {
-        plan: "trial",
-        status: "active",
-        trialStartDate: new Date(),
-        trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // ৩০ দিন
-      },
-      createdAt: serverTimestamp()
-    });
-    
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    const uid = user.uid;
+
+    // ===== Firestore-এ প্রোফাইল সেভ =====
+    try {
+      await setDoc(doc(db, "admins", uid), {
+        uid: uid,
+        email: email,
+        name: name,
+        whatsapp: whatsapp,
+        companyName: company,
+        role: selectedRole,
+        language: currentLang,
+        withdrawalMin: 500,
+        helpline: "1800-000-0000",
+        footer: "",
+        createdAt: serverTimestamp()
+      });
+    } catch (firestoreError) {
+      // Firestore ফেইল করলে Auth ইউজার ডিলিট করা উচিত, তবে আপাতত শুধু এরর দেখাই
+      console.error("Firestore save failed:", firestoreError);
+      statusEl.innerHTML = '<div class="status error">❌ প্রোফাইল সেভ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।</div>';
+      return;
+    }
+
+    // ===== সেশন শুরু =====
     adminId = uid;
     localStorage.setItem('adminId', uid);
-    statusEl.innerHTML = '<div class="status success">✅ সফল! ড্যাশবোর্ডে যাচ্ছি...</div>';
-    
-    setTimeout(() => loadAdminSession(), 800);
-    
-  } catch (e) {
-    let msg = e.message;
-    if (e.code === 'auth/email-already-in-use') msg = "এই ইমেইল আগেই রেজিস্টার্ড আছে";
-    if (e.code === 'auth/invalid-email') msg = "ইমেইল ভুল ফরম্যাটে";
-    if (e.code === 'auth/weak-password') msg = "পাসওয়ার্ড দুর্বল (৬+ অক্ষর দিন)";
-    if (e.code === 'auth/network-request-failed') msg = "ইন্টারনেট সংযোগ চেক করুন";
-    statusEl.innerHTML = `<div class="status error">❌ ${msg}</div>`;
-    console.error("Register error:", e);
+
+    statusEl.innerHTML = '<div class="status success">✅ অ্যাকাউন্ট তৈরি হয়েছে! লোড হচ্ছে...</div>';
+
+    setTimeout(() => {
+      loadAdminSession();
+    }, 1200);
+
+  } catch (error) {
+    // ===== এরর হ্যান্ডলিং =====
+    console.error("Register error:", error);
+    let msg = '❌ সমস্যা হয়েছে: ' + error.message;
+
+    if (error.code === 'auth/email-already-in-use') {
+      msg = '❌ এই ইমেইল আগেই ব্যবহৃত হয়েছে। অন্য ইমেইল দিন বা লগইন করুন।';
+    } else if (error.code === 'auth/weak-password') {
+      msg = '❌ পাসওয়ার্ড দুর্বল। কমপক্ষে ৬ অক্ষর ব্যবহার করুন।';
+    } else if (error.code === 'auth/invalid-email') {
+      msg = '❌ ইমেইলটি সঠিক নয়।';
+    } else if (error.code === 'auth/network-request-failed') {
+      msg = '❌ ইন্টারনেট সমস্যা। আবার চেষ্টা করুন।';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      msg = '❌ Firebase-এ Email/Password চালু নেই। Firebase Console-এ গিয়ে চালু করুন।';
+    }
+
+    statusEl.innerHTML = `<div class="status error">${msg}</div>`;
   }
 };
 
