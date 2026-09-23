@@ -141,6 +141,21 @@
   margin-top: 2px;
 }
 
+/* Team member role badge */
+.team-role-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+.pill-manager { background: #e6f4ea; color: #0f9d58; }
+.pill-salesman { background: #fef7e0; color: #b06000; }
+.pill-delivery_boy { background: #fce8e6; color: #d93025; }
+.pill-dispatch_boy { background: #f3e8fd; color: #8430ce; }
+.pill-consignor { background: #e8f0fe; color: #1a73e8; }
+
 </style>
 </head>
 <body>
@@ -432,7 +447,123 @@
   </div>
 </div>
 
-<!-- ============ CUSTOMER VIEW ============ -->
+<!-- ============ TEAM MEMBER VIEW ============ -->
+<div id="view-team" class="view">
+  <div class="topbar">
+    <div>
+      <h2 id="teamCompanyName">Company</h2>
+      <span id="teamRoleBadge" style="font-size:11px; opacity:0.9;"></span>
+    </div>
+    <div class="logout" onclick="teamLogout()">Logout</div>
+  </div>
+
+  <div class="container">
+    
+    <!-- === Dashboard === -->
+    <div id="tp-dashboard" class="team-page">
+      <div class="card" style="background: linear-gradient(135deg, #1a73e8, #4285f4); color: white;">
+        <h3 style="color: white; font-size: 18px;">👋 স্বাগতম</h3>
+        <p id="teamWelcome" style="font-size: 14px; margin-top: 6px; opacity: 0.95;"></p>
+      </div>
+      
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="num" id="teamStatCoupons">0</div>
+          <div class="lbl">Total Coupons</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="teamStatCustomers">0</div>
+          <div class="lbl">Customers</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="teamStatUsed">0</div>
+          <div class="lbl">Used Coupons</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="teamStatToday">0</div>
+          <div class="lbl">Today's Activity</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 14px;">
+        <h3>ℹ️ আপনার ভূমিকা</h3>
+        <p id="teamRoleInfo" style="font-size: 13px; color: #666; line-height: 1.5;"></p>
+      </div>
+    </div>
+
+    <!-- === My Profile === -->
+    <div id="tp-profile" class="team-page" style="display:none;">
+      <div class="card">
+        <h3>👤 আমার প্রোফাইল</h3>
+        
+        <label>নাম</label>
+        <input type="text" id="teamProfileName" readonly>
+        
+        <label>WhatsApp</label>
+        <input type="text" id="teamProfileWhatsapp" readonly>
+        
+        <label>Email</label>
+        <input type="text" id="teamProfileEmail" readonly>
+        
+        <label>কোম্পানি</label>
+        <input type="text" id="teamProfileCompany" readonly>
+        
+        <label>রোল</label>
+        <input type="text" id="teamProfileRole" readonly>
+        
+        <label>যোগদানের তারিখ</label>
+        <input type="text" id="teamProfileJoined" readonly>
+      </div>
+    </div>
+
+    <!-- === Customers (View Only) === -->
+    <div id="tp-customers" class="team-page" style="display:none;">
+      <div class="card">
+        <h3>👥 কাস্টমার তালিকা</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+          আপনার কোম্পানির সমস্ত কাস্টমার
+        </p>
+        <div id="teamCustomerList"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+    </div>
+
+    <!-- === Coupons (View Only) === -->
+    <div id="tp-coupons" class="team-page" style="display:none;">
+      <div class="card">
+        <h3>🎫 কুপন তালিকা</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">
+          আপনার কোম্পানির সাম্প্রতিক কুপনগুলো
+        </p>
+        <div id="teamCouponList"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+    </div>
+
+    <!-- === Scan Coupon === -->
+    <div id="tp-scan" class="team-page" style="display:none;">
+      <div class="card">
+        <h3>📷 কুপন স্ক্যান করুন</h3>
+        <div id="teamQrReader"></div>
+        <button class="secondary" onclick="stopTeamScanner()">স্ক্যানার বন্ধ করুন</button>
+      </div>
+      <div class="card">
+        <h3>✍️ ম্যানুয়াল কোড এন্ট্রি</h3>
+        <label>কুপন কোড</label>
+        <input type="text" id="teamManualCode" placeholder="CUPN-XXXXXXXXXX">
+        <label>কাস্টমারের ফোন নাম্বার</label>
+        <input type="tel" id="teamCustomerPhone" placeholder="9876543210" maxlength="10">
+        <button onclick="teamRedeemManual()">রিডিম করুন</button>
+      </div>
+      <div id="teamScanStatus"></div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav" id="teamNav">
+    <!-- Dynamically populated based on role -->
+  </div>
+</div>
+ 
+ <!-- ============ CUSTOMER VIEW ============ -->
 <div id="view-customer" class="view">
   <div class="topbar">
     <h2 id="custCompanyName">Coupon App</h2>
@@ -1009,35 +1140,456 @@ window.adminLogout = async function() {
   location.reload();
 };
 
-  async function loadAdminSession() {
+// ==================== Admin Session Load (Admin + Team Member) ====================
+async function loadAdminSession() {
   if (!adminId) { showView('view-auth'); return; }
+  
   try {
     const snap = await getDoc(doc(db, "admins", adminId));
+    
     if (!snap.exists()) { 
-      // অ্যাডমিন খুঁজে না পেলে লগআউট করে লগইন স্ক্রিনে পাঠাবে
       adminLogout(); 
       return; 
     }
+    
     adminData = snap.data();
     if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
-    document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
-    document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
     
- showView('view-admin');
-loadAdminDashboard();
-loadGrades();
-loadCustomerList();
-loadWithdrawals();
-fillSettings();
-loadInvites();  // ⬅️ নতুন লাইন
+    // === চেক: Team Member নাকি Admin? ===
+    if (adminData.isTeamMember === true) {
+      // Team Member → আলাদা ড্যাশবোর্ড
+      loadTeamSession();
+    } else {
+      // Admin → পুরো প্যানেল
+      document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
+      document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
+      
+      showView('view-admin');
+      loadAdminDashboard();
+      loadGrades();
+      loadCustomerList();
+      loadWithdrawals();
+      fillSettings();
+      loadInvites();
+    }
+    
   } catch (e) {
-    console.error("Admin load error:", e);
-    // কোনো এরর হলে জোর করে লগআউট করে লগইন স্ক্রিনে পাঠাবে
+    console.error("Session load error:", e);
     adminLogout();
   }
 }
 
-  // ==================== ADMIN NAV ====================
+// ============================================================
+// TEAM MEMBER SESSION
+// ============================================================
+
+// রোল অনুযায়ী তথ্য
+const TEAM_ROLE_INFO = {
+  manager: {
+    label: '🟢 Manager',
+    desc: 'আপনি কোম্পানির ম্যানেজার। আপনি কুপন, কাস্টমার এবং লেনদেন দেখতে পারবেন।',
+    tabs: [
+      { id: 'dashboard', icon: '🏠', label: 'Home' },
+      { id: 'coupons', icon: '🎫', label: 'Coupons' },
+      { id: 'customers', icon: '👥', label: 'Customers' },
+      { id: 'scan', icon: '📷', label: 'Scan' },
+      { id: 'profile', icon: '👤', label: 'Profile' }
+    ]
+  },
+  salesman: {
+    label: '🟡 Salesman',
+    desc: 'আপনি কোম্পানির সেলসম্যান। আপনি কুপন স্ক্যান করে কাস্টমারকে পয়েন্ট দিতে পারবেন।',
+    tabs: [
+      { id: 'dashboard', icon: '🏠', label: 'Home' },
+      { id: 'customers', icon: '👥', label: 'Customers' },
+      { id: 'scan', icon: '📷', label: 'Scan' },
+      { id: 'profile', icon: '👤', label: 'Profile' }
+    ]
+  },
+  delivery_boy: {
+    label: '🟠 Delivery Boy',
+    desc: 'আপনি ডেলিভারি বয়। কাস্টমারের কাছে পৌঁছে কুপন স্ক্যান করতে পারবেন।',
+    tabs: [
+      { id: 'dashboard', icon: '🏠', label: 'Home' },
+      { id: 'scan', icon: '📷', label: 'Scan' },
+      { id: 'profile', icon: '👤', label: 'Profile' }
+    ]
+  },
+  dispatch_boy: {
+    label: '🔴 Dispatch Boy',
+    desc: 'আপনি ডিসপ্যাচ বয়। গোডাউন থেকে পণ্য পাঠানোর সময় কুপন স্ক্যান করুন।',
+    tabs: [
+      { id: 'dashboard', icon: '🏠', label: 'Home' },
+      { id: 'scan', icon: '📷', label: 'Scan' },
+      { id: 'profile', icon: '👤', label: 'Profile' }
+    ]
+  },
+  consignor: {
+    label: '🟫 Consignor',
+    desc: 'আপনি কনসাইনার। কমিশনের ভিত্তিতে কুপন স্ক্যান করে আয় করতে পারবেন।',
+    tabs: [
+      { id: 'dashboard', icon: '🏠', label: 'Home' },
+      { id: 'customers', icon: '👥', label: 'Customers' },
+      { id: 'scan', icon: '📷', label: 'Scan' },
+      { id: 'profile', icon: '👤', label: 'Profile' }
+    ]
+  }
+};
+
+let teamParentAdminId = null;
+let teamParentCompany = '';
+
+async function loadTeamSession() {
+  const role = adminData.role;
+  const roleInfo = TEAM_ROLE_INFO[role] || TEAM_ROLE_INFO.manager;
+  
+  // প্যারেন্ট অ্যাডমিন সেট
+  teamParentAdminId = adminData.parentAdminId;
+  teamParentCompany = adminData.companyName || 'Company';
+  
+  // হেডারে দেখান
+  document.getElementById('teamCompanyName').innerText = teamParentCompany;
+  document.getElementById('teamRoleBadge').innerText = roleInfo.label;
+  
+  // Welcome মেসেজ
+  document.getElementById('teamWelcome').innerText = 
+    `${adminData.name || 'স্বাগতম'}! ${teamParentCompany}-এ আপনার কাজ শুরু করুন।`;
+  document.getElementById('teamRoleInfo').innerText = roleInfo.desc;
+  
+  // প্রোফাইল আপডেট
+  document.getElementById('teamProfileName').value = adminData.name || '';
+  document.getElementById('teamProfileWhatsapp').value = adminData.whatsapp || '';
+  document.getElementById('teamProfileEmail').value = adminData.email || '';
+  document.getElementById('teamProfileCompany').value = teamParentCompany;
+  document.getElementById('teamProfileRole').value = roleInfo.label;
+  document.getElementById('teamProfileJoined').value = 
+    adminData.createdAt?.toDate?.()?.toLocaleDateString('en-GB') || 'N/A';
+  
+  // Bottom nav তৈরি (রোল অনুযায়ী)
+  buildTeamNav(roleInfo.tabs);
+  
+  // ডিফল্ট ট্যাব = dashboard
+  showTeamPage('dashboard');
+  
+  // ড্যাশবোর্ড স্ট্যাটস লোড
+  loadTeamDashboardStats();
+  
+  // হাইড ও শো
+  showView('view-team');
+}
+
+function buildTeamNav(tabs) {
+  const nav = document.getElementById('teamNav');
+  let html = '';
+  tabs.forEach((tab, idx) => {
+    html += `
+      <div class="nav-item ${idx === 0 ? 'active' : ''}" 
+           onclick="showTeamPage('${tab.id}', this)">
+        <span class="icon">${tab.icon}</span>
+        <span>${tab.label}</span>
+      </div>
+    `;
+  });
+  nav.innerHTML = html;
+}
+
+window.showTeamPage = function(pageId, el) {
+  // সব পেজ লুকান
+  document.querySelectorAll('.team-page').forEach(p => p.style.display = 'none');
+  
+  // নির্দিষ্ট পেজ দেখান
+  const page = document.getElementById('tp-' + pageId);
+  if (page) page.style.display = 'block';
+  
+  // Nav active আপডেট
+  if (el) {
+    document.querySelectorAll('#teamNav .nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+  
+  // পেজ অনুযায়ী ডেটা লোড
+  if (pageId === 'dashboard') loadTeamDashboardStats();
+  if (pageId === 'customers') loadTeamCustomers();
+  if (pageId === 'coupons') loadTeamCoupons();
+  if (pageId === 'scan') startTeamScanner();
+  else stopTeamScanner();
+};
+
+// ==================== Dashboard Stats ====================
+async function loadTeamDashboardStats() {
+  if (!teamParentAdminId) return;
+  
+  try {
+    // কুপন স্ট্যাটস
+    const cSnap = await getDocs(
+      query(collection(db, "coupons"), where("adminId", "==", teamParentAdminId))
+    );
+    let used = 0;
+    cSnap.forEach(d => { if (d.data().status === 'used') used++; });
+    document.getElementById('teamStatCoupons').innerText = cSnap.size;
+    document.getElementById('teamStatUsed').innerText = used;
+    
+    // কাস্টমার স্ট্যাটস
+    const custSnap = await getDocs(
+      query(collection(db, "customers"), where("adminId", "==", teamParentAdminId))
+    );
+    document.getElementById('teamStatCustomers').innerText = custSnap.size;
+    
+    // আজকের লেনদেন
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tSnap = await getDocs(
+      query(collection(db, "transactions"), 
+            where("adminId", "==", teamParentAdminId),
+            where("createdAt", ">=", today))
+    );
+    document.getElementById('teamStatToday').innerText = tSnap.size;
+    
+  } catch (e) {
+    console.error("Team dashboard error:", e);
+  }
+}
+
+// ==================== Customers List (View Only) ====================
+function loadTeamCustomers() {
+  const q = query(
+    collection(db, "customers"),
+    where("adminId", "==", teamParentAdminId)
+  );
+  
+  onSnapshot(q, (snap) => {
+    const el = document.getElementById('teamCustomerList');
+    
+    if (snap.empty) {
+      el.innerHTML = '<p class="empty">কোনো কাস্টমার নেই</p>';
+      return;
+    }
+    
+    const customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    customers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+    
+    let html = '';
+    customers.slice(0, 50).forEach(c => {
+      html += `
+        <div class="list-item">
+          <div>
+            <b>${c.name || c.phone}</b>
+            <div style="font-size: 11px; color: #999;">${c.phone}</div>
+          </div>
+          <div class="amount-pos">₹${c.balance || 0}</div>
+        </div>
+      `;
+    });
+    
+    if (customers.length > 50) {
+      html += `<p style="text-align: center; color: #999; font-size: 12px; padding: 10px;">
+        ...এবং আরও ${customers.length - 50} জন
+      </p>`;
+    }
+    
+    el.innerHTML = html;
+  });
+}
+
+// ==================== Coupons List (View Only) ====================
+function loadTeamCoupons() {
+  const q = query(
+    collection(db, "coupons"),
+    where("adminId", "==", teamParentAdminId)
+  );
+  
+  onSnapshot(q, (snap) => {
+    const el = document.getElementById('teamCouponList');
+    
+    if (snap.empty) {
+      el.innerHTML = '<p class="empty">কোনো কুপন নেই</p>';
+      return;
+    }
+    
+    const coupons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    coupons.sort((a, b) => {
+      const tA = a.createdAt?.toMillis?.() || 0;
+      const tB = b.createdAt?.toMillis?.() || 0;
+      return tB - tA;
+    });
+    
+    let html = '';
+    coupons.slice(0, 30).forEach(c => {
+      const isUsed = c.status === 'used';
+      html += `
+        <div class="list-item">
+          <div>
+            <div class="code">${c.code}</div>
+            <div style="font-size: 11px; color: #999;">
+              ${c.grade} • ${c.serialNo || ''}
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div class="amount-pos">₹${c.amount}</div>
+            <div style="font-size: 10px; color: ${isUsed ? '#d93025' : '#0f9d58'};">
+              ${isUsed ? '✅ ব্যবহৃত' : '🟢 অব্যবহৃত'}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    if (coupons.length > 30) {
+      html += `<p style="text-align: center; color: #999; font-size: 12px; padding: 10px;">
+        ...এবং আরও ${coupons.length - 30} টি
+      </p>`;
+    }
+    
+    el.innerHTML = html;
+  });
+}
+
+// ==================== Team Scanner ====================
+let teamScannerInstance = null;
+let teamScannerActive = false;
+
+window.startTeamScanner = function() {
+  if (teamScannerActive) return;
+  teamScannerInstance = new Html5Qrcode("teamQrReader");
+  teamScannerInstance.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (text) => { 
+      stopTeamScanner(); 
+      teamRedeemCode(text); 
+    },
+    () => {}
+  ).then(() => { teamScannerActive = true; })
+  .catch(e => {
+    document.getElementById('teamScanStatus').innerHTML = 
+      `<div class="status error">ক্যামেরা চালু হয়নি: ${e}</div>`;
+  });
+};
+
+window.stopTeamScanner = function() {
+  if (teamScannerInstance && teamScannerActive) {
+    teamScannerInstance.stop().then(() => { teamScannerActive = false; }).catch(() => {});
+  }
+};
+
+window.teamRedeemManual = function() {
+  const code = document.getElementById('teamManualCode').value.trim();
+  const phone = document.getElementById('teamCustomerPhone').value.trim();
+  
+  if (!code) return alert("কুপন কোড লিখুন");
+  if (!/^\d{10}$/.test(phone)) return alert("কাস্টমারের ১০ ডিজিটের মোবাইল নাম্বার দিন");
+  
+  teamRedeemCode(code, phone);
+};
+
+window.teamRedeemCode = async function(code, phone) {
+  code = code.trim().toUpperCase();
+  const statusEl = document.getElementById('teamScanStatus');
+  
+  // যদি phone না থাকে → ম্যানুয়াল এন্ট্রি থেকে আসা ফোন নাম্বার নাও
+  if (!phone) {
+    phone = document.getElementById('teamCustomerPhone').value.trim();
+  }
+  
+  if (!/^\d{10}$/.test(phone)) {
+    statusEl.innerHTML = '<div class="status error">⚠️ আগে কাস্টমারের ফোন নাম্বার দিন</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+  
+  try {
+    // কুপন খুঁজে বের করো
+    const q = query(
+      collection(db, "coupons"), 
+      where("code", "==", code),
+      where("adminId", "==", teamParentAdminId)
+    );
+    const snap = await getDocs(q);
+    
+    if (snap.empty) {
+      statusEl.innerHTML = '<div class="status error">❌ এই কুপনটি এই কোম্পানির নয় বা ভুল কোড</div>';
+      return;
+    }
+    
+    const couponDoc = snap.docs[0];
+    const cData = couponDoc.data();
+    
+    if (cData.status !== 'unused') {
+      statusEl.innerHTML = '<div class="status error">⚠️ এই কুপন আগেই ব্যবহৃত হয়েছে</div>';
+      return;
+    }
+    
+    if (cData.expiryDate?.toDate && cData.expiryDate.toDate() < new Date()) {
+      statusEl.innerHTML = '<div class="status error">⏰ কুপনের মেয়াদ শেষ</div>';
+      return;
+    }
+    
+    // কাস্টমার খুঁজে বের করো
+    const custDocId = teamParentAdminId + '_' + phone;
+    const custRef = doc(db, "customers", custDocId);
+    
+    await runTransaction(db, async (tx) => {
+      const uS = await tx.get(custRef);
+      const cS = await tx.get(couponDoc.ref);
+      
+      if (cS.data().status !== 'unused') throw new Error("কুপন ইতিমধ্যে ব্যবহৃত");
+      
+      const bal = uS.exists() ? (uS.data().balance || 0) : 0;
+      
+      tx.set(custRef, {
+        adminId: teamParentAdminId,
+        phone: phone,
+        balance: bal + cData.amount,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      
+      tx.update(couponDoc.ref, {
+        status: 'used',
+        usedBy: phone,
+        usedByTeamMember: adminId,
+        usedAt: serverTimestamp()
+      });
+      
+      tx.set(doc(collection(db, "transactions")), {
+        adminId: teamParentAdminId,
+        phone: phone,
+        type: 'credit',
+        amount: cData.amount,
+        description: `Coupon: ${cData.grade} (by ${adminData.name || 'Team'})`,
+        createdAt: serverTimestamp()
+      });
+    });
+    
+    statusEl.innerHTML = `
+      <div class="status success">
+        ✅ ₹${cData.amount} কাস্টমার (${phone})-এর একাউন্টে যোগ হয়েছে!
+      </div>
+    `;
+    
+    // ইনপুট ক্লিয়ার
+    document.getElementById('teamManualCode').value = '';
+    
+  } catch (e) {
+    console.error("Team redeem error:", e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+
+// ==================== Team Logout ====================
+window.teamLogout = async function() {
+  try {
+    await signOut(auth);
+  } catch (e) {
+    console.error(e);
+  }
+  adminId = null;
+  adminData = null;
+  localStorage.removeItem('adminId');
+  location.reload();
+};  
+ 
+ // ==================== ADMIN NAV ====================
   window.adminNav = function(page, el) {
     document.querySelectorAll('.admin-page').forEach(p => p.style.display = 'none');
     document.getElementById('ap-' + page).style.display = 'block';
