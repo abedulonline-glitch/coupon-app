@@ -202,6 +202,37 @@
   color: #1a73e8;
 }
 
+/* Member Detail Modal */
+.member-card {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.member-card:hover {
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+  border-color: #1a73e8;
+}
+.activity-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.activity-item:last-child {
+  border-bottom: none;
+}
+.activity-code {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #666;
+}
+.activity-amount {
+  color: #0f9d58;
+  font-weight: bold;
+  font-size: 13px;
+}
+
 </style>
 </head>
 <body>
@@ -1207,9 +1238,19 @@ async function loadAdminSession() {
       return; 
     }
     
-    adminData = snap.data();
-    if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
-    
+     adminData = snap.data();
+if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
+
+// === চেক: ইউজার সাসপেন্ডেড কি না ===
+if (adminData.suspended === true) {
+  await signOut(auth);
+  adminId = null;
+  adminData = null;
+  localStorage.removeItem('adminId');
+  alert("🚫 আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।\n\nআপনার কোম্পানির অ্যাডমিনের সাথে যোগাযোগ করুন।");
+  showView('view-auth');
+  return;
+}
     // === চেক: Team Member নাকি Admin? ===
     if (adminData.isTeamMember === true) {
       // Team Member → আলাদা ড্যাশবোর্ড
@@ -2157,6 +2198,21 @@ const ROLE_LABELS = {
   consignor: { bn: '🟫 কনসাইনার', color: '#1a73e8' }
 };
 
+// ============================================================
+// TEAM MEMBERS MANAGEMENT (অ্যাডমিন দিক)
+// ============================================================
+
+const ROLE_LABELS = {
+  manager: { bn: '🟢 ম্যানেজার', color: '#0f9d58' },
+  salesman: { bn: '🟡 সেলসম্যান', color: '#b06000' },
+  delivery_boy: { bn: '🟠 ডেলিভারি বয়', color: '#d93025' },
+  dispatch_boy: { bn: '🔴 ডিসপ্যাচ বয়', color: '#8430ce' },
+  consignor: { bn: '🟫 কনসাইনার', color: '#1a73e8' }
+};
+
+// বর্তমানে খোলা থাকা মেম্বারের তথ্য
+let currentMemberInModal = null;
+
 function loadTeamMembers() {
   if (!adminId) return;
   
@@ -2180,8 +2236,12 @@ function loadTeamMembers() {
     
     const members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     
-    // রোল অনুযায়ী সর্ট
-    members.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    // সাসপেন্ডেডদের নিচে দেখাও, তারপর নাম অনুযায়ী
+    members.sort((a, b) => {
+      if (a.suspended && !b.suspended) return 1;
+      if (!a.suspended && b.suspended) return -1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
     
     let html = '';
     members.forEach(m => {
@@ -2189,24 +2249,25 @@ function loadTeamMembers() {
       const isSuspended = m.suspended === true;
       
       html += `
-        <div class="member-card ${isSuspended ? 'suspended' : ''}">
+        <div class="member-card ${isSuspended ? 'suspended' : ''}" 
+             onclick="openMemberDetail('${m.id}')">
           <div class="member-header">
             <div>
               <div class="member-name">${m.name || 'Unknown'}</div>
-              <div class="member-contact">📱 ${m.whatsapp || 'N/A'} · ✉️ ${m.email || 'N/A'}</div>
+              <div class="member-contact">📱 ${m.whatsapp || 'N/A'}</div>
               <div style="margin-top: 6px; font-size: 12px; color: ${role.color}; font-weight: 600;">
                 ${role.bn}
                 ${isSuspended ? '<span style="color:#d93025; margin-left:6px;">🚫 সাসপেন্ডেড</span>' : ''}
               </div>
             </div>
-            <div style="display: flex; gap: 4px;">
+            <div style="display: flex; gap: 4px;" onclick="event.stopPropagation();">
               <button class="danger small" onclick="suspendMember('${m.id}', ${isSuspended})" 
                 style="width:auto; padding: 4px 8px; font-size: 11px; margin:0;">
                 ${isSuspended ? '🔓' : '🚫'}
               </button>
             </div>
           </div>
-          <div class="member-stats" id="stats-${m.id}">
+          <div class="member-stats">
             <div class="stat-item">
               <span class="stat-num" id="couponCount-${m.id}">-</span>
               <span>কুপন রিডিম</span>
@@ -2230,6 +2291,173 @@ function loadTeamMembers() {
     members.forEach(m => loadMemberStats(m.id));
   });
 }
+
+// ==================== বিস্তারিত মোডাল খোলা ====================
+window.openMemberDetail = async function(memberId) {
+  currentMemberInModal = memberId;
+  document.getElementById('memberDetailModal').style.display = 'block';
+  
+  // সব লোডিং স্টেটে
+  ['mdName','mdRole','mdWhatsapp','mdEmail','mdJoined'].forEach(id => {
+    document.getElementById(id).innerText = '-';
+  });
+  ['mdCoupons','mdAmount','mdToday','mdWeek'].forEach(id => {
+    document.getElementById(id).innerText = '0';
+  });
+  document.getElementById('mdRecentActivity').innerHTML = '<div class="loader">লোড হচ্ছে...</div>';
+  
+  try {
+    // === ১. মেম্বারের প্রোফাইল ===
+    const mSnap = await getDoc(doc(db, "admins", memberId));
+    if (!mSnap.exists()) {
+      alert("মেম্বার পাওয়া যায়নি");
+      return;
+    }
+    const m = mSnap.data();
+    
+    document.getElementById('mdName').innerText = m.name || '-';
+    document.getElementById('mdRole').innerText = (ROLE_LABELS[m.role] || {bn: m.role}).bn;
+    document.getElementById('mdWhatsapp').innerText = m.whatsapp || '-';
+    document.getElementById('mdEmail').innerText = m.email || '-';
+    document.getElementById('mdJoined').innerText = 
+      m.createdAt?.toDate?.()?.toLocaleDateString('en-GB') || '-';
+    
+    // === ২. কুপন পরিসংখ্যান ===
+    const cSnap = await getDocs(
+      query(collection(db, "coupons"),
+            where("adminId", "==", adminId),
+            where("usedByTeamMember", "==", memberId))
+    );
+    
+    let totalAmount = 0;
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const weekStart = todayStart - (6 * 24 * 60 * 60 * 1000);
+    
+    let todayCount = 0;
+    let weekCount = 0;
+    const activities = [];
+    
+    cSnap.forEach(d => {
+      const c = d.data();
+      totalAmount += (c.amount || 0);
+      
+      const usedAt = c.usedAt?.toMillis?.() || 0;
+      if (usedAt >= todayStart) todayCount++;
+      if (usedAt >= weekStart) weekCount++;
+      
+      activities.push(c);
+    });
+    
+    document.getElementById('mdCoupons').innerText = cSnap.size;
+    document.getElementById('mdAmount').innerText = '₹' + totalAmount;
+    document.getElementById('mdToday').innerText = todayCount;
+    document.getElementById('mdWeek').innerText = weekCount;
+    
+    // === ৩. সাম্প্রতিক কাজের তালিকা ===
+    activities.sort((a, b) => {
+      const tA = a.usedAt?.toMillis?.() || 0;
+      const tB = b.usedAt?.toMillis?.() || 0;
+      return tB - tA;
+    });
+    
+    let html = '';
+    if (activities.length === 0) {
+      html = '<p class="empty" style="padding: 20px;">কোনো কাজ এখনো করা হয়নি</p>';
+    } else {
+      activities.slice(0, 20).forEach(c => {
+        const usedDate = c.usedAt?.toDate?.()?.toLocaleString('en-GB', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        }) || '';
+        html += `
+          <div class="activity-item">
+            <div>
+              <div class="activity-code">${c.code}</div>
+              <div style="font-size: 10px; color: #999; margin-top: 2px;">
+                ${c.grade} · ${usedDate}
+              </div>
+              <div style="font-size: 10px; color: #666; margin-top: 2px;">
+                📱 কাস্টমার: ${c.usedBy || 'N/A'}
+              </div>
+            </div>
+            <div class="activity-amount">+₹${c.amount}</div>
+          </div>
+        `;
+      });
+      if (activities.length > 20) {
+        html += `<p style="text-align: center; color: #999; font-size: 11px; padding: 10px;">
+          ...এবং আরও ${activities.length - 20} টি
+        </p>`;
+      }
+    }
+    document.getElementById('mdRecentActivity').innerHTML = html;
+    
+  } catch (e) {
+    console.error("Member detail error:", e);
+    document.getElementById('mdRecentActivity').innerHTML = 
+      '<p class="empty" style="padding: 15px; color: #d93025;">লোড করতে সমস্যা হয়েছে</p>';
+  }
+};
+
+window.closeMemberDetail = function() {
+  document.getElementById('memberDetailModal').style.display = 'none';
+  currentMemberInModal = null;
+};
+
+// ==================== মেম্বারের পরিসংখ্যান (ছোট কার্ডের জন্য) ====================
+async function loadMemberStats(memberId) {
+  try {
+    const cSnap = await getDocs(
+      query(collection(db, "coupons"), 
+            where("adminId", "==", adminId),
+            where("usedByTeamMember", "==", memberId))
+    );
+    
+    let totalAmount = 0;
+    cSnap.forEach(d => {
+      const c = d.data();
+      if (c.status === 'used') totalAmount += (c.amount || 0);
+    });
+    
+    const memberDoc = await getDoc(doc(db, "admins", memberId));
+    const joinedDate = memberDoc.data()?.createdAt?.toDate?.();
+    
+    const couponEl = document.getElementById('couponCount-' + memberId);
+    const amountEl = document.getElementById('txnAmount-' + memberId);
+    const joinedEl = document.getElementById('joinedDate-' + memberId);
+    
+    if (couponEl) couponEl.innerText = cSnap.size;
+    if (amountEl) amountEl.innerText = '₹' + totalAmount;
+    if (joinedEl) joinedEl.innerText = joinedDate 
+      ? joinedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+      : 'N/A';
+    
+  } catch (e) {
+    console.error("Member stats error:", e);
+  }
+}
+
+// ==================== মেম্বার সাসপেন্ড / আনসাসপেন্ড ====================
+window.suspendMember = async function(memberId, isCurrentlySuspended) {
+  const action = isCurrentlySuspended ? "আনসাসপেন্ড" : "সাসপেন্ড";
+  const msg = isCurrentlySuspended 
+    ? "এই মেম্বারকে আবার অ্যাকটিভ করবেন?" 
+    : "এই মেম্বারকে সাসপেন্ড করবেন? সে আর লগইন করতে পারবে না।";
+    
+  if (!confirm(msg)) return;
+  
+  try {
+    await updateDoc(doc(db, "admins", memberId), {
+      suspended: !isCurrentlySuspended,
+      suspendedAt: isCurrentlySuspended ? null : serverTimestamp()
+    });
+    
+    alert(`✅ মেম্বার ${action} হয়েছে!`);
+  } catch (e) {
+    console.error(e);
+    alert("❌ " + e.message);
+  }
+};
 
 // ==================== মেম্বারের পরিসংখ্যান ====================
 async function loadMemberStats(memberId) {
@@ -2531,5 +2759,67 @@ window.deleteInvite = async function(inviteId) {
     </div>
   </div>
 </div>
+
+<!-- ==================== Team Member Detail Modal ==================== -->
+<div id="memberDetailModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; overflow-y: auto; padding: 20px;">
+  <div style="background: white; border-radius: 12px; max-width: 500px; margin: 20px auto; padding: 20px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+    
+    <span onclick="closeMemberDetail()" style="position: absolute; top: 10px; right: 18px; font-size: 28px; font-weight: bold; color: #666; cursor: pointer;">&times;</span>
+    
+    <h3 style="color: #1a73e8; margin-bottom: 15px; font-size: 18px;">👤 Team Member Details</h3>
+    
+    <!-- প্রোফাইল কার্ড -->
+    <div class="card" style="box-shadow: none; border: 1px solid #eee; margin-bottom: 15px; padding: 12px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: #666; font-size: 13px;">নাম:</span>
+        <b id="mdName" style="font-size: 14px;">-</b>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: #666; font-size: 13px;">রোল:</span>
+        <b id="mdRole" style="font-size: 14px;">-</b>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: #666; font-size: 13px;">WhatsApp:</span>
+        <b id="mdWhatsapp" style="font-size: 13px;">-</b>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: #666; font-size: 13px;">Email:</span>
+        <span id="mdEmail" style="font-size: 12px;">-</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: #666; font-size: 13px;">যোগদান:</span>
+        <span id="mdJoined" style="font-size: 13px;">-</span>
+      </div>
+    </div>
+
+    <!-- স্ট্যাট কার্ড -->
+    <div class="stat-grid" style="margin-bottom: 15px;">
+      <div class="stat-card">
+        <div class="num" id="mdCoupons">0</div>
+        <div class="lbl">কুপন রিডিম</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="mdAmount">₹0</div>
+        <div class="lbl">মোট পয়েন্ট</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="mdToday">0</div>
+        <div class="lbl">আজকের কাজ</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="mdWeek">0</div>
+        <div class="lbl">এই সপ্তাহে</div>
+      </div>
+    </div>
+
+    <!-- সাম্প্রতিক কাজের তালিকা -->
+    <h4 style="margin-bottom: 10px; color: #202124; font-size: 15px;">📜 সাম্প্রতিক কাজ</h4>
+    <div id="mdRecentActivity" style="max-height: 300px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px;">
+      <div class="loader">লোড হচ্ছে...</div>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
