@@ -156,6 +156,52 @@
 .pill-dispatch_boy { background: #f3e8fd; color: #8430ce; }
 .pill-consignor { background: #e8f0fe; color: #1a73e8; }
 
+/* Team Member Card */
+.member-card {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.member-card.suspended {
+  opacity: 0.6;
+  border-color: #d93025;
+}
+.member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.member-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #202124;
+}
+.member-contact {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+.member-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #666;
+  padding-top: 8px;
+  border-top: 1px dashed #ddd;
+}
+.member-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+}
+.member-stats .stat-num {
+  font-size: 15px;
+  font-weight: bold;
+  color: #1a73e8;
+}
+
 </style>
 </head>
 <body>
@@ -411,7 +457,16 @@
         <button class="success" onclick="generateInvite()">🔑 কোড তৈরি করুন</button>
         <div id="inviteGenStatus"></div>
         
-        <!-- তৈরি করা কোডগুলোর তালিকা -->
+      <!-- ==================== Team Members List ==================== -->
+      <div class="card">
+        <h3>👨‍💼 আপনার টিম মেম্বার</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:12px;">
+          আপনার কোম্পানিতে কতজন কর্মী কাজ করছে এবং কত কুপন ব্যবহার করেছে।
+        </p>
+        <div id="teamMembersList"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+       
+       <!-- তৈরি করা কোডগুলোর তালিকা -->
         <h4 style="margin-top:20px; margin-bottom:10px; font-size:14px; color:#202124;">📋 আপনার কোডগুলো</h4>
         <div id="inviteList"><div class="loader">লোড হচ্ছে...</div></div>
       </div>
@@ -1171,6 +1226,7 @@ async function loadAdminSession() {
       loadWithdrawals();
       fillSettings();
       loadInvites();
+      loadTeamMembers();  // ⬅️ নতুন
     }
     
   } catch (e) {
@@ -2089,7 +2145,152 @@ function loadInvites() {
   });
 }
 
-// ==================== কোড কপি ====================
+// ============================================================
+// TEAM MEMBERS MANAGEMENT (অ্যাডমিন দিক)
+// ============================================================
+
+const ROLE_LABELS = {
+  manager: { bn: '🟢 ম্যানেজার', color: '#0f9d58' },
+  salesman: { bn: '🟡 সেলসম্যান', color: '#b06000' },
+  delivery_boy: { bn: '🟠 ডেলিভারি বয়', color: '#d93025' },
+  dispatch_boy: { bn: '🔴 ডিসপ্যাচ বয়', color: '#8430ce' },
+  consignor: { bn: '🟫 কনসাইনার', color: '#1a73e8' }
+};
+
+function loadTeamMembers() {
+  if (!adminId) return;
+  
+  const q = query(
+    collection(db, "admins"),
+    where("parentAdminId", "==", adminId)
+  );
+  
+  onSnapshot(q, (snap) => {
+    const el = document.getElementById('teamMembersList');
+    
+    if (snap.empty) {
+      el.innerHTML = `
+        <p class="empty" style="padding: 15px; text-align: center; color: #999;">
+          এখনো কোনো টিম মেম্বার যোগ দেয়নি।<br>
+          <span style="font-size: 11px;">উপরে Invite Code তৈরি করে WhatsApp-এ পাঠান।</span>
+        </p>
+      `;
+      return;
+    }
+    
+    const members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    // রোল অনুযায়ী সর্ট
+    members.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    let html = '';
+    members.forEach(m => {
+      const role = ROLE_LABELS[m.role] || { bn: m.role, color: '#666' };
+      const isSuspended = m.suspended === true;
+      
+      html += `
+        <div class="member-card ${isSuspended ? 'suspended' : ''}">
+          <div class="member-header">
+            <div>
+              <div class="member-name">${m.name || 'Unknown'}</div>
+              <div class="member-contact">📱 ${m.whatsapp || 'N/A'} · ✉️ ${m.email || 'N/A'}</div>
+              <div style="margin-top: 6px; font-size: 12px; color: ${role.color}; font-weight: 600;">
+                ${role.bn}
+                ${isSuspended ? '<span style="color:#d93025; margin-left:6px;">🚫 সাসপেন্ডেড</span>' : ''}
+              </div>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <button class="danger small" onclick="suspendMember('${m.id}', ${isSuspended})" 
+                style="width:auto; padding: 4px 8px; font-size: 11px; margin:0;">
+                ${isSuspended ? '🔓' : '🚫'}
+              </button>
+            </div>
+          </div>
+          <div class="member-stats" id="stats-${m.id}">
+            <div class="stat-item">
+              <span class="stat-num" id="couponCount-${m.id}">-</span>
+              <span>কুপন রিডিম</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num" id="txnAmount-${m.id}">-</span>
+              <span>মোট পয়েন্ট</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num" id="joinedDate-${m.id}">-</span>
+              <span>যোগদান</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    el.innerHTML = html;
+    
+    // প্রতিটি মেম্বারের পরিসংখ্যান লোড
+    members.forEach(m => loadMemberStats(m.id));
+  });
+}
+
+// ==================== মেম্বারের পরিসংখ্যান ====================
+async function loadMemberStats(memberId) {
+  try {
+    // কুপন রিডিম কাউন্ট
+    const cSnap = await getDocs(
+      query(collection(db, "coupons"), 
+            where("adminId", "==", adminId),
+            where("usedByTeamMember", "==", memberId))
+    );
+    
+    // মোট পয়েন্ট (transactions থেকে)
+    const tSnap = await getDocs(
+      query(collection(db, "transactions"),
+            where("adminId", "==", adminId))
+    );
+    let totalAmount = 0;
+    // ট্রানজেকশনে team member id নেই, তাই শুধু কুপন থেকে হিসাব
+    cSnap.forEach(d => {
+      if (d.data().status === 'used') totalAmount += (d.data().amount || 0);
+    });
+    
+    // যোগদানের তারিখ
+    const memberDoc = await getDoc(doc(db, "admins", memberId));
+    const joinedDate = memberDoc.data()?.createdAt?.toDate?.();
+    
+    // UI আপডেট
+    const couponEl = document.getElementById('couponCount-' + memberId);
+    const amountEl = document.getElementById('txnAmount-' + memberId);
+    const joinedEl = document.getElementById('joinedDate-' + memberId);
+    
+    if (couponEl) couponEl.innerText = cSnap.size;
+    if (amountEl) amountEl.innerText = '₹' + totalAmount;
+    if (joinedEl) joinedEl.innerText = joinedDate 
+      ? joinedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+      : 'N/A';
+    
+  } catch (e) {
+    console.error("Member stats error:", e);
+  }
+}
+
+// ==================== মেম্বার সাসপেন্ড / আনসাসপেন্ড ====================
+window.suspendMember = async function(memberId, isCurrentlySuspended) {
+  const action = isCurrentlySuspended ? "আনসাসপেন্ড" : "সাসপেন্ড";
+  if (!confirm(`এই মেম্বারকে ${action} করবেন?`)) return;
+  
+  try {
+    await updateDoc(doc(db, "admins", memberId), {
+      suspended: !isCurrentlySuspended,
+      suspendedAt: isCurrentlySuspended ? null : serverTimestamp()
+    });
+    
+    alert(`✅ মেম্বার ${action} হয়েছে!`);
+  } catch (e) {
+    console.error(e);
+    alert("❌ " + e.message);
+  }
+};
+ 
+ // ==================== কোড কপি ====================
 window.copyInviteCode = function(code) {
   // ক্লিপবোর্ডে কপি
   navigator.clipboard.writeText(code).then(() => {
