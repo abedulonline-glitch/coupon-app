@@ -121,6 +121,26 @@
   margin: 0 0 0 4px;
 }
 
+/* Invite verified badge */
+.invite-verified-info {
+  background: #e6f4ea;
+  border: 1px solid #0f9d58;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.invite-verified-info .company-name {
+  font-weight: bold;
+  color: #0f9d58;
+  font-size: 15px;
+}
+.invite-verified-info .role-name {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
 </style>
 </head>
 <body>
@@ -216,11 +236,39 @@
   </div>
 
   <!-- ধাপ ২: ফর্ম (রোল সিলেক্ট করলে দেখাবে) -->
-  <div id="registerFormFields" style="display: none;">
+ <div id="registerFormFields" style="display: none;">
+  
+  <!-- === Invite Code Verify Section (শুধু invite role এর জন্য) === -->
+  <div id="inviteVerifySection" style="display: none;">
+    <div style="background: #e8f0fe; padding: 12px; border-radius: 8px; margin-bottom: 14px;">
+      <div style="font-size: 13px; font-weight: 600; color: #1a73e8; text-align: center;">
+        🔑 Invite Code দিয়ে যোগ দিন
+      </div>
+      <div style="font-size: 11px; color: #666; text-align: center; margin-top: 4px;">
+        আপনার কোম্পানির অ্যাডমিন আপনাকে একটি কোড দিয়েছেন
+      </div>
+    </div>
+    
+    <label>Invite Code</label>
+    <input type="text" id="inviteCodeInput" placeholder="KOH-MGR-4829" 
+           style="text-transform: uppercase; font-family: 'Courier New', monospace; 
+                  letter-spacing: 1px; font-size: 16px; text-align: center;">
+    
+    <button class="success" onclick="verifyInviteCode()">🔍 কোড যাচাই করুন</button>
+    <button class="secondary" onclick="backToRoleSelection()" style="margin-top: 6px;">← পিছনে যান</button>
+    
+    <div id="inviteVerifyStatus"></div>
+  </div>
+  
+  <!-- === Normal Form Fields === -->
+  <div id="normalFormFields">
     <div id="selectedRoleBadge" style="background: #e8f0fe; color: #1a73e8; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 12px; text-align: center;"></div>
     
-    <label>Company / Business Name</label>
-    <input type="text" id="regCompany" placeholder="Adhesive Co.">
+    <!-- Company field (invite হলে auto-fill + readonly) -->
+    <div id="companyFieldWrapper">
+      <label>Company / Business Name</label>
+      <input type="text" id="regCompany" placeholder="Adhesive Co.">
+    </div>
     
     <label>আপনার নাম</label>
     <input type="text" id="regName" placeholder="Your name">
@@ -242,6 +290,8 @@
     
     <div id="regStatus"></div>
   </div>
+  
+</div>
   
 </div>
     </div>
@@ -639,11 +689,14 @@ const firebaseConfig = {
     document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
     document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
   };
- // ==================== রোল সিলেকশন ====================
+
+// ==================== রোল সিলেকশন ====================
 let selectedRole = null;
+let verifiedInvite = null;  // Verify হওয়া invite এর ডেটা
 
 window.selectRole = function(role) {
   selectedRole = role;
+  verifiedInvite = null;
   
   // সব কার্ড থেকে selected ক্লাস সরান
   document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
@@ -652,53 +705,176 @@ window.selectRole = function(role) {
   const card = document.getElementById('role-' + role);
   if (card) card.classList.add('selected');
   
-  // রোল নাম দেখানোর জন্য
-  const roleNames = {
-    'admin': '🏢 ব্যবসার মালিক (Admin)',
-    'manufacturer': '🏭 উৎপাদনকারী (Manufacturer)',
-    'wholesaler': '📦 পাইকার (Wholesaler)',
-    'retailer': '🏪 খুচরা বিক্রেতা (Retailer)',
-    'mistri': '🔧 কারিগর (Mistri)',
-    'customer': '🧑 গ্রাহক (Customer)',
-    'invite': '🔑 Invite Code দিয়ে যোগ দিন'
-  };
-  
-  document.getElementById('selectedRoleBadge').innerText = roleNames[role] || role;
-  
   // রোল সিলেকশন লুকান, ফর্ম দেখান
   document.getElementById('roleSelection').style.display = 'none';
   document.getElementById('registerFormFields').style.display = 'block';
   
-  // Invite সিলেক্ট করলে অতিরিক্ত ফিল্ড দেখাও (পরের ধাপে যোগ করব)
   if (role === 'invite') {
-    // পরে এখানে Invite Code ফিল্ড যোগ করব
-    alert("Invite Code ফিচার পরের ধাপে যোগ করব। এখন শুধু UI টেস্ট করছি।");
+    // Invite role → শুধু কোড verify সেকশন দেখাও
+    document.getElementById('inviteVerifySection').style.display = 'block';
+    document.getElementById('normalFormFields').style.display = 'none';
+  } else {
+    // Normal role → সরাসরি ফর্ম দেখাও
+    document.getElementById('inviteVerifySection').style.display = 'none';
+    document.getElementById('normalFormFields').style.display = 'block';
+    document.getElementById('companyFieldWrapper').style.display = 'block';
+    
+    // রোল badge আপডেট
+    const roleNames = {
+      'admin': '🏢 ব্যবসার মালিক (Admin)',
+      'manufacturer': '🏭 উৎপাদনকারী (Manufacturer)',
+      'wholesaler': '📦 পাইকার (Wholesaler)',
+      'retailer': '🏪 খুচরা বিক্রেতা (Retailer)',
+      'mistri': '🔧 কারিগর (Mistri)',
+      'customer': '🧑 গ্রাহক (Customer)'
+    };
+    document.getElementById('selectedRoleBadge').innerText = roleNames[role] || role;
   }
 };
 
+// ==================== Invite Code যাচাই ====================
+window.verifyInviteCode = async function() {
+  const codeInput = document.getElementById('inviteCodeInput');
+  const code = codeInput.value.trim().toUpperCase();
+  const statusEl = document.getElementById('inviteVerifyStatus');
+  
+  if (!code) {
+    statusEl.innerHTML = '<div class="status error">⚠️ Invite Code লিখুন</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+  
+  try {
+    // কোড খুঁজে বের করো
+    const q = query(collection(db, "invites"), where("code", "==", code));
+    const snap = await getDocs(q);
+    
+    if (snap.empty) {
+      statusEl.innerHTML = '<div class="status error">❌ এই কোডটি বৈধ নয়</div>';
+      return;
+    }
+    
+    const inviteDoc = snap.docs[0];
+    const inviteData = inviteDoc.data();
+    
+    // স্ট্যাটাস চেক
+    if (inviteData.status === 'used') {
+      statusEl.innerHTML = '<div class="status error">⚠️ এই কোডটি আগেই ব্যবহৃত হয়েছে</div>';
+      return;
+    }
+    
+    // মেয়াদ চেক
+    const expDate = inviteData.expiresAt?.toDate?.();
+    if (expDate && expDate < new Date()) {
+      statusEl.innerHTML = '<div class="status error">⏰ এই কোডের মেয়াদ শেষ হয়ে গেছে</div>';
+      return;
+    }
+    
+    // সফল!
+    verifiedInvite = {
+      id: inviteDoc.id,
+      ...inviteData
+    };
+    
+    // রোল ও কোম্পানির নাম দেখাও
+    const roleNames = {
+      manager: '🟢 ম্যানেজার',
+      salesman: '🟡 সেলসম্যান',
+      delivery_boy: '🟠 ডেলিভারি বয়',
+      dispatch_boy: '🔴 ডিসপ্যাচ বয়',
+      consignor: '🟫 কনসাইনার'
+    };
+    
+    statusEl.innerHTML = `
+      <div class="invite-verified-info">
+        <div class="company-name">✅ ${inviteData.adminCompanyName}</div>
+        <div class="role-name">${roleNames[inviteData.role] || inviteData.role} হিসেবে যোগ দিচ্ছেন</div>
+      </div>
+    `;
+    
+    // Invite verify সেকশন লুকান, ফর্ম দেখান
+    setTimeout(() => {
+      document.getElementById('inviteVerifySection').style.display = 'none';
+      document.getElementById('normalFormFields').style.display = 'block';
+      
+      // রোল badge আপডেট
+      document.getElementById('selectedRoleBadge').innerText = 
+        `${roleNames[inviteData.role] || inviteData.role} @ ${inviteData.adminCompanyName}`;
+      
+      // কোম্পানির নাম auto-fill করে readonly করো
+      const compField = document.getElementById('regCompany');
+      compField.value = inviteData.adminCompanyName;
+      compField.readOnly = true;
+      compField.style.background = '#f0f2f5';
+      compField.style.cursor = 'not-allowed';
+    }, 1200);
+    
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+
+// ==================== পিছনে যাওয়া ====================
 window.backToRoleSelection = function() {
   selectedRole = null;
+  verifiedInvite = null;
+  
   document.getElementById('roleSelection').style.display = 'block';
   document.getElementById('registerFormFields').style.display = 'none';
+  document.getElementById('inviteVerifySection').style.display = 'none';
+  document.getElementById('normalFormFields').style.display = 'block';
   document.getElementById('regStatus').innerHTML = '';
+  document.getElementById('inviteVerifyStatus').innerHTML = '';
+  document.getElementById('inviteCodeInput').value = '';
+  
+  // কোম্পানির ফিল্ড আবার ঠিক করো
+  const compField = document.getElementById('regCompany');
+  compField.value = '';
+  compField.readOnly = false;
+  compField.style.background = '';
+  compField.style.cursor = '';
+  
+  // সব কার্ড থেকে selected ক্লাস সরান
   document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  
+  // সব ইনপুট ক্লিয়ার
+  ['regCompany', 'regName', 'regWhatsapp', 'regEmail', 'regPassword', 'regPassword2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 };
  
-// ==================== Admin Register (UI Test Only) ====================
-// ==================== Admin Registration (Firebase Auth) ====================
+// ==================== Registration (Normal + Invite) ====================
 window.adminRegister = async function() {
   if (!selectedRole) return alert("আগে রোল সিলেক্ট করুন");
   
-  const company = document.getElementById('regCompany').value.trim();
   const name = document.getElementById('regName').value.trim();
   const whatsapp = document.getElementById('regWhatsapp').value.trim();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
   const password = document.getElementById('regPassword').value;
   const password2 = document.getElementById('regPassword2').value;
-  
   const statusEl = document.getElementById('regStatus');
   
-  // ভ্যালিডেশন
+  // Invite হলে কোম্পানির নাম verifiedInvite থেকে আসবে, নাহলে ফিল্ড থেকে
+  let company = '';
+  let parentAdminId = null;
+  let finalRole = selectedRole;
+  
+  if (selectedRole === 'invite') {
+    if (!verifiedInvite) {
+      statusEl.innerHTML = '<div class="status error">⚠️ আগে Invite Code যাচাই করুন</div>';
+      return;
+    }
+    company = verifiedInvite.adminCompanyName;
+    parentAdminId = verifiedInvite.adminId;
+    finalRole = verifiedInvite.role;  // manager/salesman/delivery_boy/etc
+  } else {
+    company = document.getElementById('regCompany').value.trim();
+  }
+  
+  // ===== ভ্যালিডেশন =====
   if (!company || !name || !whatsapp || !email || !password) {
     statusEl.innerHTML = '<div class="status error">⚠️ সব তথ্য দিন</div>';
     return;
@@ -719,28 +895,50 @@ window.adminRegister = async function() {
   statusEl.innerHTML = '<div class="status info">⏳ অ্যাকাউন্ট তৈরি হচ্ছে...</div>';
   
   try {
-    // ১. Firebase Authentication-এ ইউজার তৈরি
+    // ===== ১. Firebase Auth-এ ইউজার তৈরি =====
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const uid = userCredential.user.uid;
     
-    // ২. Firestore-এ ইউজারের বিস্তারিত তথ্য সেভ
-    await setDoc(doc(db, "admins", uid), {
+    // ===== ২. Firestore ডেটা তৈরি =====
+    const userData = {
       uid: uid,
       email: email,
       name: name,
       whatsapp: whatsapp,
       companyName: company,
-      role: selectedRole,
+      role: finalRole,
       language: currentLang,
-      withdrawalMin: 500,
-      helpline: "1800-000-0000",
-      footer: "",
       createdAt: serverTimestamp()
-    });
+    };
     
+    // Invite হলে অতিরিক্ত তথ্য
+    if (selectedRole === 'invite') {
+      userData.isTeamMember = true;
+      userData.parentAdminId = parentAdminId;
+      userData.invitedBy = parentAdminId;
+      userData.inviteCode = verifiedInvite.code;
+    } else {
+      userData.isTeamMember = false;
+      userData.withdrawalMin = 500;
+      userData.helpline = "1800-000-0000";
+      userData.footer = "";
+    }
+    
+    await setDoc(doc(db, "admins", uid), userData);
+    
+    // ===== ৩. Invite Code কে "used" মার্ক করো =====
+    if (selectedRole === 'invite' && verifiedInvite) {
+      await updateDoc(doc(db, "invites", verifiedInvite.id), {
+        status: 'used',
+        usedBy: uid,
+        usedByName: name,
+        usedAt: serverTimestamp()
+      });
+    }
+    
+    // ===== ৪. সফল =====
     statusEl.innerHTML = '<div class="status success">✅ সফল! ড্যাশবোর্ডে নিয়ে যাচ্ছি...</div>';
     
-    // ৩. adminId সেভ করে ড্যাশবোর্ডে যাও
     adminId = uid;
     localStorage.setItem('adminId', uid);
     
@@ -761,7 +959,6 @@ window.adminRegister = async function() {
     statusEl.innerHTML = `<div class="status error">${msg}</div>`;
   }
 };
-
  // ==================== Admin Login (Firebase Auth) ====================
 window.adminLogin = async function() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
