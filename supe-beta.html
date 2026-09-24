@@ -125,8 +125,11 @@
 <div id="view-dashboard" class="view">
   <div class="topbar">
     <h2>🟣 Super Admin Panel</h2>
-    <div class="logout" onclick="superLogout()">Logout</div>
-  </div>
+    <div style="display: flex; gap: 8px;">
+      <div class="logout" onclick="openSettings()" style="background: #2a2a4a;">⚙️</div>
+      <div class="logout" onclick="superLogout()">Logout</div>
+    </div>
+</div>
 
   <div class="container">
     <div class="stats-grid">
@@ -156,8 +159,50 @@
     <div id="adminList"><div class="loader">লোড হচ্ছে...</div></div>
   </div>
 </div>
+<!-- ============ SETTINGS BUTTON (Topbar) ============ -->
+<!-- এটি topbar-এ যোগ করুন -->
 
-<!-- ============ ADMIN DETAIL MODAL ============ -->
+<!-- ============ SETTINGS MODAL ============ -->
+<div id="settingsModal" class="modal">
+  <div class="modal-box">
+    <span class="close-x" onclick="closeSettings()">&times;</span>
+    <h3>⚙️ প্ল্যাটফর্ম সেটিংস</h3>
+    <p style="font-size: 12px; color: #888; margin-bottom: 16px;">
+      এই তথ্যগুলো অ্যাডমিনরা সাবস্ক্রিপশনের সময় দেখবে
+    </p>
+
+    <!-- UPI তথ্য -->
+    <label>🟣 আপনার UPI ID</label>
+    <input type="text" id="setUpiId" placeholder="yourname@upi">
+
+    <label>🟣 UPI Payee Name (যে নামে পেমেন্ট যাবে)</label>
+    <input type="text" id="setUpiName" placeholder="আপনার নাম">
+
+    <label>📱 আপনার WhatsApp Number</label>
+    <input type="tel" id="setWhatsapp" placeholder="9876543210" maxlength="10">
+
+    <!-- প্ল্যান মূল্য -->
+    <h3 style="margin-top: 20px; font-size: 14px;">💰 প্ল্যান মূল্য (মাসিক)</h3>
+
+    <label>🟢 Starter Plan</label>
+    <input type="number" id="setPriceStarter" placeholder="300" value="300">
+
+    <label>🔵 Pro Plan</label>
+    <input type="number" id="setPricePro" placeholder="800" value="800">
+
+    <label>🟣 Enterprise Plan</label>
+    <input type="number" id="setPriceEnterprise" placeholder="2000" value="2000">
+
+    <!-- ডিফল্ট ট্রায়াল -->
+    <label>⏱️ ডিফল্ট ট্রায়াল (দিন)</label>
+    <input type="number" id="setDefaultTrial" placeholder="30" value="30">
+
+    <button class="btn-primary" onclick="saveSettings()">💾 সেভ করুন</button>
+    <div id="settingsStatus"></div>
+  </div>
+</div>
+
+ <!-- ============ ADMIN DETAIL MODAL ============ -->
 <div id="adminModal" class="modal">
   <div class="modal-box">
     <span class="close-x" onclick="closeAdminModal()">&times;</span>
@@ -347,7 +392,82 @@
     location.reload();
   };
 
-  // ==================== DASHBOARD ====================
+  // ==================== SETTINGS ====================
+const SETTINGS_DOC = () => doc(db, "super_settings", "main");
+
+window.openSettings = async function() {
+  document.getElementById('settingsModal').classList.add('open');
+  document.getElementById('settingsStatus').innerHTML = '';
+  
+  try {
+    const snap = await getDoc(SETTINGS_DOC());
+    if (snap.exists()) {
+      const d = snap.data();
+      document.getElementById('setUpiId').value = d.upiId || '';
+      document.getElementById('setUpiName').value = d.upiName || '';
+      document.getElementById('setWhatsapp').value = d.whatsapp || '';
+      document.getElementById('setPriceStarter').value = d.priceStarter || 300;
+      document.getElementById('setPricePro').value = d.pricePro || 800;
+      document.getElementById('setPriceEnterprise').value = d.priceEnterprise || 2000;
+      document.getElementById('setDefaultTrial').value = d.defaultTrial || 30;
+    }
+  } catch (e) {
+    console.error("Load settings error:", e);
+  }
+};
+
+window.closeSettings = function() {
+  document.getElementById('settingsModal').classList.remove('open');
+};
+
+window.saveSettings = async function() {
+  const upiId = document.getElementById('setUpiId').value.trim();
+  const upiName = document.getElementById('setUpiName').value.trim();
+  const whatsapp = document.getElementById('setWhatsapp').value.trim();
+  const priceStarter = parseInt(document.getElementById('setPriceStarter').value) || 300;
+  const pricePro = parseInt(document.getElementById('setPricePro').value) || 800;
+  const priceEnterprise = parseInt(document.getElementById('setPriceEnterprise').value) || 2000;
+  const defaultTrial = parseInt(document.getElementById('setDefaultTrial').value) || 30;
+  
+  const statusEl = document.getElementById('settingsStatus');
+  
+  if (!upiId || !whatsapp) {
+    statusEl.innerHTML = '<div class="status error">UPI ID ও WhatsApp নাম্বার দিন</div>';
+    return;
+  }
+  if (!/^\d{10}$/.test(whatsapp)) {
+    statusEl.innerHTML = '<div class="status error">WhatsApp নাম্বার ১০ ডিজিটের হতে হবে</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ সেভ হচ্ছে...</div>';
+  
+  try {
+    await setDoc(SETTINGS_DOC(), {
+      upiId: upiId,
+      upiName: upiName,
+      whatsapp: whatsapp,
+      priceStarter: priceStarter,
+      pricePro: pricePro,
+      priceEnterprise: priceEnterprise,
+      defaultTrial: defaultTrial,
+      updatedAt: serverTimestamp(),
+      updatedBy: currentAdmin?.uid || 'unknown'
+    }, { merge: true });
+    
+    statusEl.innerHTML = '<div class="status success">✅ সেভ হয়েছে!</div>';
+    
+    setTimeout(() => {
+      closeSettings();
+    }, 1500);
+    
+  } catch (e) {
+    console.error("Save settings error:", e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+ 
+ // ==================== DASHBOARD ====================
   function loadDashboard() {
     // সব admins লোড (team member বাদ দিয়ে)
     onSnapshot(collection(db, "admins"), (snap) => {
