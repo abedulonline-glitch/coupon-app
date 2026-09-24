@@ -232,6 +232,44 @@
   font-weight: bold;
   font-size: 13px;
 }
+
+/* ============ SUPER ADMIN ============ */
+#view-super .topbar {
+  background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
+}
+.super-admin-card {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #7c3aed;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.super-admin-card.trial { border-left-color: #f59e0b; }
+.super-admin-card.active { border-left-color: #10b981; }
+.super-admin-card.expired { border-left-color: #ef4444; }
+.super-admin-card.suspended { border-left-color: #6b7280; opacity: 0.7; }
+.super-admin-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #202124;
+}
+.super-admin-company {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+.super-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.badge-trial { background: #fef3c7; color: #92400e; }
+.badge-active { background: #d1fae5; color: #065f46; }
+.badge-expired { background: #fee2e2; color: #991b1b; }
+.badge-suspended { background: #e5e7eb; color: #374151; }
 </style>
 </head>
 <body>
@@ -532,7 +570,83 @@
   </div>
 </div>
 
-<!-- ============ TEAM MEMBER VIEW ============ -->
+<!-- ============ SUPER ADMIN VIEW ============ -->
+<div id="view-super" class="view">
+  
+  <!-- Top Bar -->
+  <div class="topbar" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">
+    <div>
+      <h2 style="font-size: 16px;">🟣 Super Admin</h2>
+      <span style="font-size: 11px; opacity: 0.9;">Platform Control Panel</span>
+    </div>
+    <div class="logout" onclick="superLogout()">Logout</div>
+  </div>
+
+  <div class="container">
+    
+    <!-- ====== Login Section (আগে দেখাবে) ====== -->
+    <div id="superLoginBox" style="min-height: 70vh; display: flex; flex-direction: column; justify-content: center; max-width: 400px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 48px;">🟣</div>
+        <h2 style="color: #7c3aed; font-size: 22px; margin-top: 8px;">Super Admin</h2>
+        <p style="color: #666; font-size: 13px; margin-top: 4px;">শুধুমাত্র প্ল্যাটফর্ম মালিকের জন্য</p>
+      </div>
+      
+      <div class="card">
+        <label>Email</label>
+        <input type="email" id="superEmail" placeholder="super@couponapp.com">
+        
+        <label>Password</label>
+        <input type="password" id="superPassword" placeholder="••••••••">
+        
+        <button onclick="superLogin()" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">
+          🔐 প্রবেশ করুন
+        </button>
+        
+        <div id="superLoginStatus"></div>
+      </div>
+    </div>
+
+    <!-- ====== Panel Section (লগইন হলে দেখাবে) ====== -->
+    <div id="superPanel" style="display: none;">
+      
+      <!-- Dashboard Summary -->
+      <div class="card" style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: white;">
+        <h3 style="color: white; font-size: 16px; margin-bottom: 12px;">📊 Platform Overview</h3>
+        <div class="stat-grid" style="grid-template-columns: 1fr 1fr;">
+          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+            <div id="superTotalAdmins" style="font-size: 24px; font-weight: bold;">0</div>
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">Total Admins</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+            <div id="superActiveAdmins" style="font-size: 24px; font-weight: bold;">0</div>
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">Active</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+            <div id="superTrialAdmins" style="font-size: 24px; font-weight: bold;">0</div>
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">Trial</div>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; text-align: center;">
+            <div id="superExpiredAdmins" style="font-size: 24px; font-weight: bold;">0</div>
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">Expired</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin List (পরের Sub-Step-এ পূর্ণ হবে) -->
+      <div class="card">
+        <h3>👥 All Admins</h3>
+        <div id="superAdminList">
+          <div class="loader">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+ 
+ <!-- ============ TEAM MEMBER VIEW ============ -->
 <div id="view-team" class="view">
   <div class="topbar">
     <div>
@@ -741,7 +855,12 @@ const firebaseConfig = {
 
  // const app = initializeApp(firebaseConfig);
  // const db = getFirestore(app);
-
+// ============================================================
+// SUPER ADMIN CONFIGURATION
+// ============================================================
+// ⚠️ এই দুটি মান আপনি পরিবর্তন করতে পারবেন
+const SUPER_SECRET_KEY = "SUPER2026KOH";  // URL-এ ব্যবহার হবে
+const SUPER_ADMIN_EMAIL = "abedulmallick@gmail.com";  // Firebase Auth-এর ইমেইল
   // ==================== i18n TRANSLATIONS ====================
   const T = {
     bn: {
@@ -1225,7 +1344,182 @@ window.adminLogout = async function() {
   location.reload();
 };
 
-// ==================== Admin Session Load (Admin + Team Member) ====================
+// ============================================================
+// SUPER ADMIN SYSTEM
+// ============================================================
+
+let superAdminSession = false;
+
+// ==================== Super Admin Login ====================
+window.superLogin = async function() {
+  const email = document.getElementById('superEmail').value.trim().toLowerCase();
+  const password = document.getElementById('superPassword').value;
+  const statusEl = document.getElementById('superLoginStatus');
+  
+  if (!email || !password) {
+    statusEl.innerHTML = '<div class="status error">⚠️ ইমেইল ও পাসওয়ার্ড দিন</div>';
+    return;
+  }
+  
+  // ইমেইল চেক
+  if (email !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+    statusEl.innerHTML = '<div class="status error">❌ এই ইমেইলটি অনুমোদিত নয়</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+  
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
+    
+    // সেশনে সেভ
+    superAdminSession = true;
+    localStorage.setItem('superAdminId', uid);
+    localStorage.setItem('superAdminEmail', email);
+    
+    statusEl.innerHTML = '<div class="status success">✅ সফল!</div>';
+    setTimeout(() => loadSuperSession(), 500);
+    
+  } catch (error) {
+    console.error("Super login error:", error);
+    let msg = "❌ লগইন ব্যর্থ";
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      msg = "❌ ভুল পাসওয়ার্ড";
+    } else if (error.code === 'auth/user-not-found') {
+      msg = "❌ এই ইমেইলটি Firebase Auth-এ নেই";
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = "❌ অনেকবার চেষ্টা করেছেন, কিছুক্ষণ পর চেষ্টা করুন";
+    } else {
+      msg = "❌ " + error.message;
+    }
+    statusEl.innerHTML = `<div class="status error">${msg}</div>`;
+  }
+};
+
+// ==================== Super Admin Session Loader ====================
+window.loadSuperSession = async function() {
+  if (!superAdminSession) {
+    // localStorage থেকে চেক করি
+    const savedUid = localStorage.getItem('superAdminId');
+    const savedEmail = localStorage.getItem('superAdminEmail');
+    
+    if (savedUid && savedEmail === SUPER_ADMIN_EMAIL.toLowerCase()) {
+      superAdminSession = true;
+    } else {
+      showView('view-super');
+      return;
+    }
+  }
+  
+  // UI আপডেট
+  document.getElementById('superLoginBox').style.display = 'none';
+  document.getElementById('superPanel').style.display = 'block';
+  showView('view-super');
+  
+  // ড্যাশবোর্ড স্ট্যাট লোড
+  await loadSuperDashboard();
+  
+  // অ্যাডমিন লিস্ট লোড
+  loadSuperAdminList();
+};
+
+// ==================== Super Admin Logout ====================
+window.superLogout = async function() {
+  if (!confirm("Super Admin থেকে লগআউট করবেন?")) return;
+  
+  try {
+    await signOut(auth);
+  } catch (e) {
+    console.error(e);
+  }
+  
+  superAdminSession = false;
+  localStorage.removeItem('superAdminId');
+  localStorage.removeItem('superAdminEmail');
+  location.reload();
+};
+
+// ==================== Dashboard Stats ====================
+async function loadSuperDashboard() {
+  try {
+    const snap = await getDocs(collection(db, "admins"));
+    
+    let total = 0;
+    let active = 0;
+    let trial = 0;
+    let expired = 0;
+    
+    const now = new Date();
+    
+    snap.forEach(d => {
+      const data = d.data();
+      
+      // Team member বাদ দাও
+      if (data.isTeamMember === true) return;
+      
+      total++;
+      
+      if (data.suspended === true) return;
+      
+      const subscription = data.subscription || {};
+      const status = subscription.status || 'trial';
+      const endDate = subscription.endDate?.toDate?.() || null;
+      
+      if (status === 'active') {
+        if (endDate && endDate < now) {
+          expired++;
+        } else {
+          active++;
+        }
+      } else if (status === 'trial') {
+        if (endDate && endDate < now) {
+          expired++;
+        } else {
+          trial++;
+        }
+      } else {
+        expired++;
+      }
+    });
+    
+    document.getElementById('superTotalAdmins').innerText = total;
+    document.getElementById('superActiveAdmins').innerText = active;
+    document.getElementById('superTrialAdmins').innerText = trial;
+    document.getElementById('superExpiredAdmins').innerText = expired;
+    
+  } catch (e) {
+    console.error("Super dashboard error:", e);
+  }
+}
+
+// ==================== Admin List (Placeholder for now) ====================
+function loadSuperAdminList() {
+  // এই অংশ পরের Sub-Step-এ পূর্ণ হবে
+  const el = document.getElementById('superAdminList');
+  el.innerHTML = `
+    <div style="text-align: center; padding: 20px; color: #999;">
+      <p>📋 অ্যাডমিন লিস্ট পরের ধাপে যোগ হবে</p>
+      <p style="font-size: 12px; margin-top: 8px;">আপাতত লগইন সিস্টেম টেস্ট করুন</p>
+    </div>
+  `;
+}
+
+// ==================== URL Param Check ====================
+function checkSuperAccess() {
+  const params = new URLSearchParams(window.location.search);
+  const key = params.get('super');
+  
+  if (!key) return false;
+  
+  if (key === SUPER_SECRET_KEY) {
+    return true;
+  } else {
+    alert("❌ ভুল অ্যাক্সেস কী");
+    return false;
+  }
+}
+ // ==================== Admin Session Load (Admin + Team Member) ====================
 async function loadAdminSession() {
   if (!adminId) { showView('view-auth'); return; }
   
@@ -2643,13 +2937,24 @@ window.deleteInvite = async function(inviteId) {
   };
 
   // ==================== INIT ====================
-  applyTranslations();
-  // যদি ভাষা আগে সেট না থাকে
+applyTranslations();
+
+// Super Admin URL চেক
+if (checkSuperAccess()) {
+  // URL-এ ?super=SECRET আছে
+  if (localStorage.getItem('superAdminId')) {
+    loadSuperSession();
+  } else {
+    showView('view-super');
+  }
+} else {
+  // সাধারণ ফ্লো
   if (!localStorage.getItem('lang')) {
     showView('view-lang');
   } else {
     setLanguage(currentLang);
   }
+}
 
   // ভাষা সেট করার পর কল হবে
   window.addEventListener('load', () => {
