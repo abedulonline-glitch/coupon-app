@@ -232,6 +232,87 @@
   font-weight: bold;
   font-size: 13px;
 }
+
+/* Subscription Page */
+.plan-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.plan-card:hover {
+  border-color: #1a73e8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+}
+.plan-card.selected {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+}
+.plan-card.starter { border-left: 4px solid #0f9d58; }
+.plan-card.pro { border-left: 4px solid #1a73e8; }
+.plan-card.enterprise { border-left: 4px solid #7b1fa2; }
+.plan-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #202124;
+}
+.plan-price {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1a73e8;
+  margin: 8px 0;
+}
+.plan-price span {
+  font-size: 12px;
+  color: #666;
+  font-weight: normal;
+}
+.plan-desc {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.sub-status-box {
+  background: linear-gradient(135deg, #1a73e8, #4285f4);
+  color: white;
+  padding: 18px;
+  border-radius: 12px;
+  text-align: center;
+}
+.sub-status-box.expired {
+  background: linear-gradient(135deg, #d93025, #e74c3c);
+}
+.sub-status-box.trial {
+  background: linear-gradient(135deg, #f9a825, #ffb300);
+}
+.sub-plan-name {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+.sub-days-left {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+.sub-end-date {
+  font-size: 12px;
+  opacity: 0.9;
+}
+.pending-request-card {
+  background: #fef7e0;
+  border-left: 4px solid #f9a825;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
 </style>
 </head>
 <body>
@@ -462,7 +543,33 @@
       </div>
     </div>
 
-    <!-- Settings -->
+   <!-- ============ Subscription Page ============ -->
+    <div id="ap-subscription" class="admin-page" style="display:none;">
+      
+      <!-- Current Status -->
+      <div class="card" id="subCurrentCard">
+        <h3>💎 আপনার সাবস্ক্রিপশন</h3>
+        <div id="subCurrentStatus"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+
+      <!-- Upgrade Plans -->
+      <div class="card">
+        <h3>🚀 আপগ্রেড করুন</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:12px;">
+          আপনার প্রয়োজন অনুযায়ী প্ল্যান সিলেক্ট করুন
+        </p>
+        <div id="planCards"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+
+      <!-- Pending Requests -->
+      <div class="card" id="subPendingCard" style="display:none;">
+        <h3>⏳ অপেক্ষমাণ অনুরোধ</h3>
+        <div id="subPendingList"></div>
+      </div>
+
+    </div>
+   
+   <!-- Settings -->
     <div id="ap-settings" class="admin-page" style="display:none;">
       <!-- ==================== Team Management (Invite Codes) ==================== -->
       <div class="card">
@@ -524,13 +631,25 @@
   </div>
 
   <div class="bottom-nav">
-    <div class="nav-item active" onclick="adminNav('dashboard', this)"><span class="icon">🏠</span><span data-t="home">Home</span></div>
-    <div class="nav-item" onclick="adminNav('coupons', this)"><span class="icon">🎫</span><span data-t="coupons">Coupons</span></div>
-    <div class="nav-item" onclick="adminNav('customers', this)"><span class="icon">👥</span><span data-t="users">Users</span></div>
-    <div class="nav-item" onclick="adminNav('withdrawals', this)"><span class="icon">💸</span><span data-t="withdraw">Withdraw</span></div>
-    <div class="nav-item" onclick="adminNav('settings', this)"><span class="icon">⚙️</span><span data-t="settings">Settings</span></div>
+    <div class="nav-item active" onclick="adminNav('dashboard', this)">
+      <span class="icon">🏠</span><span data-t="home">Home</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('coupons', this)">
+      <span class="icon">🎫</span><span data-t="coupons">Coupons</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('customers', this)">
+      <span class="icon">👥</span><span data-t="users">Users</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('withdrawals', this)">
+      <span class="icon">💸</span><span data-t="withdraw">Withdraw</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('subscription', this)">
+      <span class="icon">💎</span><span>Plan</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('settings', this)">
+      <span class="icon">⚙️</span><span data-t="settings">Settings</span>
+    </div>
   </div>
-</div>
 
 <!-- ============ TEAM MEMBER VIEW ============ -->
 <div id="view-team" class="view">
@@ -738,7 +857,8 @@ const firebaseConfig = {
   measurementId: "G-Y5YECTQ61J"
 };
 
-
+// ⬇⬇⬇ ImgBB API Key (https://api.imgbb.com/ থেকে পাবেন) ⬇⬇⬇
+const IMGBB_API_KEY = "cb410994ffe4638b322192f4bd9a3a09";
  // const app = initializeApp(firebaseConfig);
  // const db = getFirestore(app);
 
@@ -1691,7 +1811,12 @@ window.teamLogout = async function() {
     document.getElementById('ap-' + page).style.display = 'block';
     document.querySelectorAll('#view-admin .nav-item').forEach(n => n.classList.remove('active'));
     if (el) el.classList.add('active');
-  };
+    
+    // পেজ অনুযায়ী ডেটা লোড
+    if (page === 'subscription') {
+      loadSubscriptionPage();
+    }
+};
 
   // ==================== DASHBOARD STATS ====================
   async function loadAdminDashboard() {
@@ -2658,6 +2783,379 @@ window.deleteInvite = async function(inviteId) {
     }
   });
 
+// ============================================================
+// SUBSCRIPTION SYSTEM (Admin দিক)
+// ============================================================
+
+let superSettings = null;      // Super Admin এর সেটিংস
+let selectedPlan = null;       // ইউজার যে প্ল্যান সিলেক্ট করেছে
+
+// ==================== Super Settings লোড ====================
+async function loadSuperSettings() {
+  try {
+    const snap = await getDoc(doc(db, "super_settings", "main"));
+    if (snap.exists()) {
+      superSettings = snap.data();
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.error("Load super settings error:", e);
+    return false;
+  }
+}
+
+// ==================== Subscription Page লোড ====================
+async function loadSubscriptionPage() {
+  // Super Admin Settings লোড
+  await loadSuperSettings();
+
+  // === Current Status ===
+  renderCurrentSubscription();
+
+  // === Plan Cards ===
+  renderPlanCards();
+
+  // === Pending Requests ===
+  loadPendingRequests();
+}
+
+// ==================== Current Subscription Status ====================
+function renderCurrentSubscription() {
+  const el = document.getElementById('subCurrentStatus');
+  
+  if (!adminData) {
+    el.innerHTML = '<p class="empty">লোড হচ্ছে...</p>';
+    return;
+  }
+
+  const endDate = adminData.subscriptionEnd?.toDate?.();
+  const plan = adminData.plan || 'trial';
+  
+  let boxClass = '';
+  let planName = '';
+  let daysLeft = '';
+  let statusText = '';
+  
+  if (!endDate) {
+    boxClass = '';
+    planName = '⚪ কোনো প্ল্যান নেই';
+    daysLeft = 'N/A';
+    statusText = 'নিচে থেকে একটি প্ল্যান সিলেক্ট করুন';
+  } else {
+    const days = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+    
+    if (days <= 0) {
+      boxClass = 'expired';
+      planName = '🔴 মেয়াদ শেষ';
+      daysLeft = 'শেষ';
+      statusText = 'দ্রুত রিনিউ করুন';
+    } else if (plan === 'trial') {
+      boxClass = 'trial';
+      planName = '🟡 ট্রায়াল';
+      daysLeft = days + ' দিন';
+      statusText = 'ট্রায়াল শেষ হবে ' + endDate.toLocaleDateString('en-GB');
+    } else {
+      const planNames = { starter: '🟢 Starter', pro: '🔵 Pro', enterprise: '🟣 Enterprise' };
+      planName = planNames[plan] || '🟢 Active';
+      daysLeft = days + ' দিন';
+      statusText = 'পরবর্তী রিনিউ ' + endDate.toLocaleDateString('en-GB');
+    }
+  }
+  
+  el.innerHTML = `
+    <div class="sub-status-box ${boxClass}">
+      <div class="sub-plan-name">${planName}</div>
+      <div class="sub-days-left">${daysLeft}</div>
+      <div class="sub-end-date">${statusText}</div>
+    </div>
+  `;
+}
+
+// ==================== Plan Cards Render ====================
+function renderPlanCards() {
+  const el = document.getElementById('planCards');
+  
+  if (!superSettings) {
+    el.innerHTML = '<p class="empty">Super Admin এখনো সেটিংস কনফিগার করেনি</p>';
+    return;
+  }
+  
+  const plans = [
+    {
+      id: 'starter',
+      name: '🟢 Starter',
+      price: superSettings.priceStarter || 300,
+      desc: 'ছোট ব্যবসার জন্য<br>• ৫০০ কুপন/মাস<br>• ২০০ কাস্টমার<br>• বেসিক সাপোর্ট'
+    },
+    {
+      id: 'pro',
+      name: '🔵 Pro',
+      price: superSettings.pricePro || 800,
+      desc: 'মাঝারি ব্যবসার জন্য<br>• ৫,০০০ কুপন/মাস<br>• ২,০০০ কাস্টমার<br>• প্রায়োরিটি সাপোর্ট'
+    },
+    {
+      id: 'enterprise',
+      name: '🟣 Enterprise',
+      price: superSettings.priceEnterprise || 2000,
+      desc: 'বড় কোম্পানির জন্য<br>• আনলিমিটেড<br>• সব ফিচার<br>• ডেডিকেটেড সাপোর্ট'
+    }
+  ];
+  
+  let html = '';
+  plans.forEach(p => {
+    html += `
+      <div class="plan-card ${p.id}" onclick="selectPlan('${p.id}', ${p.price})">
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-price">₹${p.price}<span>/মাস</span></div>
+        <div class="plan-desc">${p.desc}</div>
+      </div>
+    `;
+  });
+  el.innerHTML = html;
+}
+
+// ==================== Plan Select ====================
+window.selectPlan = function(planId, price) {
+  if (!superSettings) {
+    alert("Super Admin এখনো সেটিংস কনফিগার করেনি");
+    return;
+  }
+  
+  selectedPlan = { id: planId, price: price };
+  
+  // Modal সেটআপ
+  document.getElementById('subSelectedPlanInfo').innerText = 
+    `${planId.toUpperCase()} প্ল্যান · ₹${price}/মাস`;
+  document.getElementById('subPayAmount').innerText = price;
+  document.getElementById('subUpiId').innerText = superSettings.upiId || 'N/A';
+  document.getElementById('subUpiName').innerText = superSettings.upiName || '';
+  
+  // UPI QR জেনারেট
+  generateUpiQr(superSettings.upiId, superSettings.upiName, price);
+  
+  // Form Reset
+  document.getElementById('subScreenshot').value = '';
+  document.getElementById('subScreenshotPreview').style.display = 'none';
+  document.getElementById('subTxnRef').value = '';
+  document.getElementById('subRequestStatus').innerHTML = '';
+  
+  // Modal খুলুন
+  document.getElementById('subRequestModal').style.display = 'block';
+};
+
+// ==================== UPI QR জেনারেট ====================
+function generateUpiQr(upiId, payeeName, amount) {
+  const qrContainer = document.getElementById('subQrCode');
+  qrContainer.innerHTML = '';
+  
+  // UPI পেমেন্ট লিংক
+  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
+  
+  new QRCode(qrContainer, {
+    text: upiLink,
+    width: 180,
+    height: 180,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+window.closeSubRequest = function() {
+  document.getElementById('subRequestModal').style.display = 'none';
+  selectedPlan = null;
+};
+
+// ==================== Screenshot Preview ====================
+window.previewScreenshot = function(event) {
+  const file = event.target.files[0];
+  if (!file) {
+    document.getElementById('subScreenshotPreview').style.display = 'none';
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('subPreviewImg').src = e.target.result;
+    document.getElementById('subScreenshotPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+// ==================== ImgBB-এ ছবি আপলোড ====================
+async function uploadToImgBB(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function() {
+      try {
+        const base64 = reader.result.split(',')[1];
+        const formData = new FormData();
+        formData.append('key', IMGBB_API_KEY);
+        formData.append('image', base64);
+        
+        const res = await fetch('https://api.imgbb.com/1/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          resolve(data.data.url);
+        } else {
+          reject(new Error('ImgBB upload failed'));
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==================== Subscription Request Submit ====================
+window.submitSubscriptionRequest = async function() {
+  const statusEl = document.getElementById('subRequestStatus');
+  const fileInput = document.getElementById('subScreenshot');
+  const txnRef = document.getElementById('subTxnRef').value.trim();
+  
+  // Validation
+  if (!selectedPlan) {
+    statusEl.innerHTML = '<div class="status error">⚠️ প্ল্যান সিলেক্ট করুন</div>';
+    return;
+  }
+  if (!fileInput.files[0]) {
+    statusEl.innerHTML = '<div class="status error">⚠️ স্ক্রিনশট আপলোড করুন</div>';
+    return;
+  }
+  if (!txnRef) {
+    statusEl.innerHTML = '<div class="status error">⚠️ UPI Reference নাম্বার দিন</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ ছবি আপলোড হচ্ছে...</div>';
+  
+  try {
+    // ১. ImgBB-এ স্ক্রিনশট আপলোড
+    const screenshotUrl = await uploadToImgBB(fileInput.files[0]);
+    
+    statusEl.innerHTML = '<div class="status info">⏳ অনুরোধ জমা হচ্ছে...</div>';
+    
+    // ২. Firestore-এ request তৈরি
+    await addDoc(collection(db, "subscription_requests"), {
+      adminId: adminId,
+      adminCompany: adminData.companyName || '',
+      adminName: adminData.name || '',
+      adminWhatsapp: adminData.whatsapp || '',
+      adminEmail: adminData.email || '',
+      plan: selectedPlan.id,
+      amount: selectedPlan.price,
+      screenshotUrl: screenshotUrl,
+      upiReference: txnRef,
+      status: 'pending',
+      requestedAt: serverTimestamp(),
+      approvedAt: null,
+      approvedBy: null,
+      rejectionReason: null
+    });
+    
+    statusEl.innerHTML = `
+      <div class="status success">
+        ✅ অনুরোধ সফলভাবে জমা হয়েছে!<br>
+        <span style="font-size:11px;">Super Admin যাচাই করে অনুমোদন দেবেন</span>
+      </div>
+    `;
+    
+    // ৩. WhatsApp শেয়ার অফার
+    setTimeout(() => {
+      const msg = `🎫 *নতুন সাবস্ক্রিপশন অনুরোধ*\n\nকোম্পানি: ${adminData.companyName}\nপ্ল্যান: ${selectedPlan.id.toUpperCase()}\nপরিমাণ: ₹${selectedPlan.price}\nUPI Ref: ${txnRef}\n\nস্ক্রিনশট: ${screenshotUrl}`;
+      const encoded = encodeURIComponent(msg);
+      const waUrl = `https://wa.me/91${superSettings.whatsapp}?text=${encoded}`;
+      
+      if (confirm("আপনার অনুরোধ জমা হয়েছে।\n\nWhatsApp-এ Super Admin-কে জানাতে চান?")) {
+        window.open(waUrl, '_blank');
+      }
+      
+      // Modal বন্ধ + পেজ রিফ্রেশ
+      closeSubRequest();
+      loadSubscriptionPage();
+    }, 1200);
+    
+  } catch (e) {
+    console.error("Submit error:", e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+
+// ==================== Pending Requests ====================
+function loadPendingRequests() {
+  if (!adminId) return;
+  
+  const q = query(
+    collection(db, "subscription_requests"),
+    where("adminId", "==", adminId)
+  );
+  
+  onSnapshot(q, (snap) => {
+    const el = document.getElementById('subPendingList');
+    const card = document.getElementById('subPendingCard');
+    
+    if (snap.empty) {
+      card.style.display = 'none';
+      return;
+    }
+    
+    const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    requests.sort((a, b) => {
+      const tA = a.requestedAt?.toMillis?.() || 0;
+      const tB = b.requestedAt?.toMillis?.() || 0;
+      return tB - tA;
+    });
+    
+    let html = '';
+    requests.slice(0, 5).forEach(r => {
+      const date = r.requestedAt?.toDate?.()?.toLocaleDateString('en-GB') || '';
+      let statusBadge = '';
+      let badgeColor = '';
+      
+      if (r.status === 'pending') {
+        statusBadge = '⏳ অপেক্ষমাণ';
+        badgeColor = '#f9a825';
+      } else if (r.status === 'approved') {
+        statusBadge = '✅ অনুমোদিত';
+        badgeColor = '#0f9d58';
+      } else if (r.status === 'rejected') {
+        statusBadge = '❌ প্রত্যাখ্যাত';
+        badgeColor = '#d93025';
+      }
+      
+      html += `
+        <div class="pending-request-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <b>${r.plan.toUpperCase()}</b> · ₹${r.amount}
+              <div style="font-size:11px; color:#666; margin-top:4px;">
+                ${date} · Ref: ${r.upiReference}
+              </div>
+            </div>
+            <div style="color:${badgeColor}; font-weight:600; font-size:12px;">
+              ${statusBadge}
+            </div>
+          </div>
+          ${r.status === 'rejected' && r.rejectionReason ? 
+            `<div style="font-size:11px; color:#d93025; margin-top:6px;">
+              কারণ: ${r.rejectionReason}
+            </div>` : ''}
+        </div>
+      `;
+    });
+    
+    el.innerHTML = html;
+    card.style.display = 'block';
+  });
+}
+ 
 </script>
 <!-- Customer Details Modal -->
 <div id="customerModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; overflow-y: auto; padding: 20px;">
@@ -2687,7 +3185,58 @@ window.deleteInvite = async function(inviteId) {
     </div>
   </div>
 </div>
-<!-- ==================== Team Member Detail Modal ==================== -->
+<!-- ============ Subscription Request Modal ============ -->
+<div id="subRequestModal" class="modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:12px; max-width:500px; margin:20px auto; padding:20px; position:relative;">
+    
+    <span onclick="closeSubRequest()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+    
+    <h3 style="color:#1a73e8; margin-bottom:8px; font-size:18px;">💎 সাবস্ক্রিপশন কিনুন</h3>
+    <p id="subSelectedPlanInfo" style="font-size:13px; color:#666; margin-bottom:16px;"></p>
+
+    <!-- Step 1: QR Code -->
+    <div style="background:#f8f9fa; border-radius:10px; padding:16px; text-align:center; margin-bottom:16px;">
+      <p style="font-size:12px; color:#666; margin-bottom:10px;">
+        📱 নিচের QR কোড UPI অ্যাপ দিয়ে স্ক্যান করে <b>₹<span id="subPayAmount">0</span></b> পাঠান
+      </p>
+      <div id="subQrCode" style="display:inline-block; padding:10px; background:white; border-radius:8px;"></div>
+      <p style="font-size:12px; color:#666; margin-top:12px;">
+        বা এই UPI ID-তে পাঠান:
+      </p>
+      <div id="subUpiId" style="font-family:monospace; font-size:14px; font-weight:bold; color:#1a73e8; margin-top:4px; padding:8px; background:white; border-radius:6px;">
+        -
+      </div>
+      <div id="subUpiName" style="font-size:11px; color:#666; margin-top:4px;"></div>
+    </div>
+
+    <!-- Step 2: Screenshot Upload -->
+    <label style="display:block; font-size:13px; font-weight:600; color:#333; margin-bottom:6px;">
+      📸 পেমেন্টের স্ক্রিনশট আপলোড করুন
+    </label>
+    <input type="file" id="subScreenshot" accept="image/*" 
+      style="width:100%; padding:10px; border:1px solid #dadce0; border-radius:8px; font-size:13px;"
+      onchange="previewScreenshot(event)">
+    
+    <div id="subScreenshotPreview" style="display:none; margin-top:10px; text-align:center;">
+      <img id="subPreviewImg" style="max-width:100%; max-height:200px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+
+    <!-- Step 3: UPI Reference -->
+    <label style="display:block; font-size:13px; font-weight:600; color:#333; margin:14px 0 6px;">
+      🔢 UPI Reference / Transaction ID
+    </label>
+    <input type="text" id="subTxnRef" placeholder="যেমন: 123456789012" 
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+
+    <!-- Submit -->
+    <button class="success" onclick="submitSubscriptionRequest()" 
+      style="width:100%; padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; margin-top:16px; cursor:pointer;">
+      ✅ অনুরোধ জমা দিন
+    </button>
+    <div id="subRequestStatus"></div>
+  </div>
+</div>
+ <!-- ==================== Team Member Detail Modal ==================== -->
 <div id="memberDetailModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; overflow-y: auto; padding: 20px;">
   <div style="background: white; border-radius: 12px; max-width: 500px; margin: 20px auto; padding: 20px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
     
