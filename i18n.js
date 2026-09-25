@@ -1,11 +1,10 @@
 // ============================================================
 // i18n.js — Multi-Language Support (10 Languages)
+// UMD version — i18next আগে থেকে loaded থাকতে হবে
 // ============================================================
 
-import i18next from 'https://cdn.jsdelivr.net/npm/i18next@23.7.6/+esm';
-
 // ==================== সাপোর্টেড ভাষা ====================
-export const LANGUAGES = [
+const LANGUAGES = [
   { code: 'bn', name: 'বাংলা', flag: '🇧🇩' },
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
@@ -20,12 +19,9 @@ export const LANGUAGES = [
 
 // ==================== অনুবাদ ====================
 const resources = {
-
-  // ========== বাংলা ==========
   bn: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "অ্যাডমিন প্যানেল",
+      app_name: "Coupon SaaS", admin_panel: "অ্যাডমিন প্যানেল",
       login: "লগইন", register: "রেজিস্টার", logout: "লগআউট",
       email: "ইমেইল", password: "পাসওয়ার্ড", phone: "মোবাইল", name: "নাম",
       whatsapp: "হোয়াটসঅ্যাপ", company_name: "কোম্পানির নাম",
@@ -51,12 +47,9 @@ const resources = {
       locked_message: "আপনার সাবস্ক্রিপশন শেষ। চালিয়ে যেতে রিনিউ করুন।"
     }
   },
-
-  // ========== English ==========
   en: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "Admin Panel",
+      app_name: "Coupon SaaS", admin_panel: "Admin Panel",
       login: "Login", register: "Register", logout: "Logout",
       email: "Email", password: "Password", phone: "Phone", name: "Name",
       whatsapp: "WhatsApp", company_name: "Company Name",
@@ -82,12 +75,9 @@ const resources = {
       locked_message: "Your subscription has expired. Please renew to continue."
     }
   },
-
-  // ========== हिन्दी ==========
   hi: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "एडमिन पैनल",
+      app_name: "Coupon SaaS", admin_panel: "एडमिन पैनल",
       login: "लॉगिन", register: "रजिस्टर", logout: "लॉगआउट",
       email: "ईमेल", password: "पासवर्ड", phone: "फ़ोन", name: "नाम",
       whatsapp: "व्हाट्सएप", company_name: "कंपनी का नाम",
@@ -113,12 +103,9 @@ const resources = {
       locked_message: "आपकी सदस्यता समाप्त हो गई है। जारी रखने के लिए रिन्यू करें।"
     }
   },
-
-  // ========== ଓଡ଼ିଆ (Odia) ==========
   or: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "ଆଡମିନ ପ୍ୟାନେଲ",
+      app_name: "Coupon SaaS", admin_panel: "ଆଡମିନ ପ୍ୟାନେଲ",
       login: "ଲଗଇନ", register: "ରେଜିଷ୍ଟର", logout: "ଲଗଆଉଟ",
       email: "ଇମେଲ", password: "ପାସୱାର୍ଡ", phone: "ଫୋନ", name: "ନାମ",
       whatsapp: "ହ୍ୱାଟସଆପ", company_name: "କମ୍ପାନୀ ନାମ",
@@ -144,12 +131,9 @@ const resources = {
       locked_message: "ଆପଣଙ୍କ ସବସ୍କ୍ରିପସନ ସମାପ୍ତ। ଜାରି ରଖିବାକୁ ନବୀକରଣ କରନ୍ତୁ।"
     }
   },
-
-  // ========== اردو (Urdu) ==========
   ur: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "ایڈمن پینل",
+      app_name: "Coupon SaaS", admin_panel: "ایڈمن پینل",
       login: "لاگ ان", register: "رجسٹر", logout: "لاگ آؤٹ",
       email: "ای میل", password: "پاس ورڈ", phone: "فون", name: "نام",
       whatsapp: "واٹس ایپ", company_name: "کمپنی کا نام",
@@ -175,12 +159,9 @@ const resources = {
       locked_message: "آپ کی سبسکرپشن ختم ہو گئی۔ جاری رکھنے کے لیے تجدید کریں۔"
     }
   },
-
-  // ========== ગુજરાતી (Gujarati) ==========
   gu: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "એડમિન પેનલ",
+      app_name: "Coupon SaaS", admin_panel: "એડમિન પેનલ",
       login: "લોગિન", register: "રજિસ્ટર", logout: "લોગઆઉટ",
       email: "ઈમેલ", password: "પાસવર્ડ", phone: "ફોન", name: "નામ",
       whatsapp: "વોટ્સએપ", company_name: "કંપનીનું નામ",
@@ -206,12 +187,9 @@ const resources = {
       locked_message: "તમારું સબ્સ્ક્રિપ્શન સમાપ્ત। ચાલુ રાખવા રિન્યુ કરો।"
     }
   },
-
-  // ========== मराठी (Marathi) ==========
   mr: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "अॅडमिन पॅनेल",
+      app_name: "Coupon SaaS", admin_panel: "अॅडमिन पॅनेल",
       login: "लॉगिन", register: "नोंदणी", logout: "लॉगआउट",
       email: "ईमेल", password: "पासवर्ड", phone: "फोन", name: "नाव",
       whatsapp: "व्हॉट्सअॅप", company_name: "कंपनीचे नाव",
@@ -237,12 +215,9 @@ const resources = {
       locked_message: "तुमची सदस्यता संपली. सुरू ठेवण्यासाठी नूतनीकरण करा."
     }
   },
-
-  // ========== தமிழ் (Tamil) ==========
   ta: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "நிர்வாக பலகை",
+      app_name: "Coupon SaaS", admin_panel: "நிர்வாக பலகை",
       login: "உள்நுழை", register: "பதிவு", logout: "வெளியேறு",
       email: "மின்னஞ்சல்", password: "கடவுச்சொல்", phone: "தொலைபேசி", name: "பெயர்",
       whatsapp: "வாட்ஸ்அப்", company_name: "நிறுவன பெயர்",
@@ -268,12 +243,9 @@ const resources = {
       locked_message: "உங்கள் சந்தா முடிந்தது. தொடர புதுப்பிக்கவும்."
     }
   },
-
-  // ========== తెలుగు (Telugu) ==========
   te: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "అడ్మిన్ ప్యానెల్",
+      app_name: "Coupon SaaS", admin_panel: "అడ్మిన్ ప్యానెల్",
       login: "లాగిన్", register: "నమోదు", logout: "లాగౌట్",
       email: "ఇమెయిల్", password: "పాస్వర్డ్", phone: "ఫోన్", name: "పేరు",
       whatsapp: "వాట్సాప్", company_name: "కంపెనీ పేరు",
@@ -299,12 +271,9 @@ const resources = {
       locked_message: "మీ సభ్యత్వం ముగిసింది. కొనసాగించడానికి పునరుద్ధరించండి."
     }
   },
-
-  // ========== മലയാളം (Malayalam) ==========
   ml: {
     translation: {
-      app_name: "Coupon SaaS",
-      admin_panel: "അഡ്മിൻ പാനൽ",
+      app_name: "Coupon SaaS", admin_panel: "അഡ്മിൻ പാനൽ",
       login: "ലോഗിൻ", register: "രജിസ്റ്റർ", logout: "ലോഗൗട്ട്",
       email: "ഇമെയിൽ", password: "പാസ്വേഡ്", phone: "ഫോൺ", name: "പേര്",
       whatsapp: "വാട്ട്സ്ആപ്പ്", company_name: "കമ്പനിയുടെ പേര്",
@@ -340,4 +309,6 @@ i18next.init({
   interpolation: { escapeValue: false }
 });
 
-export default i18next;
+// ==================== Global Export ====================
+window.i18n = i18next;
+window.LANGUAGES = LANGUAGES;
