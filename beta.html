@@ -937,13 +937,9 @@ initLanguage();
 // সব dropdown পপুলেট করো
 populateLanguageDropdowns();
 
-// পুরনো ভাষা সিস্টেম (T object) বন্ধ করো
-// (যদি আগের T object থেকে থাকে, সেটি সরিয়ে ফেলুন বা উপেক্ষা করুন)
-  window.t = (key) => (T[currentLang] && T[currentLang][key]) || key;
-
     window.setLanguage = function(lang) {
   try {
-    currentLang = lang;
+   language: getLanguage(),
     localStorage.setItem('lang', lang);
     applyTranslations();
     
@@ -1442,7 +1438,7 @@ async function loadAdminSession() {
 
     // ভাষা প্রয়োগ
     if (adminData.language) {
-      currentLang = adminData.language;
+     i18nSetLanguage(adminData.language);
       applyTranslations();
     }
 
@@ -2411,7 +2407,7 @@ window.closeCustomerModal = function() {
     document.getElementById('setHelpline').value = adminData.helpline || '';
     document.getElementById('setFooter').value = adminData.footer || '';
     document.getElementById('setWithdrawMin').value = adminData.withdrawalMin || 500;
-    document.getElementById('setLanguage').value = adminData.language || currentLang;
+    document.getElementById('setLanguage').value = adminData.language || getLanguage();
   }
 
   window.saveSettings = async function() {
@@ -2424,7 +2420,7 @@ window.closeCustomerModal = function() {
     };
     await updateDoc(doc(db, "admins", adminId), update);
     adminData = { ...adminData, ...update };
-    currentLang = update.language;
+    i18nSetLanguage(update.language);
     applyTranslations();
     document.getElementById('settingsStatus').innerHTML = '<div class="status success">✅ সেভ হয়েছে</div>';
     setTimeout(() => document.getElementById('settingsStatus').innerHTML = '', 2000);
@@ -2878,7 +2874,7 @@ window.deleteInvite = async function(inviteId) {
     }
     const a = aSnap.data();
     document.getElementById('custCompanyName').innerText = a.companyName || 'Coupon App';
-    if (a.language) { currentLang = a.language; applyTranslations(); }
+    if (a.language) i18nSetLanguage(a.language);
     const min = a.withdrawalMin || 500;
     document.getElementById('withdrawHint').innerText = `Minimum withdrawal: ₹${min}`;
     window.customerWithdrawMin = min;
