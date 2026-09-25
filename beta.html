@@ -472,7 +472,36 @@
 
 <!-- ============ ADMIN VIEW ============ -->
 <div id="view-admin" class="view">
-  <div class="topbar">
+ <!-- ============ Subscription Alert Banner ============ -->
+<div id="subAlertBanner" style="display: none; background: #fef7e0; color: #b06000; padding: 10px 15px; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f9a825;">
+  <span id="subAlertText">⚠️ আপনার সাবস্ক্রিপশন শীঘ্রই শেষ হবে</span>
+  <span onclick="adminNav('subscription', document.querySelectorAll('#view-admin .nav-item')[4])" style="margin-left: 8px; text-decoration: underline; cursor: pointer; color: #1a73e8;">রিনিউ করুন →</span>
+</div>
+
+<!-- ============ Lock Screen ============ -->
+<div id="subLockScreen" style="display: none; padding: 30px 20px; text-align: center; max-width: 500px; margin: 0 auto;">
+  <div style="background: white; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+    <div style="font-size: 60px; margin-bottom: 15px;">🔒</div>
+    <h2 style="color: #202124; font-size: 22px; margin-bottom: 10px;" id="lockTitle">সাবস্ক্রিপশন শেষ</h2>
+    <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px;" id="lockMessage">
+      আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হয়েছে। প্যানেলে প্রবেশ করতে একটি প্ল্যান কিনুন।
+    </p>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+      <div style="font-size: 12px; color: #666; margin-bottom: 6px;">আপনার বর্তমান সাবস্ক্রিপশন</div>
+      <div style="font-size: 16px; font-weight: bold; color: #202124;" id="lockStatus">Status: Expired</div>
+    </div>
+    
+    <button onclick="openSubscriptionFromLock()" style="width: 100%; padding: 14px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+      💎 প্ল্যান দেখুন এবং কিনুন
+    </button>
+    
+    <button onclick="adminLogout()" style="width: 100%; padding: 12px; background: #f0f2f5; color: #333; border: none; border-radius: 10px; font-size: 14px; margin-top: 10px; cursor: pointer;">
+      লগআউট
+    </button>
+  </div>
+</div>
+ <div class="topbar">
     <h2 id="adminCompanyName">Admin</h2>
     <div class="logout" onclick="adminLogout()" data-t="logout">Logout</div>
   </div>
@@ -1348,51 +1377,241 @@ window.adminLogout = async function() {
 // ==================== Admin Session Load (Admin + Team Member) ====================
 async function loadAdminSession() {
   if (!adminId) { showView('view-auth'); return; }
-  
+
   try {
     const snap = await getDoc(doc(db, "admins", adminId));
-    
-    if (!snap.exists()) { 
-      adminLogout(); 
-      return; 
-    }
-    
-    adminData = snap.data();
-if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
 
-// === চেক: ইউজার সাসপেন্ডেড কি না ===
-if (adminData.suspended === true) {
-  await signOut(auth);
-  adminId = null;
-  adminData = null;
-  localStorage.removeItem('adminId');
-  alert("🚫 আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।\n\nআপনার কোম্পানির অ্যাডমিনের সাথে যোগাযোগ করুন।");
-  showView('view-auth');
-  return;
-}
-    // === চেক: Team Member নাকি Admin? ===
-    if (adminData.isTeamMember === true) {
-      // Team Member → আলাদা ড্যাশবোর্ড
-      loadTeamSession();
-    } else {
-      // Admin → পুরো প্যানেল
-      document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
-      document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
-      
-      showView('view-admin');
-loadAdminDashboard();
-loadGrades();
-loadCustomerList();
-loadWithdrawals();
-fillSettings();
-loadInvites();
-loadTeamMembers();  // ⬅️ নতুন
+    if (!snap.exists()) {
+      adminLogout();
+      return;
     }
-    
+
+    adminData = snap.data();
+
+    // ভাষা প্রয়োগ
+    if (adminData.language) {
+      currentLang = adminData.language;
+      applyTranslations();
+    }
+
+    // ===== চেক ১: সাসপেন্ডেড কি না =====
+    if (adminData.suspended === true) {
+      await signOut(auth);
+      adminId = null;
+      adminData = null;
+      localStorage.removeItem('adminId');
+      alert("🚫 আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।\n\nআপনার কোম্পানির অ্যাডমিনের সাথে যোগাযোগ করুন।");
+      showView('view-auth');
+      return;
+    }
+
+    // ===== চেক ২: Team Member নাকি Admin? =====
+    if (adminData.isTeamMember === true) {
+      // Team Member → আলাদা ড্যাশবোর্ড, subscription চেক লাগবে না
+      loadTeamSession();
+      return;
+    }
+
+    // ============================================================
+    // Admin Path — সাবস্ক্রিপশন চেক সহ
+    // ============================================================
+
+    // হেডারে কোম্পানির নাম
+    document.getElementById('adminCompanyName').innerText =
+      adminData.companyName || 'Admin';
+
+    // কাস্টমার লিংক
+    document.getElementById('customerLink').value =
+      location.origin + location.pathname + '?admin=' + adminId;
+
+    showView('view-admin');
+
+    // ===== চেক ৩: সাবস্ক্রিপশন স্ট্যাটাস =====
+    const subStatus = checkSubscriptionStatus();
+
+    if (subStatus.locked) {
+      // 🔒 মেয়াদ শেষ বা সাবস্ক্রিপশন নেই → Lock Screen
+      showLockScreen(subStatus);
+      // Monitor চালু রাখব যাতে Approve হলে অটো Unlock হয়
+      startSubscriptionMonitor();
+      return;
+    }
+
+    // ===== চেক ৪: মেয়াদ শেষের সতর্কতা Banner =====
+    if (subStatus.daysLeft !== null && subStatus.daysLeft <= 7 && subStatus.daysLeft > 0) {
+      showSubAlert(subStatus.daysLeft);
+    } else {
+      hideSubAlert();
+    }
+
+    // Lock screen লুকাও (যদি আগে থেকে থাকে)
+    hideLockScreen();
+
+    // ===== Admin ডেটা লোড =====
+    loadAdminDashboard();
+    loadGrades();
+    loadCustomerList();
+    loadWithdrawals();
+    fillSettings();
+    loadInvites();
+    loadTeamMembers();
+
+    // ===== লাইভ Monitor চালু (রিয়েল-টাইম সাবস্ক্রিপশন আপডেট) =====
+    startSubscriptionMonitor();
+
   } catch (e) {
     console.error("Session load error:", e);
     adminLogout();
   }
+}
+
+ // ============================================================
+// SUBSCRIPTION ENFORCEMENT
+// ============================================================
+
+// --- সাবস্ক্রিপশন স্ট্যাটাস চেক ---
+function checkSubscriptionStatus() {
+  const result = { locked: false, daysLeft: null, reason: null };
+
+  if (!adminData) return result;
+
+  const endDate = adminData.subscriptionEnd?.toDate?.();
+
+  // কোনো মেয়াদ সেট নেই → সাবস্ক্রিপশন নেই → লক
+  if (!endDate) {
+    result.locked = true;
+    result.reason = 'no_subscription';
+    return result;
+  }
+
+  const now = new Date();
+  const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+  result.daysLeft = daysLeft;
+
+  // মেয়াদ শেষ → লক
+  if (daysLeft <= 0) {
+    result.locked = true;
+    result.reason = 'expired';
+    return result;
+  }
+
+  return result;
+}
+
+// --- Lock Screen দেখাও ---
+function showLockScreen(status) {
+  // Topbar, Container, BottomNav লুকান
+  const topbar = document.querySelector('#view-admin .topbar');
+  const container = document.querySelector('#view-admin .container');
+  const bottomNav = document.querySelector('#view-admin .bottom-nav');
+  if (topbar) topbar.style.display = 'none';
+  if (container) container.style.display = 'none';
+  if (bottomNav) bottomNav.style.display = 'none';
+
+  // Lock screen দেখাও
+  const lockScreen = document.getElementById('subLockScreen');
+  if (lockScreen) lockScreen.style.display = 'block';
+
+  // ডিটেইলস বসাও
+  if (status.reason === 'no_subscription') {
+    document.getElementById('lockTitle').innerText = 'কোনো সাবস্ক্রিপশন নেই';
+    document.getElementById('lockMessage').innerText =
+      'আপনি এখনো কোনো প্ল্যান কেনেননি। প্যানেল ব্যবহার করতে একটি প্ল্যান কিনুন।';
+    document.getElementById('lockStatus').innerText = 'Status: No Subscription';
+  } else {
+    document.getElementById('lockTitle').innerText = 'সাবস্ক্রিপশন শেষ';
+    document.getElementById('lockMessage').innerText =
+      'আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হয়েছে। চালিয়ে যেতে আবার রিনিউ করুন।';
+    const endDate = adminData.subscriptionEnd?.toDate?.();
+    document.getElementById('lockStatus').innerText =
+      'মেয়াদ শেষ: ' + (endDate?.toLocaleDateString('en-GB') || 'N/A');
+  }
+}
+
+// --- Lock Screen লুকাও ---
+function hideLockScreen() {
+  const lockScreen = document.getElementById('subLockScreen');
+  if (lockScreen) lockScreen.style.display = 'none';
+
+  const topbar = document.querySelector('#view-admin .topbar');
+  const container = document.querySelector('#view-admin .container');
+  const bottomNav = document.querySelector('#view-admin .bottom-nav');
+  if (topbar) topbar.style.display = 'flex';
+  if (container) container.style.display = 'block';
+  if (bottomNav) bottomNav.style.display = 'flex';
+}
+
+// --- Alert Banner দেখাও ---
+window.showSubAlert = function(daysLeft) {
+  const banner = document.getElementById('subAlertBanner');
+  const text = document.getElementById('subAlertText');
+  if (!banner || !text) return;
+
+  if (daysLeft === 1) {
+    text.innerText = '🚨 আপনার সাবস্ক্রিপশন আগামীকাল শেষ হবে!';
+  } else {
+    text.innerText = `⚠️ আপনার সাবস্ক্রিপশন ${daysLeft} দিন পরে শেষ হবে`;
+  }
+  banner.style.display = 'block';
+};
+
+// --- Alert Banner লুকাও ---
+window.hideSubAlert = function() {
+  const banner = document.getElementById('subAlertBanner');
+  if (banner) banner.style.display = 'none';
+};
+
+// --- Lock Screen থেকে Plan-এ যাও ---
+window.openSubscriptionFromLock = function() {
+  hideLockScreen();
+
+  document.querySelectorAll('.admin-page').forEach(p => p.style.display = 'none');
+  document.getElementById('ap-subscription').style.display = 'block';
+
+  loadSubscriptionPage();
+};
+
+// ============================================================
+// LIVE SUBSCRIPTION MONITOR
+// ============================================================
+
+let subscriptionMonitor = null;
+
+function startSubscriptionMonitor() {
+  if (!adminId) return;
+
+  // আগের monitor বন্ধ করো (যদি থাকে)
+  if (subscriptionMonitor) {
+    subscriptionMonitor();
+    subscriptionMonitor = null;
+  }
+
+  // লাইভ লিসেন
+  subscriptionMonitor = onSnapshot(doc(db, "admins", adminId), (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    // Team Member হলে চেক লাগবে না
+    if (data.isTeamMember) return;
+
+    adminData = data;
+    const status = checkSubscriptionStatus();
+
+    if (status.locked) {
+      // মেয়াদ শেষ → Lock
+      showLockScreen(status);
+    } else {
+      // মেয়াদ আছে → Unlock
+      hideLockScreen();
+
+      // সতর্কতা Banner
+      if (status.daysLeft !== null && status.daysLeft <= 7 && status.daysLeft > 0) {
+        showSubAlert(status.daysLeft);
+      } else {
+        hideSubAlert();
+      }
+    }
+  });
 }
 
 // ============================================================
@@ -3068,19 +3287,45 @@ window.submitSubscriptionRequest = async function() {
     `;
     
     // ৩. WhatsApp শেয়ার অফার
-    setTimeout(() => {
-      const msg = `🎫 *নতুন সাবস্ক্রিপশন অনুরোধ*\n\nকোম্পানি: ${adminData.companyName}\nপ্ল্যান: ${selectedPlan.id.toUpperCase()}\nপরিমাণ: ₹${selectedPlan.price}\nUPI Ref: ${txnRef}\n\nস্ক্রিনশট: ${screenshotUrl}`;
-      const encoded = encodeURIComponent(msg);
-      const waUrl = `https://wa.me/91${superSettings.whatsapp}?text=${encoded}`;
+    // ৩. WhatsApp শেয়ার (Mobile-Friendly)
+setTimeout(() => {
+  const msg = `🎫 নতুন সাবস্ক্রিপশন অনুরোধ\n\nকোম্পানি: ${adminData.companyName}\nপ্ল্যান: ${selectedPlan.id.toUpperCase()}\nপরিমাণ: ₹${selectedPlan.price}\nUPI Ref: ${txnRef}\n\nস্ক্রিনশট: ${screenshotUrl}`;
+  const encoded = encodeURIComponent(msg);
+  const webUrl = `https://wa.me/91${superSettings.whatsapp}?text=${encoded}`;
+  
+  if (confirm("✅ আপনার অনুরোধ জমা হয়েছে।\n\nWhatsApp-এ Super Admin-কে জানাবেন?")) {
+    // মোবাইল ব্রাউজারে সরাসরি WhatsApp অ্যাপ খুলবে
+    // location.href ব্যবহার করলে Android সিস্টেম বোঝে এবং WhatsApp অ্যাপ ওপেন করে
+    try {
+      // প্রথমে চেষ্টা — সরাসরি whatsapp:// scheme (native app)
+      const appUrl = `whatsapp://send?phone=91${superSettings.whatsapp}&text=${encoded}`;
       
-      if (confirm("আপনার অনুরোধ জমা হয়েছে।\n\nWhatsApp-এ Super Admin-কে জানাতে চান?")) {
-        window.open(waUrl, '_blank');
-      }
+      // Hidden iframe দিয়ে চেষ্টা (এটি app খোলে কিন্তু পেজ পরিবর্তন করে না)
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = appUrl;
+      document.body.appendChild(iframe);
       
-      // Modal বন্ধ + পেজ রিফ্রেশ
-      closeSubRequest();
-      loadSubscriptionPage();
-    }, 1200);
+      // ৫০০ms পর iframe সরিয়ে দাও
+      setTimeout(() => document.body.removeChild(iframe), 500);
+      
+      // Fallback: ২ সেকেন্ড পর wa.me লিংক চেক
+      setTimeout(() => {
+        // যদি অ্যাপ না খোলে, তাহলে web version
+        // location.href এর পরিবর্তে window.open ব্যবহার করলে ব্রাউজার নতুন tab খুলবে
+        window.location.href = webUrl;
+      }, 800);
+      
+    } catch (e) {
+      // কোনো সমস্যা হলে সরাসরি web URL
+      window.location.href = webUrl;
+    }
+  }
+  
+  // Modal বন্ধ + পেজ রিফ্রেশ
+  closeSubRequest();
+  loadSubscriptionPage();
+}, 1200);
     
   } catch (e) {
     console.error("Submit error:", e);
