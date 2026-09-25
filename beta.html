@@ -972,7 +972,9 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
+ const i18n = window.i18n;
+  const LANGUAGES = window.LANGUAGES || [];
+ // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
 //  measurementId is optional
 
 const firebaseConfig = {
@@ -992,8 +994,7 @@ const IMGBB_API_KEY = "cb410994ffe4638b322192f4bd9a3a09";
  // const db = getFirestore(app);
   // ==================== i18n Setup ====================
    // i18n.global থেকে নাও
-  const i18n = window.i18n;
-  const LANGUAGES = window.LANGUAGES || [];
+ 
 
   let currentLang = localStorage.getItem('lang') || 'bn';
 
