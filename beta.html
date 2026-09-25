@@ -511,7 +511,13 @@
 </div>
  <div class="topbar">
     <h2 id="adminCompanyName">Admin</h2>
-    <div class="logout" onclick="adminLogout()" data-t="logout">Logout</div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <!-- Language Dropdown -->
+      <select id="languageSelector" onchange="changeLanguage(this.value)" 
+        style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 12px; cursor: pointer;">
+      </select>
+      <div class="logout" onclick="adminLogout()" data-t="logout">Logout</div>
+    </div>
   </div>
 
   <div class="container">
@@ -671,9 +677,9 @@
     <div class="nav-item active" onclick="adminNav('dashboard', this)">
       <span class="icon">🏠</span><span data-t="home">Home</span>
     </div>
-    <div class="nav-item" onclick="adminNav('coupons', this)">
-      <span class="icon">🎫</span><span data-t="coupons">Coupons</span>
-    </div>
+   <div class="nav-item" onclick="adminNav('dashboard', this)">
+  <span class="icon">🏠</span><span data-t="home">হোম</span>
+</div>
     <div class="nav-item" onclick="adminNav('customers', this)">
       <span class="icon">👥</span><span data-t="users">Users</span>
     </div>
@@ -695,7 +701,12 @@
       <h2 id="teamCompanyName">Company</h2>
       <span id="teamRoleBadge" style="font-size:11px; opacity:0.9;"></span>
     </div>
-    <div class="logout" onclick="teamLogout()">Logout</div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <select id="languageSelectorTeam" onchange="changeLanguage(this.value)" 
+        style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 12px;">
+      </select>
+      <div class="logout" onclick="teamLogout()">Logout</div>
+    </div>
   </div>
 
   <div class="container">
@@ -807,8 +818,16 @@
  <!-- ============ CUSTOMER VIEW ============ -->
 <div id="view-customer" class="view">
   <div class="topbar">
-    <h2 id="custCompanyName">Coupon App</h2>
-    <div class="logout" onclick="customerLogout()" data-t="logout">Logout</div>
+    <div>
+      <h2 id="teamCompanyName">Company</h2>
+      <span id="teamRoleBadge" style="font-size:11px; opacity:0.9;"></span>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <select id="languageSelectorTeam" onchange="changeLanguage(this.value)" 
+        style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 12px;">
+      </select>
+      <div class="logout" onclick="teamLogout()">Logout</div>
+    </div>
   </div>
 
   <div class="container">
@@ -867,7 +886,9 @@
 <script type="module">
  // ==================== Firebase Imports ====================
 import { db, auth } from './firebase-config-beta.js';
-
+// i18n Import
+import { t, setLanguage as i18nSetLanguage, getLanguage, initLanguage, applyTranslations, LANGUAGES } from './i18n.js';
+ 
 import { 
   collection, doc, addDoc, getDoc, getDocs, 
   setDoc, updateDoc, deleteDoc, query, where, 
@@ -900,127 +921,27 @@ const IMGBB_API_KEY = "cb410994ffe4638b322192f4bd9a3a09";
  // const app = initializeApp(firebaseConfig);
  // const db = getFirestore(app);
 
-  // ==================== i18n TRANSLATIONS ====================
-  const T = {
-    bn: {
-      admin_panel: "অ্যাডমিন প্যানেল", login: "লগইন", register: "রেজিস্টার",
-      email: "ইমেইল", password: "পাসওয়ার্ড", login_btn: "লগইন করুন", register_btn: "রেজিস্টার করুন",
-      company_name: "কোম্পানির নাম", your_name: "আপনার নাম", logout: "লগআউট",
-      total_coupons: "মোট কুপন", used_coupons: "ব্যবহৃত", customers: "কাস্টমার", pending_withdraw: "অপেক্ষমাণ",
-      share_link: "🔗 কাস্টমারদের সাথে লিংক শেয়ার করুন",
-      share_hint: "এই লিংক কাস্টমারদের পাঠান। তারা এখান থেকে রেজিস্ট্রেশন করবে।",
-      copy_link: "লিংক কপি করুন", grades: "📦 গ্রেড ও মূল্য", generate_coupons: "🎫 নতুন কুপন তৈরি",
-      select_grade: "গ্রেড সিলেক্ট", quantity: "পরিমাণ", expiry: "মেয়াদ", generate_btn: "তৈরি করুন",
-      recent_batch: "📋 সর্বশেষ ব্যাচ", no_coupons: "এখনো কোনো কুপন নেই",
-      company_settings: "🏢 কোম্পানির সেটিংস", helpline: "হেল্পলাইন", footer_text: "ফুটার টেক্সট",
-      withdrawal_min: "ন্যূনতম প্রত্যাহার (₹)", language: "ভাষা", save: "সেভ",
-      home: "হোম", coupons: "কুপন", users: "ইউজার", withdraw: "প্রত্যাহার", settings: "সেটিংস",
-      your_balance: "আপনার ব্যালেন্স", recent_txn: "📜 সাম্প্রতিক লেনদেন",
-      scan_coupon: "📷 কুপন স্ক্যান", stop_scan: "স্ক্যানার বন্ধ", manual_entry: "✍️ ম্যানুয়াল এন্ট্রি",
-      redeem: "রিডিম", profile: "👤 প্রোফাইল", phone: "মোবাইল", request_withdraw: "প্রত্যাহার অনুরোধ",
-      wallet: "ওয়ালেট", scan: "স্ক্যান",
-      enter_phone: "মোবাইল নাম্বার দিন", invalid_phone: "সঠিক ১০ ডিজিটের নাম্বার দিন",
-      admin_exists: "এই ইমেইল আগেই রেজিস্টার্ড", wrong_login: "ভুল ইমেইল বা পাসওয়ার্ড",
-      coupon_used: "এই কুপন আগেই ব্যবহৃত", coupon_invalid: "ভুল কুপন কোড",
-      coupon_expired: "কুপনের মেয়াদ শেষ", coupon_added: "যোগ হয়েছে",
-      whatsapp_number: "হোয়াটসঅ্যাপ নাম্বার",
-      share_whatsapp: "হোয়াটসঅ্যাপে শেয়ার করুন",
-      insufficient_balance: "ব্যালেন্স পর্যাপ্ত নয়"
-    },
-    en: {
-      admin_panel: "Admin Panel", login: "Login", register: "Register",
-      email: "Email", password: "Password", login_btn: "Login", register_btn: "Register",
-      company_name: "Company Name", your_name: "Your Name", logout: "Logout",
-      total_coupons: "Total Coupons", used_coupons: "Used", customers: "Customers", pending_withdraw: "Pending",
-      share_link: "🔗 Share Link with Customers",
-      share_hint: "Send this link to customers. They'll register from here.",
-      copy_link: "Copy Link", grades: "📦 Grades & Prices", generate_coupons: "🎫 Generate Coupons",
-      select_grade: "Select Grade", quantity: "Quantity", expiry: "Expiry", generate_btn: "Generate",
-      recent_batch: "📋 Recent Batch", no_coupons: "No coupons yet",
-      company_settings: "🏢 Company Settings", helpline: "Helpline", footer_text: "Footer Text",
-      withdrawal_min: "Minimum Withdrawal (₹)", language: "Language", save: "Save",
-      home: "Home", coupons: "Coupons", users: "Users", withdraw: "Withdraw", settings: "Settings",
-      your_balance: "Your Balance", recent_txn: "📜 Recent Transactions",
-      scan_coupon: "📷 Scan Coupon", stop_scan: "Stop Scanner", manual_entry: "✍️ Manual Entry",
-      redeem: "Redeem", profile: "👤 Profile", phone: "Phone", request_withdraw: "Request Withdrawal",
-      wallet: "Wallet", scan: "Scan",
-      enter_phone: "Enter your phone", invalid_phone: "Enter valid 10-digit number",
-      admin_exists: "Email already registered", wrong_login: "Wrong email or password",
-      coupon_used: "Coupon already used", coupon_invalid: "Invalid coupon code",
-      coupon_expired: "Coupon expired", coupon_added: "Added",
-     whatsapp_number: "WhatsApp Number",
-     share_whatsapp: "Share on WhatsApp",
-     insufficient_balance: "Insufficient balance"
-    },
-    hi: {
-      admin_panel: "एडमिन पैनल", login: "लॉगिन", register: "रजिस्टर",
-      email: "ईमेल", password: "पासवर्ड", login_btn: "लॉगिन", register_btn: "रजिस्टर",
-      company_name: "कंपनी का नाम", your_name: "आपका नाम", logout: "लॉगआउट",
-      total_coupons: "कुल कूपन", used_coupons: "उपयोग किए", customers: "ग्राहक", pending_withdraw: "लंबित",
-      share_link: "🔗 ग्राहकों के साथ लिंक साझा करें",
-      share_hint: "यह लिंक ग्राहकों को भेजें। वे यहाँ से रजिस्टर करेंगे।",
-      copy_link: "लिंक कॉपी करें", grades: "📦 ग्रेड और मूल्य", generate_coupons: "🎫 कूपन जनरेट करें",
-      select_grade: "ग्रेड चुनें", quantity: "मात्रा", expiry: "समाप्ति", generate_btn: "जनरेट करें",
-      recent_batch: "📋 हालिया बैच", no_coupons: "अभी तक कोई कूपन नहीं",
-      company_settings: "🏢 कंपनी सेटिंग्स", helpline: "हेल्पलाइन", footer_text: "फुटर टेक्स्ट",
-      withdrawal_min: "न्यूनतम निकासी (₹)", language: "भाषा", save: "सेव",
-      home: "होम", coupons: "कूपन", users: "उपयोगकर्ता", withdraw: "निकासी", settings: "सेटिंग्स",
-      your_balance: "आपका बैलेंस", recent_txn: "📜 हाल के लेनदेन",
-      scan_coupon: "📷 कूपन स्कैन", stop_scan: "स्कैनर बंद करें", manual_entry: "✍️ मैन्युअल एंट्री",
-      redeem: "रिडीम", profile: "👤 प्रोफाइल", phone: "फोन", request_withdraw: "निकासी का अनुरोध",
-      wallet: "वॉलेट", scan: "स्कैन",
-      enter_phone: "फ़ोन नंबर दर्ज करें", invalid_phone: "10 अंकों का सही नंबर दर्ज करें",
-      admin_exists: "ईमेल पहले से पंजीकृत", wrong_login: "गलत ईमेल या पासवर्ड",
-      coupon_used: "कूपन पहले उपयोग किया गया", coupon_invalid: "अमान्य कूपन कोड",
-      coupon_expired: "कूपन समाप्त", coupon_added: "जोड़ा गया",
-      whatsapp_number: "व्हाट्सएप नंबर",
-      share_whatsapp: "व्हाट्सएप पर शेयर करें",
-      insufficient_balance: "अपर्याप्त बैलेंस"
-    },
-    ta: {
-      admin_panel: "நிர்வாக பலகை", login: "உள்நுழை", register: "பதிவு",
-      email: "மின்னஞ்சல்", password: "கடவுச்சொல்", login_btn: "உள்நுழை", register_btn: "பதிவு",
-      company_name: "நிறுவன பெயர்", your_name: "உங்கள் பெயர்", logout: "வெளியேறு",
-      total_coupons: "மொத்த கூப்பன்கள்", used_coupons: "பயன்படுத்தியது", customers: "வாடிக்கையாளர்கள்", pending_withdraw: "நிலுவை",
-      share_link: "🔗 வாடிக்கையாளர்களுடன் பகிரவும்",
-      share_hint: "இந்த இணைப்பை வாடிக்கையாளர்களுக்கு அனுப்பவும்.",
-      copy_link: "இணைப்பை நகலெடு", grades: "📦 தரம் & விலை", generate_coupons: "🎫 கூப்பன் உருவாக்கு",
-      select_grade: "தரம் தேர்வு", quantity: "எண்ணிக்கை", expiry: "காலாவதி", generate_btn: "உருவாக்கு",
-      recent_batch: "📋 சமீபத்திய தொகுதி", no_coupons: "இன்னும் கூப்பன் இல்லை",
-      company_settings: "🏢 நிறுவன அமைப்புகள்", helpline: "உதவி எண்", footer_text: "அடிக்குறிப்பு",
-      withdrawal_min: "குறைந்தபட்ச விலக்கு (₹)", language: "மொழி", save: "சேமி",
-      home: "முகப்பு", coupons: "கூப்பன்கள்", users: "பயனர்கள்", withdraw: "விலக்கு", settings: "அமைப்புகள்",
-      your_balance: "உங்கள் இருப்பு", recent_txn: "📜 சமீபத்திய பரிவர்த்தனைகள்",
-      scan_coupon: "📷 கூப்பன் ஸ்கேன்", stop_scan: "ஸ்கேனர் நிறுத்து", manual_entry: "✍️ கைமுறை உள்ளீடு",
-      redeem: "பயன்படுத்து", profile: "👤 சுயவிவரம்", phone: "தொலைபேசி", request_withdraw: "விலக்கு கோரிக்கை",
-      wallet: "பணப்பெட்டி", scan: "ஸ்கேன்",
-      enter_phone: "தொலைபேசி எண் உள்ளிடவும்", invalid_phone: "10 இலக்க எண் உள்ளிடவும்",
-      admin_exists: "மின்னஞ்சல் ஏற்கனவே பதிவு", wrong_login: "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
-      coupon_used: "கூப்பன் ஏற்கனவே பயன்படுத்தப்பட்டது", coupon_invalid: "தவறான கூப்பன் குறியீடு",
-      coupon_expired: "கூப்பன் காலாவதியானது", coupon_added: "சேர்க்கப்பட்டது",
-      whatsapp_number: "வாட்ஸ்அப் எண்",
-      share_whatsapp: "வாட்ஸ்அப்பில் பகிரவும்",
-     insufficient_balance: "போதுமான இருப்பு இல்லை"
-    }
-  };
-
-  let currentLang = localStorage.getItem('lang') || 'bn';
+  //let currentLang = localStorage.getItem('lang') || 'bn';
   let adminId = localStorage.getItem('adminId') || null;
   let adminData = null;
   let customerAdminId = null;
   let customerPhone = null;
   let html5QrCode = null, scannerActive = false;
+  // ============================================================
+// App Init — Language setup
+// ============================================================
 
+// ভাষা লোড করো localStorage থেকে
+initLanguage();
+
+// সব dropdown পপুলেট করো
+populateLanguageDropdowns();
+
+// পুরনো ভাষা সিস্টেম (T object) বন্ধ করো
+// (যদি আগের T object থেকে থাকে, সেটি সরিয়ে ফেলুন বা উপেক্ষা করুন)
   window.t = (key) => (T[currentLang] && T[currentLang][key]) || key;
 
-  function applyTranslations() {
-    document.querySelectorAll('[data-t]').forEach(el => {
-      el.innerText = t(el.getAttribute('data-t'));
-    });
-    document.documentElement.lang = currentLang;
-  }
-
-  window.setLanguage = function(lang) {
+    window.setLanguage = function(lang) {
   try {
     currentLang = lang;
     localStorage.setItem('lang', lang);
@@ -1456,7 +1377,56 @@ window.adminLogout = async function() {
   location.reload();
 };
 
-// ==================== Admin Session Load (Admin + Team Member) ====================
+// ============================================================
+// LANGUAGE SYSTEM
+// ============================================================
+
+// Dropdown পপুলেট করার ফাংশন
+function populateLanguageDropdowns() {
+  const selectors = ['languageSelector', 'languageSelectorTeam', 'languageSelectorCustomer'];
+  
+  selectors.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    
+    sel.innerHTML = '';
+    const current = getLanguage();
+    
+    LANGUAGES.forEach(lang => {
+      const opt = document.createElement('option');
+      opt.value = lang.code;
+      opt.innerText = `${lang.flag} ${lang.name}`;
+      if (lang.code === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    
+    // Dark theme-এর জন্য option স্টাইল
+    sel.style.color = 'white';
+    sel.querySelectorAll('option').forEach(o => {
+      o.style.color = '#000';
+      o.style.background = '#fff';
+    });
+  });
+}
+
+// ভাষা পরিবর্তন ফাংশন
+window.changeLanguage = function(lang) {
+  if (i18nSetLanguage(lang)) {
+    // সব dropdown আপডেট
+    document.querySelectorAll('[id^="languageSelector"]').forEach(sel => {
+      sel.value = lang;
+    });
+    
+    // অ্যাডমিন ডেটাতে সেভ (ঐচ্ছিক)
+    if (adminId && adminData && !adminData.isTeamMember) {
+      updateDoc(doc(db, "admins", adminId), {
+        language: lang
+      }).catch(e => console.log("Language save error:", e));
+    }
+  }
+};
+ 
+ // ==================== Admin Session Load (Admin + Team Member) ====================
 async function loadAdminSession() {
   if (!adminId) { showView('view-auth'); return; }
 
