@@ -6,7 +6,11 @@
 <title>Coupon SaaS</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<style>
+<!-- i18next UMD -->
+<script src="https://cdn.jsdelivr.net/npm/i18next@23.7.6/dist/umd/i18next.min.js"></script>
+<!-- Our i18n setup -->
+<script src="./i18n.js"></script>
+ <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
   .view { display: none; min-height: 100vh; padding-bottom: 70px; }
@@ -987,7 +991,9 @@ const IMGBB_API_KEY = "cb410994ffe4638b322192f4bd9a3a09";
  // const app = initializeApp(firebaseConfig);
  // const db = getFirestore(app);
   // ==================== i18n Setup ====================
-  import i18n, { LANGUAGES } from './i18n.js';
+   // i18n.global থেকে নাও
+  const i18n = window.i18n;
+  const LANGUAGES = window.LANGUAGES || [];
 
   let currentLang = localStorage.getItem('lang') || 'bn';
 
@@ -3129,16 +3135,24 @@ window.deleteInvite = async function(inviteId) {
   };
 
   // ==================== INIT ====================
-  // i18next লোড হওয়ার পর সব সেটআপ করি
-  setTimeout(async () => {
-    applyTranslations();
-    
-    if (!localStorage.getItem('lang')) {
-      showView('view-lang');
-    } else {
-      setLanguage(currentLang);
-    }
-  }, 200);
+   // i18n লোড হওয়ার পর
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      try {
+        if (typeof window.applyTranslations === 'function') {
+          window.applyTranslations();
+        }
+        if (!localStorage.getItem('lang')) {
+          showView('view-lang');
+        } else if (typeof window.setLanguage === 'function') {
+          window.setLanguage(currentLang);
+        }
+      } catch (e) {
+        console.error("Init error:", e);
+        showView('view-lang');
+      }
+    }, 300);
+  });
 
 // ============================================================
 // SUBSCRIPTION SYSTEM (Admin দিক)
