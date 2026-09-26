@@ -313,26 +313,263 @@
   font-size: 13px;
 }
 
+/* ============================================================
+   SPLASH / WELCOME SCREEN
+   ============================================================ */
+
+.splash-screen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6b3fa0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+/* Floating Background Icons */
+.float-icons {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.float-icon {
+  position: absolute;
+  bottom: -60px;
+  font-size: 32px;
+  opacity: 0;
+  animation: floatUpIcon 10s linear infinite;
+}
+
+@keyframes floatUpIcon {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.25; }
+  50%  { opacity: 0.35; }
+  90%  { opacity: 0.25; }
+  100% { transform: translateY(-115vh) rotate(360deg); opacity: 0; }
+}
+
+/* Main Content */
+.splash-content {
+  text-align: center;
+  padding: 30px 20px;
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  animation: fadeInScale 1s ease-out;
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Logo Circle */
+.splash-logo {
+  margin-bottom: 24px;
+  animation: logoPulse 2.5s ease-in-out infinite;
+}
+
+.logo-circle {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(255,255,255,0.35);
+  box-shadow: 
+    0 10px 40px rgba(0,0,0,0.25),
+    inset 0 0 30px rgba(255,255,255,0.1);
+}
+
+.logo-emoji {
+  font-size: 65px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+
+@keyframes logoPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+/* App Title */
+.splash-title {
+  color: white;
+  font-size: 34px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  text-shadow: 0 3px 15px rgba(0,0,0,0.3);
+  letter-spacing: 1.2px;
+  animation: slideDown 0.8s ease-out 0.3s backwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Rotating Welcome Text */
+.welcome-rotator {
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+#rotatingWelcome {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 600;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  display: inline-block;
+  padding: 8px 24px;
+  border-radius: 30px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  transition: all 0.4s ease;
+}
+
+/* Tagline */
+.splash-tagline {
+  color: rgba(255,255,255,0.92);
+  font-size: 15px;
+  margin-bottom: 38px;
+  line-height: 1.7;
+  animation: slideDown 0.8s ease-out 0.6s backwards;
+}
+
+/* Start Button */
+.splash-btn {
+  background: white;
+  color: #764ba2;
+  border: none;
+  padding: 16px 46px;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 
+    0 8px 28px rgba(0,0,0,0.25),
+    0 0 0 0 rgba(255,255,255,0.5);
+  transition: all 0.3s ease;
+  animation: 
+    slideDown 0.8s ease-out 0.8s backwards,
+    btnGlow 2.5s ease-in-out 1.5s infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes btnGlow {
+  0%, 100% { box-shadow: 0 8px 28px rgba(0,0,0,0.25), 0 0 0 0 rgba(255,255,255,0.5); }
+  50%      { box-shadow: 0 8px 28px rgba(0,0,0,0.25), 0 0 0 12px rgba(255,255,255,0); }
+}
+
+.splash-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+}
+
+.splash-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Footer */
+.splash-footer {
+  margin-top: 45px;
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  animation: fadeIn 1.5s ease-out 1.2s backwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 0.55; }
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .logo-circle { width: 110px; height: 110px; }
+  .logo-emoji { font-size: 55px; }
+  .splash-title { font-size: 28px; }
+  #rotatingWelcome { font-size: 22px; padding: 6px 18px; }
+  .splash-tagline { font-size: 13px; }
+  .splash-btn { padding: 14px 36px; font-size: 15px; }
+}
+
 </style>
 </head>
 <body>
 
 <!-- ============ LANGUAGE SELECT ============ -->
+<!-- ============ WELCOME / SPLASH SCREEN ============ -->
 <div id="view-lang" class="view active">
-  <div class="auth-screen">
-    <div class="auth-logo">
-      <h1>🌐 Language / ভাষা</h1>
-      <p>আপনার পছন্দের ভাষা সিলেক্ট করুন</p>
+  <div class="splash-screen">
+    
+    <!-- Floating Background Icons -->
+    <div class="float-icons">
+      <span class="float-icon" style="left: 8%; animation-delay: 0s;">🎫</span>
+      <span class="float-icon" style="left: 22%; animation-delay: 1.5s;">💎</span>
+      <span class="float-icon" style="left: 38%; animation-delay: 3s;">⭐</span>
+      <span class="float-icon" style="left: 55%; animation-delay: 0.8s;">🎁</span>
+      <span class="float-icon" style="left: 70%; animation-delay: 2.2s;">🏆</span>
+      <span class="float-icon" style="left: 85%; animation-delay: 4s;">🎯</span>
+      <span class="float-icon" style="left: 15%; animation-delay: 5s;">✨</span>
+      <span class="float-icon" style="left: 92%; animation-delay: 3.5s;">🎪</span>
     </div>
-    <div class="card" style="text-align: center;">
-      <div class="lang-btn" onclick="setLanguage('bn')">বাংলা</div>
-      <div class="lang-btn" onclick="setLanguage('en')">English</div>
-      <div class="lang-btn" onclick="setLanguage('hi')">हिन्दी</div>
-      <div class="lang-btn" onclick="setLanguage('ta')">தமிழ்</div>
+
+    <!-- Main Content -->
+    <div class="splash-content">
+      
+    <!-- Animated Logo -->
+<div class="splash-logo">
+  <div class="logo-circle">
+    <!-- ⬇️ এখানে আপনার কোম্পানির লোগো URL বসান -->
+    <img src="https://i.ibb.co/YOUR_LOGO_URL.jpg" 
+         alt="Logo" 
+         style="width: 70%; height: 70%; object-fit: contain; border-radius: 50%;"
+         onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\'logo-emoji\'>🎫</span>';">
+  </div>
+</div>
+      
+      <!-- App Name -->
+      <h1 class="splash-title">Coupon SaaS</h1>
+      
+      <!-- Rotating Welcome Message (10 languages) -->
+      <div class="welcome-rotator">
+        <span id="rotatingWelcome">স্বাগতম</span>
+      </div>
+      
+      <!-- Tagline -->
+      <p class="splash-tagline">
+        🚀 আপনার ব্যবসার ডিজিটাল সঙ্গী<br>
+        <span style="font-size: 12px; opacity: 0.7;">Coupons • Customers • Growth</span>
+      </p>
+      
+      <!-- Start Button -->
+      <button class="splash-btn" onclick="enterApp()">
+        <span>শুরু করুন</span>
+        <span style="margin-left: 8px;">→</span>
+      </button>
+      
+      <!-- Footer -->
+      <div class="splash-footer">
+        <span>Made with ❤️ in India</span>
+      </div>
+      
     </div>
   </div>
 </div>
-
 <!-- ============ ADMIN LOGIN ============ -->
 <div id="view-auth" class="view">
   <div class="auth-screen">
@@ -964,7 +1201,85 @@ populateLanguageDropdowns();
     document.getElementById(id).classList.add('active');
   }
 
-  // ==================== ADMIN AUTH ====================
+// ============================================================
+// WELCOME SPLASH SCREEN — Rotating Multi-language Welcome
+// ============================================================
+
+const WELCOME_WORDS = [
+  'স্বাগতম',      // বাংলা
+  'Welcome',      // English
+  'स्वागत है',      // हिन्दी
+  'ସ୍ୱାଗତ',        // ଓଡ଼ିଆ
+  'خوش آمدید',    // اردو
+  'સ્વાગત છે',     // ગુજરાતી
+  'स्वागत आहे',    // मराठी
+  'வரவேற்பு',     // தமிழ்
+  'స్వాగతం',       // తెలుగు
+  'സ്വാഗതം'        // മലയാളം
+];
+
+let welcomeIndex = 0;
+let welcomeInterval = null;
+
+function startWelcomeRotation() {
+  const el = document.getElementById('rotatingWelcome');
+  if (!el) return;
+
+  // প্রথম শব্দ দেখাও
+  el.textContent = WELCOME_WORDS[0];
+  el.style.opacity = '1';
+  welcomeIndex = 1;
+
+  // প্রতি ২ সেকেন্ডে পরিবর্তন
+  welcomeInterval = setInterval(() => {
+    // Fade out
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(10px)';
+
+    setTimeout(() => {
+      el.textContent = WELCOME_WORDS[welcomeIndex];
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+      welcomeIndex = (welcomeIndex + 1) % WELCOME_WORDS.length;
+    }, 400);
+  }, 2000);
+}
+
+// Welcome Screen থেকে App-এ প্রবেশ
+window.enterApp = function() {
+  // Rotation বন্ধ করো (memory free)
+  if (welcomeInterval) {
+    clearInterval(welcomeInterval);
+    welcomeInterval = null;
+  }
+
+  // Auth Screen দেখাও
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-auth').classList.add('active');
+
+  // ভাষা প্রয়োগ
+  setTimeout(() => {
+    if (typeof autoTranslateAll === 'function') {
+      autoTranslateAll();
+    }
+  }, 100);
+};
+ 
+// Welcome rotation শুরু করো
+setTimeout(() => {
+  startWelcomeRotation();
+}, 300);
+
+// ⏰ ৮ সেকেন্ড পর অটো-redirect
+setTimeout(() => {
+  const currentView = document.querySelector('.view.active');
+  if (currentView && currentView.id === 'view-lang') {
+    console.log('⏰ Auto-redirecting to auth screen...');
+    enterApp();
+  }
+}, 8000);
+ 
+ // ==================== ADMIN AUTH ====================
   function hashPwd(p) {
     let h = 0;
     for (let i = 0; i < p.length; i++) { h = ((h << 5) - h) + p.charCodeAt(i); h |= 0; }
