@@ -3425,7 +3425,7 @@ function renderCurrentSubscription() {
   let daysLeft = '';
   let statusText = '';
   
-  if (!endDate) {
+   if (!endDate) {
     boxClass = '';
     planName = '⚪ কোনো প্ল্যান নেই';
     daysLeft = 'N/A';
@@ -3441,13 +3441,13 @@ function renderCurrentSubscription() {
     } else if (plan === 'trial') {
       boxClass = 'trial';
       planName = '🟡 ট্রায়াল';
-      daysLeft = days + ' দিন';
-      statusText = 'ট্রায়াল শেষ হবে ' + endDate.toLocaleDateString('en-GB');
+      daysLeft = days + ' <span data-t="days_left">দিন</span>';
+      statusText = '<span data-t="trial_ends_on">ট্রায়াল শেষ হবে</span> ' + endDate.toLocaleDateString('en-GB');
     } else {
       const planNames = { starter: '🟢 Starter', pro: '🔵 Pro', enterprise: '🟣 Enterprise' };
       planName = planNames[plan] || '🟢 Active';
-      daysLeft = days + ' দিন';
-      statusText = 'পরবর্তী রিনিউ ' + endDate.toLocaleDateString('en-GB');
+      daysLeft = days + ' <span data-t="days_left">দিন</span>';
+      statusText = '<span data-t="next_renew">পরবর্তী রিনিউ</span> ' + endDate.toLocaleDateString('en-GB');
     }
   }
   
@@ -3458,6 +3458,11 @@ function renderCurrentSubscription() {
       <div class="sub-end-date">${statusText}</div>
     </div>
   `;
+  
+  // ⬇️ innerHTML দিয়ে যোগ করা data-t এলিমেন্টে অনুবাদ প্রয়োগ করুন
+  if (typeof applyTranslations === 'function') {
+    applyTranslations();
+  }
 }
 
 // ==================== Plan Cards Render ====================
