@@ -1121,8 +1121,19 @@
  // ==================== Firebase Imports ====================
 import { db, auth } from './firebase-config-beta.js';
 // i18n Import
-import { t, setLanguage as i18nSetLanguage, getLanguage, initLanguage, applyTranslations, LANGUAGES } from './i18n.js';
- 
+import { 
+  t, 
+  setLanguage as i18nSetLanguage, 
+  getLanguage, 
+  initLanguage, 
+  applyTranslations, 
+  autoTagTranslations, 
+  autoTagPlaceholders, 
+  autoTranslateAll, 
+  startMutationObserver, 
+  stopMutationObserver,
+  LANGUAGES 
+} from './i18n.js';
 import { 
   collection, doc, addDoc, getDoc, getDocs, 
   setDoc, updateDoc, deleteDoc, query, where, 
@@ -1166,35 +1177,33 @@ const IMGBB_API_KEY = "cb410994ffe4638b322192f4bd9a3a09";
 // ============================================================
 
 // ভাষা লোড করো localStorage থেকে
+// ============================================================
+// APP INIT — Language + Auto-Translate
+// ============================================================
+
+// ১. ভাষা লোড
 initLanguage();
 
-// সব dropdown পপুলেট করো
+// ২. Language Dropdown populate
 populateLanguageDropdowns();
 
-    window.setLanguage = function(lang) {
-  try {
-   language: getLanguage(),
-    localStorage.setItem('lang', lang);
-    applyTranslations();
-    
-    const params = new URLSearchParams(window.location.search);
-    const urlAdmin = params.get('admin');
-    
-    if (urlAdmin) {
-      customerAdminId = urlAdmin;
-      showView('view-customer');
-      initCustomer();
-    } else if (adminId) {
-      loadAdminSession();
-    } else {
-      showView('view-auth');
-    }
-  } catch (e) {
-    console.error("Language error:", e);
-    alert("সমস্যা হয়েছে: " + e.message);
-    showView('view-auth');
-  }
-};
+// ৩. ডম লোড হওয়ার পর Auto-Translate চালান
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    autoTranslateAll();
+    startMutationObserver();
+    console.log('🌐 Auto-translate system started');
+  }, 500);
+});
+
+// পেজ ইতিমধ্যে লোড থাকলে সরাসরি
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(() => {
+    autoTranslateAll();
+    startMutationObserver();
+    console.log('🌐 Auto-translate system started');
+  }, 500);
+}
 
   function showView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1725,7 +1734,7 @@ window.changeLanguage = function(lang) {
       sel.value = lang;
     });
     
-    // অ্যাডমিন ডেটাতে সেভ (ঐচ্ছিক)
+    // Admine save
     if (adminId && adminData && !adminData.isTeamMember) {
       updateDoc(doc(db, "admins", adminId), {
         language: lang
