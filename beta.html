@@ -887,7 +887,16 @@
  // ==================== Firebase Imports ====================
 import { db, auth } from './firebase-config-beta.js';
 // i18n Import
-import { t, setLanguage as i18nSetLanguage, getLanguage, initLanguage, applyTranslations, LANGUAGES } from './i18n.js';
+import { 
+  t, 
+  setLanguage as i18nSetLanguage, 
+  getLanguage, 
+  initLanguage, 
+  applyTranslations, 
+  LANGUAGES,
+  autoTranslate,
+  startAutoTranslateObserver
+} from './i18n.js';
  
 import { 
   collection, doc, addDoc, getDoc, getDocs, 
@@ -934,6 +943,22 @@ const IMGBB_API_KEY = "cb410994ffe4638b322192f4bd9a3a09";
 // ভাষা লোড করো localStorage থেকে
 initLanguage();
 
+// ============================================================
+// App Init — Language
+// ============================================================
+
+const savedLang = localStorage.getItem('app_lang') || 'bn';
+i18nSetLanguage(savedLang);
+
+// Populate dropdowns
+populateLanguageDropdowns();
+
+// 🆕 Auto-translate চালাও (প্রথমবার)
+setTimeout(() => {
+  autoTranslate();
+  startAutoTranslateObserver();
+}, 300);
+ 
 // সব dropdown পপুলেট করো
 populateLanguageDropdowns();
 
@@ -1413,7 +1438,10 @@ window.changeLanguage = function(lang) {
       sel.value = lang;
     });
     
-    // অ্যাডমিন ডেটাতে সেভ (ঐচ্ছিক)
+    // 🆕 অটো-অনুবাদ চালাও
+    autoTranslate();
+    
+    // অ্যাডমিন ডেটাতে সেভ
     if (adminId && adminData && !adminData.isTeamMember) {
       updateDoc(doc(db, "admins", adminId), {
         language: lang
