@@ -232,26 +232,344 @@
   font-weight: bold;
   font-size: 13px;
 }
+
+/* Subscription Page */
+.plan-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.plan-card:hover {
+  border-color: #1a73e8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+}
+.plan-card.selected {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+}
+.plan-card.starter { border-left: 4px solid #0f9d58; }
+.plan-card.pro { border-left: 4px solid #1a73e8; }
+.plan-card.enterprise { border-left: 4px solid #7b1fa2; }
+.plan-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #202124;
+}
+.plan-price {
+  font-size: 24px;
+  font-weight: bold;
+  color: #1a73e8;
+  margin: 8px 0;
+}
+.plan-price span {
+  font-size: 12px;
+  color: #666;
+  font-weight: normal;
+}
+.plan-desc {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.sub-status-box {
+  background: linear-gradient(135deg, #1a73e8, #4285f4);
+  color: white;
+  padding: 18px;
+  border-radius: 12px;
+  text-align: center;
+}
+.sub-status-box.expired {
+  background: linear-gradient(135deg, #d93025, #e74c3c);
+}
+.sub-status-box.trial {
+  background: linear-gradient(135deg, #f9a825, #ffb300);
+}
+.sub-plan-name {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 4px;
+}
+.sub-days-left {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 8px 0;
+}
+.sub-end-date {
+  font-size: 12px;
+  opacity: 0.9;
+}
+.pending-request-card {
+  background: #fef7e0;
+  border-left: 4px solid #f9a825;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+/* ============================================================
+   SPLASH / WELCOME SCREEN
+   ============================================================ */
+
+.splash-screen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6b3fa0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+/* Floating Background Icons */
+.float-icons {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.float-icon {
+  position: absolute;
+  bottom: -60px;
+  font-size: 32px;
+  opacity: 0;
+  animation: floatUpIcon 10s linear infinite;
+}
+
+@keyframes floatUpIcon {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.25; }
+  50%  { opacity: 0.35; }
+  90%  { opacity: 0.25; }
+  100% { transform: translateY(-115vh) rotate(360deg); opacity: 0; }
+}
+
+/* Main Content */
+.splash-content {
+  text-align: center;
+  padding: 30px 20px;
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  animation: fadeInScale 1s ease-out;
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Logo Circle */
+.splash-logo {
+  margin-bottom: 24px;
+  animation: logoPulse 2.5s ease-in-out infinite;
+}
+
+.logo-circle {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(255,255,255,0.35);
+  box-shadow: 
+    0 10px 40px rgba(0,0,0,0.25),
+    inset 0 0 30px rgba(255,255,255,0.1);
+}
+
+.logo-emoji {
+  font-size: 65px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+
+@keyframes logoPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+/* App Title */
+.splash-title {
+  color: white;
+  font-size: 34px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  text-shadow: 0 3px 15px rgba(0,0,0,0.3);
+  letter-spacing: 1.2px;
+  animation: slideDown 0.8s ease-out 0.3s backwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Rotating Welcome Text */
+.welcome-rotator {
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+#rotatingWelcome {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 600;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  display: inline-block;
+  padding: 8px 24px;
+  border-radius: 30px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  transition: all 0.4s ease;
+}
+
+/* Tagline */
+.splash-tagline {
+  color: rgba(255,255,255,0.92);
+  font-size: 15px;
+  margin-bottom: 38px;
+  line-height: 1.7;
+  animation: slideDown 0.8s ease-out 0.6s backwards;
+}
+
+/* Start Button */
+.splash-btn {
+  background: white;
+  color: #764ba2;
+  border: none;
+  padding: 16px 46px;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 
+    0 8px 28px rgba(0,0,0,0.25),
+    0 0 0 0 rgba(255,255,255,0.5);
+  transition: all 0.3s ease;
+  animation: 
+    slideDown 0.8s ease-out 0.8s backwards,
+    btnGlow 2.5s ease-in-out 1.5s infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes btnGlow {
+  0%, 100% { box-shadow: 0 8px 28px rgba(0,0,0,0.25), 0 0 0 0 rgba(255,255,255,0.5); }
+  50%      { box-shadow: 0 8px 28px rgba(0,0,0,0.25), 0 0 0 12px rgba(255,255,255,0); }
+}
+
+.splash-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+}
+
+.splash-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Footer */
+.splash-footer {
+  margin-top: 45px;
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  animation: fadeIn 1.5s ease-out 1.2s backwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 0.55; }
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .logo-circle { width: 110px; height: 110px; }
+  .logo-emoji { font-size: 55px; }
+  .splash-title { font-size: 28px; }
+  #rotatingWelcome { font-size: 22px; padding: 6px 18px; }
+  .splash-tagline { font-size: 13px; }
+  .splash-btn { padding: 14px 36px; font-size: 15px; }
+}
+
 </style>
 </head>
 <body>
 
 <!-- ============ LANGUAGE SELECT ============ -->
+<!-- ============ WELCOME / SPLASH SCREEN ============ -->
 <div id="view-lang" class="view active">
-  <div class="auth-screen">
-    <div class="auth-logo">
-      <h1>🌐 Language / ভাষা</h1>
-      <p>আপনার পছন্দের ভাষা সিলেক্ট করুন</p>
+  <div class="splash-screen">
+    
+    <!-- Floating Background Icons -->
+    <div class="float-icons">
+      <span class="float-icon" style="left: 8%; animation-delay: 0s;">🎫</span>
+      <span class="float-icon" style="left: 22%; animation-delay: 1.5s;">💎</span>
+      <span class="float-icon" style="left: 38%; animation-delay: 3s;">⭐</span>
+      <span class="float-icon" style="left: 55%; animation-delay: 0.8s;">🎁</span>
+      <span class="float-icon" style="left: 70%; animation-delay: 2.2s;">🏆</span>
+      <span class="float-icon" style="left: 85%; animation-delay: 4s;">🎯</span>
+      <span class="float-icon" style="left: 15%; animation-delay: 5s;">✨</span>
+      <span class="float-icon" style="left: 92%; animation-delay: 3.5s;">🎪</span>
     </div>
-    <div class="card" style="text-align: center;">
-      <div class="lang-btn" onclick="setLanguage('bn')">বাংলা</div>
-      <div class="lang-btn" onclick="setLanguage('en')">English</div>
-      <div class="lang-btn" onclick="setLanguage('hi')">हिन्दी</div>
-      <div class="lang-btn" onclick="setLanguage('ta')">தமிழ்</div>
+
+    <!-- Main Content -->
+    <div class="splash-content">
+      
+    <!-- Animated Logo -->
+<div class="splash-logo">
+  <div class="logo-circle">
+    <!-- ⬇️ এখানে আপনার কোম্পানির লোগো URL বসান -->
+    <img src="https://i.ibb.co/YOUR_LOGO_URL.jpg" 
+         alt="Logo" 
+         style="width: 70%; height: 70%; object-fit: contain; border-radius: 50%;"
+         onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\'logo-emoji\'>🎫</span>';">
+  </div>
+</div>
+      
+      <!-- App Name -->
+      <h1 class="splash-title">Coupon SaaS</h1>
+      
+      <!-- Rotating Welcome Message (10 languages) -->
+      <div class="welcome-rotator">
+        <span id="rotatingWelcome">স্বাগতম</span>
+      </div>
+      
+      <!-- Tagline -->
+      <p class="splash-tagline">
+        🚀 আপনার ব্যবসার ডিজিটাল সঙ্গী<br>
+        <span style="font-size: 12px; opacity: 0.7;">Coupons • Customers • Growth</span>
+      </p>
+      
+      <!-- Start Button -->
+      <button class="splash-btn" onclick="enterApp()">
+        <span>শুরু করুন</span>
+        <span style="margin-left: 8px;">→</span>
+      </button>
+      
+      <!-- Footer -->
+      <div class="splash-footer">
+        <span>Made with ❤️ in India</span>
+      </div>
+      
     </div>
   </div>
 </div>
-
 <!-- ============ ADMIN LOGIN ============ -->
 <div id="view-auth" class="view">
   <div class="auth-screen">
@@ -265,12 +583,20 @@
     </div>
 
     <div class="card">
-      <div id="login-form">
+           <div id="login-form">
         <label data-t="email">Email</label>
         <input type="email" id="loginEmail" placeholder="admin@company.com">
         <label data-t="password">Password</label>
         <input type="password" id="loginPassword" placeholder="••••••••">
         <button onclick="adminLogin()" data-t="login_btn">Login</button>
+        
+        <!-- Forgot Password Link -->
+        <div style="text-align: center; margin-top: 12px;">
+          <span onclick="openForgotPassword()" style="color: #1a73e8; font-size: 13px; cursor: pointer; text-decoration: underline;">
+            🔑 পাসওয়ার্ড ভুলে গেছেন?
+          </span>
+        </div>
+        
         <div id="loginStatus"></div>
       </div>
 
@@ -391,9 +717,44 @@
 
 <!-- ============ ADMIN VIEW ============ -->
 <div id="view-admin" class="view">
-  <div class="topbar">
+ <!-- ============ Subscription Alert Banner ============ -->
+<div id="subAlertBanner" style="display: none; background: #fef7e0; color: #b06000; padding: 10px 15px; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f9a825;">
+  <span id="subAlertText">⚠️ আপনার সাবস্ক্রিপশন শীঘ্রই শেষ হবে</span>
+  <span onclick="adminNav('subscription', document.querySelectorAll('#view-admin .nav-item')[4])" style="margin-left: 8px; text-decoration: underline; cursor: pointer; color: #1a73e8;">রিনিউ করুন →</span>
+</div>
+
+<!-- ============ Lock Screen ============ -->
+<div id="subLockScreen" style="display: none; padding: 30px 20px; text-align: center; max-width: 500px; margin: 0 auto;">
+  <div style="background: white; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+    <div style="font-size: 60px; margin-bottom: 15px;">🔒</div>
+    <h2 style="color: #202124; font-size: 22px; margin-bottom: 10px;" id="lockTitle">সাবস্ক্রিপশন শেষ</h2>
+    <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px;" id="lockMessage">
+      আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হয়েছে। প্যানেলে প্রবেশ করতে একটি প্ল্যান কিনুন।
+    </p>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+      <div style="font-size: 12px; color: #666; margin-bottom: 6px;">আপনার বর্তমান সাবস্ক্রিপশন</div>
+      <div style="font-size: 16px; font-weight: bold; color: #202124;" id="lockStatus">Status: Expired</div>
+    </div>
+    
+    <button onclick="openSubscriptionFromLock()" style="width: 100%; padding: 14px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">
+      💎 প্ল্যান দেখুন এবং কিনুন
+    </button>
+    
+    <button onclick="adminLogout()" style="width: 100%; padding: 12px; background: #f0f2f5; color: #333; border: none; border-radius: 10px; font-size: 14px; margin-top: 10px; cursor: pointer;">
+      লগআউট
+    </button>
+  </div>
+</div>
+ <div class="topbar">
     <h2 id="adminCompanyName">Admin</h2>
-    <div class="logout" onclick="adminLogout()" data-t="logout">Logout</div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <!-- Language Dropdown -->
+      <select id="languageSelector" onchange="changeLanguage(this.value)" 
+        style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 12px; cursor: pointer;">
+      </select>
+      <div class="logout" onclick="adminLogout()" data-t="logout">Logout</div>
+    </div>
   </div>
 
   <div class="container">
@@ -462,7 +823,33 @@
       </div>
     </div>
 
-    <!-- Settings -->
+   <!-- ============ Subscription Page ============ -->
+    <div id="ap-subscription" class="admin-page" style="display:none;">
+      
+      <!-- Current Status -->
+      <div class="card" id="subCurrentCard">
+        <h3>💎 আপনার সাবস্ক্রিপশন</h3>
+        <div id="subCurrentStatus"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+
+      <!-- Upgrade Plans -->
+      <div class="card">
+        <h3>🚀 আপগ্রেড করুন</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:12px;">
+          আপনার প্রয়োজন অনুযায়ী প্ল্যান সিলেক্ট করুন
+        </p>
+        <div id="planCards"><div class="loader">লোড হচ্ছে...</div></div>
+      </div>
+
+      <!-- Pending Requests -->
+      <div class="card" id="subPendingCard" style="display:none;">
+        <h3>⏳ অপেক্ষমাণ অনুরোধ</h3>
+        <div id="subPendingList"></div>
+      </div>
+
+    </div>
+   
+   <!-- Settings -->
     <div id="ap-settings" class="admin-page" style="display:none;">
       <!-- ==================== Team Management (Invite Codes) ==================== -->
       <div class="card">
@@ -524,13 +911,22 @@
   </div>
 
   <div class="bottom-nav">
-    <div class="nav-item active" onclick="adminNav('dashboard', this)"><span class="icon">🏠</span><span data-t="home">Home</span></div>
-    <div class="nav-item" onclick="adminNav('coupons', this)"><span class="icon">🎫</span><span data-t="coupons">Coupons</span></div>
-    <div class="nav-item" onclick="adminNav('customers', this)"><span class="icon">👥</span><span data-t="users">Users</span></div>
-    <div class="nav-item" onclick="adminNav('withdrawals', this)"><span class="icon">💸</span><span data-t="withdraw">Withdraw</span></div>
-    <div class="nav-item" onclick="adminNav('settings', this)"><span class="icon">⚙️</span><span data-t="settings">Settings</span></div>
+    <div class="nav-item active" onclick="adminNav('dashboard', this)">
+      <span class="icon">🏠</span><span data-t="home">Home</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('customers', this)">
+      <span class="icon">👥</span><span data-t="users">Users</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('withdrawals', this)">
+      <span class="icon">💸</span><span data-t="withdraw">Withdraw</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('subscription', this)">
+      <span class="icon">💎</span><span>Plan</span>
+    </div>
+    <div class="nav-item" onclick="adminNav('settings', this)">
+      <span class="icon">⚙️</span><span data-t="settings">Settings</span>
+    </div>
   </div>
-</div>
 
 <!-- ============ TEAM MEMBER VIEW ============ -->
 <div id="view-team" class="view">
@@ -539,7 +935,12 @@
       <h2 id="teamCompanyName">Company</h2>
       <span id="teamRoleBadge" style="font-size:11px; opacity:0.9;"></span>
     </div>
-    <div class="logout" onclick="teamLogout()">Logout</div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <select id="languageSelectorTeam" onchange="changeLanguage(this.value)" 
+        style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 12px;">
+      </select>
+      <div class="logout" onclick="teamLogout()">Logout</div>
+    </div>
   </div>
 
   <div class="container">
@@ -651,8 +1052,16 @@
  <!-- ============ CUSTOMER VIEW ============ -->
 <div id="view-customer" class="view">
   <div class="topbar">
-    <h2 id="custCompanyName">Coupon App</h2>
-    <div class="logout" onclick="customerLogout()" data-t="logout">Logout</div>
+    <div>
+      <h2 id="teamCompanyName">Company</h2>
+      <span id="teamRoleBadge" style="font-size:11px; opacity:0.9;"></span>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <select id="languageSelectorTeam" onchange="changeLanguage(this.value)" 
+        style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 12px;">
+      </select>
+      <div class="logout" onclick="teamLogout()">Logout</div>
+    </div>
   </div>
 
   <div class="container">
@@ -710,8 +1119,21 @@
 
 <script type="module">
  // ==================== Firebase Imports ====================
-import { db, auth } from './firebase-config-beta.js';
-
+import { db, auth } from './firebase-config-prod.js';
+// i18n Import
+import { 
+  t, 
+  setLanguage as i18nSetLanguage, 
+  getLanguage, 
+  initLanguage, 
+  applyTranslations, 
+  autoTagTranslations, 
+  autoTagPlaceholders, 
+  autoTranslateAll, 
+  startMutationObserver, 
+  stopMutationObserver,
+  LANGUAGES 
+} from './i18n.js';
 import { 
   collection, doc, addDoc, getDoc, getDocs, 
   setDoc, updateDoc, deleteDoc, query, where, 
@@ -722,7 +1144,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
 //  measurementId is optional
@@ -737,161 +1160,134 @@ const firebaseConfig = {
   measurementId: "G-76WETNMGGL"
 };
 
-
+// ⬇⬇⬇ ImgBB API Key (https://api.imgbb.com/ থেকে পাবেন) ⬇⬇⬇
+const IMGBB_API_KEY = "cb410994ffe4638b322192f4bd9a3a09";
  // const app = initializeApp(firebaseConfig);
  // const db = getFirestore(app);
 
-  // ==================== i18n TRANSLATIONS ====================
-  const T = {
-    bn: {
-      admin_panel: "অ্যাডমিন প্যানেল", login: "লগইন", register: "রেজিস্টার",
-      email: "ইমেইল", password: "পাসওয়ার্ড", login_btn: "লগইন করুন", register_btn: "রেজিস্টার করুন",
-      company_name: "কোম্পানির নাম", your_name: "আপনার নাম", logout: "লগআউট",
-      total_coupons: "মোট কুপন", used_coupons: "ব্যবহৃত", customers: "কাস্টমার", pending_withdraw: "অপেক্ষমাণ",
-      share_link: "🔗 কাস্টমারদের সাথে লিংক শেয়ার করুন",
-      share_hint: "এই লিংক কাস্টমারদের পাঠান। তারা এখান থেকে রেজিস্ট্রেশন করবে।",
-      copy_link: "লিংক কপি করুন", grades: "📦 গ্রেড ও মূল্য", generate_coupons: "🎫 নতুন কুপন তৈরি",
-      select_grade: "গ্রেড সিলেক্ট", quantity: "পরিমাণ", expiry: "মেয়াদ", generate_btn: "তৈরি করুন",
-      recent_batch: "📋 সর্বশেষ ব্যাচ", no_coupons: "এখনো কোনো কুপন নেই",
-      company_settings: "🏢 কোম্পানির সেটিংস", helpline: "হেল্পলাইন", footer_text: "ফুটার টেক্সট",
-      withdrawal_min: "ন্যূনতম প্রত্যাহার (₹)", language: "ভাষা", save: "সেভ",
-      home: "হোম", coupons: "কুপন", users: "ইউজার", withdraw: "প্রত্যাহার", settings: "সেটিংস",
-      your_balance: "আপনার ব্যালেন্স", recent_txn: "📜 সাম্প্রতিক লেনদেন",
-      scan_coupon: "📷 কুপন স্ক্যান", stop_scan: "স্ক্যানার বন্ধ", manual_entry: "✍️ ম্যানুয়াল এন্ট্রি",
-      redeem: "রিডিম", profile: "👤 প্রোফাইল", phone: "মোবাইল", request_withdraw: "প্রত্যাহার অনুরোধ",
-      wallet: "ওয়ালেট", scan: "স্ক্যান",
-      enter_phone: "মোবাইল নাম্বার দিন", invalid_phone: "সঠিক ১০ ডিজিটের নাম্বার দিন",
-      admin_exists: "এই ইমেইল আগেই রেজিস্টার্ড", wrong_login: "ভুল ইমেইল বা পাসওয়ার্ড",
-      coupon_used: "এই কুপন আগেই ব্যবহৃত", coupon_invalid: "ভুল কুপন কোড",
-      coupon_expired: "কুপনের মেয়াদ শেষ", coupon_added: "যোগ হয়েছে",
-      whatsapp_number: "হোয়াটসঅ্যাপ নাম্বার",
-      share_whatsapp: "হোয়াটসঅ্যাপে শেয়ার করুন",
-      insufficient_balance: "ব্যালেন্স পর্যাপ্ত নয়"
-    },
-    en: {
-      admin_panel: "Admin Panel", login: "Login", register: "Register",
-      email: "Email", password: "Password", login_btn: "Login", register_btn: "Register",
-      company_name: "Company Name", your_name: "Your Name", logout: "Logout",
-      total_coupons: "Total Coupons", used_coupons: "Used", customers: "Customers", pending_withdraw: "Pending",
-      share_link: "🔗 Share Link with Customers",
-      share_hint: "Send this link to customers. They'll register from here.",
-      copy_link: "Copy Link", grades: "📦 Grades & Prices", generate_coupons: "🎫 Generate Coupons",
-      select_grade: "Select Grade", quantity: "Quantity", expiry: "Expiry", generate_btn: "Generate",
-      recent_batch: "📋 Recent Batch", no_coupons: "No coupons yet",
-      company_settings: "🏢 Company Settings", helpline: "Helpline", footer_text: "Footer Text",
-      withdrawal_min: "Minimum Withdrawal (₹)", language: "Language", save: "Save",
-      home: "Home", coupons: "Coupons", users: "Users", withdraw: "Withdraw", settings: "Settings",
-      your_balance: "Your Balance", recent_txn: "📜 Recent Transactions",
-      scan_coupon: "📷 Scan Coupon", stop_scan: "Stop Scanner", manual_entry: "✍️ Manual Entry",
-      redeem: "Redeem", profile: "👤 Profile", phone: "Phone", request_withdraw: "Request Withdrawal",
-      wallet: "Wallet", scan: "Scan",
-      enter_phone: "Enter your phone", invalid_phone: "Enter valid 10-digit number",
-      admin_exists: "Email already registered", wrong_login: "Wrong email or password",
-      coupon_used: "Coupon already used", coupon_invalid: "Invalid coupon code",
-      coupon_expired: "Coupon expired", coupon_added: "Added",
-     whatsapp_number: "WhatsApp Number",
-     share_whatsapp: "Share on WhatsApp",
-     insufficient_balance: "Insufficient balance"
-    },
-    hi: {
-      admin_panel: "एडमिन पैनल", login: "लॉगिन", register: "रजिस्टर",
-      email: "ईमेल", password: "पासवर्ड", login_btn: "लॉगिन", register_btn: "रजिस्टर",
-      company_name: "कंपनी का नाम", your_name: "आपका नाम", logout: "लॉगआउट",
-      total_coupons: "कुल कूपन", used_coupons: "उपयोग किए", customers: "ग्राहक", pending_withdraw: "लंबित",
-      share_link: "🔗 ग्राहकों के साथ लिंक साझा करें",
-      share_hint: "यह लिंक ग्राहकों को भेजें। वे यहाँ से रजिस्टर करेंगे।",
-      copy_link: "लिंक कॉपी करें", grades: "📦 ग्रेड और मूल्य", generate_coupons: "🎫 कूपन जनरेट करें",
-      select_grade: "ग्रेड चुनें", quantity: "मात्रा", expiry: "समाप्ति", generate_btn: "जनरेट करें",
-      recent_batch: "📋 हालिया बैच", no_coupons: "अभी तक कोई कूपन नहीं",
-      company_settings: "🏢 कंपनी सेटिंग्स", helpline: "हेल्पलाइन", footer_text: "फुटर टेक्स्ट",
-      withdrawal_min: "न्यूनतम निकासी (₹)", language: "भाषा", save: "सेव",
-      home: "होम", coupons: "कूपन", users: "उपयोगकर्ता", withdraw: "निकासी", settings: "सेटिंग्स",
-      your_balance: "आपका बैलेंस", recent_txn: "📜 हाल के लेनदेन",
-      scan_coupon: "📷 कूपन स्कैन", stop_scan: "स्कैनर बंद करें", manual_entry: "✍️ मैन्युअल एंट्री",
-      redeem: "रिडीम", profile: "👤 प्रोफाइल", phone: "फोन", request_withdraw: "निकासी का अनुरोध",
-      wallet: "वॉलेट", scan: "स्कैन",
-      enter_phone: "फ़ोन नंबर दर्ज करें", invalid_phone: "10 अंकों का सही नंबर दर्ज करें",
-      admin_exists: "ईमेल पहले से पंजीकृत", wrong_login: "गलत ईमेल या पासवर्ड",
-      coupon_used: "कूपन पहले उपयोग किया गया", coupon_invalid: "अमान्य कूपन कोड",
-      coupon_expired: "कूपन समाप्त", coupon_added: "जोड़ा गया",
-      whatsapp_number: "व्हाट्सएप नंबर",
-      share_whatsapp: "व्हाट्सएप पर शेयर करें",
-      insufficient_balance: "अपर्याप्त बैलेंस"
-    },
-    ta: {
-      admin_panel: "நிர்வாக பலகை", login: "உள்நுழை", register: "பதிவு",
-      email: "மின்னஞ்சல்", password: "கடவுச்சொல்", login_btn: "உள்நுழை", register_btn: "பதிவு",
-      company_name: "நிறுவன பெயர்", your_name: "உங்கள் பெயர்", logout: "வெளியேறு",
-      total_coupons: "மொத்த கூப்பன்கள்", used_coupons: "பயன்படுத்தியது", customers: "வாடிக்கையாளர்கள்", pending_withdraw: "நிலுவை",
-      share_link: "🔗 வாடிக்கையாளர்களுடன் பகிரவும்",
-      share_hint: "இந்த இணைப்பை வாடிக்கையாளர்களுக்கு அனுப்பவும்.",
-      copy_link: "இணைப்பை நகலெடு", grades: "📦 தரம் & விலை", generate_coupons: "🎫 கூப்பன் உருவாக்கு",
-      select_grade: "தரம் தேர்வு", quantity: "எண்ணிக்கை", expiry: "காலாவதி", generate_btn: "உருவாக்கு",
-      recent_batch: "📋 சமீபத்திய தொகுதி", no_coupons: "இன்னும் கூப்பன் இல்லை",
-      company_settings: "🏢 நிறுவன அமைப்புகள்", helpline: "உதவி எண்", footer_text: "அடிக்குறிப்பு",
-      withdrawal_min: "குறைந்தபட்ச விலக்கு (₹)", language: "மொழி", save: "சேமி",
-      home: "முகப்பு", coupons: "கூப்பன்கள்", users: "பயனர்கள்", withdraw: "விலக்கு", settings: "அமைப்புகள்",
-      your_balance: "உங்கள் இருப்பு", recent_txn: "📜 சமீபத்திய பரிவர்த்தனைகள்",
-      scan_coupon: "📷 கூப்பன் ஸ்கேன்", stop_scan: "ஸ்கேனர் நிறுத்து", manual_entry: "✍️ கைமுறை உள்ளீடு",
-      redeem: "பயன்படுத்து", profile: "👤 சுயவிவரம்", phone: "தொலைபேசி", request_withdraw: "விலக்கு கோரிக்கை",
-      wallet: "பணப்பெட்டி", scan: "ஸ்கேன்",
-      enter_phone: "தொலைபேசி எண் உள்ளிடவும்", invalid_phone: "10 இலக்க எண் உள்ளிடவும்",
-      admin_exists: "மின்னஞ்சல் ஏற்கனவே பதிவு", wrong_login: "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
-      coupon_used: "கூப்பன் ஏற்கனவே பயன்படுத்தப்பட்டது", coupon_invalid: "தவறான கூப்பன் குறியீடு",
-      coupon_expired: "கூப்பன் காலாவதியானது", coupon_added: "சேர்க்கப்பட்டது",
-      whatsapp_number: "வாட்ஸ்அப் எண்",
-      share_whatsapp: "வாட்ஸ்அப்பில் பகிரவும்",
-     insufficient_balance: "போதுமான இருப்பு இல்லை"
-    }
-  };
-
-  let currentLang = localStorage.getItem('lang') || 'bn';
+  //let currentLang = localStorage.getItem('lang') || 'bn';
   let adminId = localStorage.getItem('adminId') || null;
   let adminData = null;
   let customerAdminId = null;
   let customerPhone = null;
   let html5QrCode = null, scannerActive = false;
+  // ============================================================
+// App Init — Language setup
+// ============================================================
 
-  window.t = (key) => (T[currentLang] && T[currentLang][key]) || key;
+// ভাষা লোড করো localStorage থেকে
+// ============================================================
+// APP INIT — Language + Auto-Translate
+// ============================================================
 
-  function applyTranslations() {
-    document.querySelectorAll('[data-t]').forEach(el => {
-      el.innerText = t(el.getAttribute('data-t'));
-    });
-    document.documentElement.lang = currentLang;
-  }
+// ১. ভাষা লোড
+initLanguage();
 
-  window.setLanguage = function(lang) {
-  try {
-    currentLang = lang;
-    localStorage.setItem('lang', lang);
-    applyTranslations();
-    
-    const params = new URLSearchParams(window.location.search);
-    const urlAdmin = params.get('admin');
-    
-    if (urlAdmin) {
-      customerAdminId = urlAdmin;
-      showView('view-customer');
-      initCustomer();
-    } else if (adminId) {
-      loadAdminSession();
-    } else {
-      showView('view-auth');
-    }
-  } catch (e) {
-    console.error("Language error:", e);
-    alert("সমস্যা হয়েছে: " + e.message);
-    showView('view-auth');
-  }
-};
+// ২. Language Dropdown populate
+populateLanguageDropdowns();
+
+// ৩. ডম লোড হওয়ার পর Auto-Translate চালান
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    autoTranslateAll();
+    startMutationObserver();
+    console.log('🌐 Auto-translate system started');
+  }, 500);
+});
+
+// পেজ ইতিমধ্যে লোড থাকলে সরাসরি
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(() => {
+    autoTranslateAll();
+    startMutationObserver();
+    console.log('🌐 Auto-translate system started');
+  }, 500);
+}
 
   function showView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(id).classList.add('active');
   }
 
-  // ==================== ADMIN AUTH ====================
+// ============================================================
+// WELCOME SPLASH SCREEN — Rotating Multi-language Welcome
+// ============================================================
+
+const WELCOME_WORDS = [
+  'স্বাগতম',      // বাংলা
+  'Welcome',      // English
+  'स्वागत है',      // हिन्दी
+  'ସ୍ୱାଗତ',        // ଓଡ଼ିଆ
+  'خوش آمدید',    // اردو
+  'સ્વાગત છે',     // ગુજરાતી
+  'स्वागत आहे',    // मराठी
+  'வரவேற்பு',     // தமிழ்
+  'స్వాగతం',       // తెలుగు
+  'സ്വാഗതം'        // മലയാളം
+];
+
+let welcomeIndex = 0;
+let welcomeInterval = null;
+
+function startWelcomeRotation() {
+  const el = document.getElementById('rotatingWelcome');
+  if (!el) return;
+
+  // প্রথম শব্দ দেখাও
+  el.textContent = WELCOME_WORDS[0];
+  el.style.opacity = '1';
+  welcomeIndex = 1;
+
+  // প্রতি ২ সেকেন্ডে পরিবর্তন
+  welcomeInterval = setInterval(() => {
+    // Fade out
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(10px)';
+
+    setTimeout(() => {
+      el.textContent = WELCOME_WORDS[welcomeIndex];
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+      welcomeIndex = (welcomeIndex + 1) % WELCOME_WORDS.length;
+    }, 400);
+  }, 2000);
+}
+
+// Welcome Screen থেকে App-এ প্রবেশ
+window.enterApp = function() {
+  // Rotation বন্ধ করো (memory free)
+  if (welcomeInterval) {
+    clearInterval(welcomeInterval);
+    welcomeInterval = null;
+  }
+
+  // Auth Screen দেখাও
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-auth').classList.add('active');
+
+  // ভাষা প্রয়োগ
+  setTimeout(() => {
+    if (typeof autoTranslateAll === 'function') {
+      autoTranslateAll();
+    }
+  }, 100);
+};
+ 
+// Welcome rotation শুরু করো
+setTimeout(() => {
+  startWelcomeRotation();
+}, 300);
+
+// ⏰ ৮ সেকেন্ড পর অটো-redirect
+setTimeout(() => {
+  const currentView = document.querySelector('.view.active');
+  if (currentView && currentView.id === 'view-lang') {
+    console.log('⏰ Auto-redirecting to auth screen...');
+    enterApp();
+  }
+}, 8000);
+ 
+ // ==================== ADMIN AUTH ====================
   function hashPwd(p) {
     let h = 0;
     for (let i = 0; i < p.length; i++) { h = ((h << 5) - h) + p.charCodeAt(i); h |= 0; }
@@ -1211,7 +1607,80 @@ window.adminLogin = async function() {
   }
 };
 
-  // ==================== Admin Logout ====================
+// ============================================================
+// FORGOT PASSWORD (Email Recovery)
+// ============================================================
+
+window.openForgotPassword = function() {
+  document.getElementById('forgotPasswordModal').style.display = 'block';
+  document.getElementById('forgotStatus').innerHTML = '';
+  document.getElementById('forgotEmail').value = '';
+  
+  // লগইন ফর্মে ইমেইল দেওয়া থাকলে সেটা অটো-ফিল করি
+  const loginEmail = document.getElementById('loginEmail')?.value?.trim();
+  if (loginEmail) {
+    document.getElementById('forgotEmail').value = loginEmail;
+  }
+};
+
+window.closeForgotPassword = function() {
+  document.getElementById('forgotPasswordModal').style.display = 'none';
+};
+
+window.sendResetEmail = async function() {
+  const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
+  const statusEl = document.getElementById('forgotStatus');
+
+  // ভ্যালিডেশন
+  if (!email) {
+    statusEl.innerHTML = '<div class="status error">⚠️ ইমেইল দিন</div>';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    statusEl.innerHTML = '<div class="status error">⚠️ সঠিক ইমেইল দিন</div>';
+    return;
+  }
+
+  statusEl.innerHTML = '<div class="status info">⏳ পাঠানো হচ্ছে...</div>';
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+
+    statusEl.innerHTML = `
+      <div class="status success" style="text-align: left; line-height: 1.6;">
+        ✅ <b>সফল!</b><br>
+        <span style="font-size: 12px;">
+          <b>${email}</b>-এ একটি রিসেট লিংক পাঠানো হয়েছে।<br>
+          📥 ইনবক্সে না পেলে <b>Spam</b> ফোল্ডার চেক করুন।<br>
+          ⏱️ লিংকটি ১ ঘণ্টা পর্যন্ত কাজ করবে।
+        </span>
+      </div>
+    `;
+
+    // ৮ সেকেন্ড পর modal বন্ধ
+    setTimeout(() => {
+      closeForgotPassword();
+    }, 8000);
+
+  } catch (error) {
+    console.error("Password reset error:", error);
+    
+    let msg = "❌ পাঠানো যায়নি";
+    if (error.code === 'auth/user-not-found') {
+      msg = "❌ এই ইমেইলে কোনো অ্যাকাউন্ট নেই";
+    } else if (error.code === 'auth/invalid-email') {
+      msg = "❌ ইমেইলটি সঠিক নয়";
+    } else if (error.code === 'auth/too-many-requests') {
+      msg = "❌ অনেকবার চেষ্টা করেছেন, কিছুক্ষণ অপেক্ষা করুন";
+    } else {
+      msg = "❌ " + error.message;
+    }
+    
+    statusEl.innerHTML = `<div class="status error">${msg}</div>`;
+  }
+};
+ 
+ // ==================== Admin Logout ====================
 window.adminLogout = async function() {
   try {
     await signOut(auth);
@@ -1224,54 +1693,293 @@ window.adminLogout = async function() {
   location.reload();
 };
 
-// ==================== Admin Session Load (Admin + Team Member) ====================
+// ============================================================
+// LANGUAGE SYSTEM
+// ============================================================
+
+// Dropdown পপুলেট করার ফাংশন
+function populateLanguageDropdowns() {
+  const selectors = ['languageSelector', 'languageSelectorTeam', 'languageSelectorCustomer'];
+  
+  selectors.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    
+    sel.innerHTML = '';
+    const current = getLanguage();
+    
+    LANGUAGES.forEach(lang => {
+      const opt = document.createElement('option');
+      opt.value = lang.code;
+      opt.innerText = `${lang.flag} ${lang.name}`;
+      if (lang.code === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    
+    // Dark theme-এর জন্য option স্টাইল
+    sel.style.color = 'white';
+    sel.querySelectorAll('option').forEach(o => {
+      o.style.color = '#000';
+      o.style.background = '#fff';
+    });
+  });
+}
+
+// ভাষা পরিবর্তন ফাংশন
+window.changeLanguage = function(lang) {
+  if (i18nSetLanguage(lang)) {
+    // সব dropdown আপডেট
+    document.querySelectorAll('[id^="languageSelector"]').forEach(sel => {
+      sel.value = lang;
+    });
+    
+    // Admine save
+    if (adminId && adminData && !adminData.isTeamMember) {
+      updateDoc(doc(db, "admins", adminId), {
+        language: lang
+      }).catch(e => console.log("Language save error:", e));
+    }
+  }
+};
+ 
+ // ==================== Admin Session Load (Admin + Team Member) ====================
 async function loadAdminSession() {
   if (!adminId) { showView('view-auth'); return; }
-  
+
   try {
     const snap = await getDoc(doc(db, "admins", adminId));
-    
-    if (!snap.exists()) { 
-      adminLogout(); 
-      return; 
-    }
-    
-    adminData = snap.data();
-if (adminData.language) { currentLang = adminData.language; applyTranslations(); }
 
-// === চেক: ইউজার সাসপেন্ডেড কি না ===
-if (adminData.suspended === true) {
-  await signOut(auth);
-  adminId = null;
-  adminData = null;
-  localStorage.removeItem('adminId');
-  alert("🚫 আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।\n\nআপনার কোম্পানির অ্যাডমিনের সাথে যোগাযোগ করুন।");
-  showView('view-auth');
-  return;
-}
-    // === চেক: Team Member নাকি Admin? ===
-    if (adminData.isTeamMember === true) {
-      // Team Member → আলাদা ড্যাশবোর্ড
-      loadTeamSession();
-    } else {
-      // Admin → পুরো প্যানেল
-      document.getElementById('adminCompanyName').innerText = adminData.companyName || 'Admin';
-      document.getElementById('customerLink').value = location.origin + location.pathname + '?admin=' + adminId;
-      
-      showView('view-admin');
-loadAdminDashboard();
-loadGrades();
-loadCustomerList();
-loadWithdrawals();
-fillSettings();
-loadInvites();
-loadTeamMembers();  // ⬅️ নতুন
+    if (!snap.exists()) {
+      adminLogout();
+      return;
     }
-    
+
+    adminData = snap.data();
+
+    // ভাষা প্রয়োগ
+    if (adminData.language) {
+     i18nSetLanguage(adminData.language);
+      applyTranslations();
+    }
+
+    // ===== চেক ১: সাসপেন্ডেড কি না =====
+    if (adminData.suspended === true) {
+      await signOut(auth);
+      adminId = null;
+      adminData = null;
+      localStorage.removeItem('adminId');
+      alert("🚫 আপনার অ্যাকাউন্ট সাসপেন্ড করা হয়েছে।\n\nআপনার কোম্পানির অ্যাডমিনের সাথে যোগাযোগ করুন।");
+      showView('view-auth');
+      return;
+    }
+
+    // ===== চেক ২: Team Member নাকি Admin? =====
+    if (adminData.isTeamMember === true) {
+      // Team Member → আলাদা ড্যাশবোর্ড, subscription চেক লাগবে না
+      loadTeamSession();
+      return;
+    }
+
+    // ============================================================
+    // Admin Path — সাবস্ক্রিপশন চেক সহ
+    // ============================================================
+
+    // হেডারে কোম্পানির নাম
+    document.getElementById('adminCompanyName').innerText =
+      adminData.companyName || 'Admin';
+
+    // কাস্টমার লিংক
+    document.getElementById('customerLink').value =
+      location.origin + location.pathname + '?admin=' + adminId;
+
+    showView('view-admin');
+
+    // ===== চেক ৩: সাবস্ক্রিপশন স্ট্যাটাস =====
+    const subStatus = checkSubscriptionStatus();
+
+    if (subStatus.locked) {
+      // 🔒 মেয়াদ শেষ বা সাবস্ক্রিপশন নেই → Lock Screen
+      showLockScreen(subStatus);
+      // Monitor চালু রাখব যাতে Approve হলে অটো Unlock হয়
+      startSubscriptionMonitor();
+      return;
+    }
+
+    // ===== চেক ৪: মেয়াদ শেষের সতর্কতা Banner =====
+    if (subStatus.daysLeft !== null && subStatus.daysLeft <= 7 && subStatus.daysLeft > 0) {
+      showSubAlert(subStatus.daysLeft);
+    } else {
+      hideSubAlert();
+    }
+
+    // Lock screen লুকাও (যদি আগে থেকে থাকে)
+    hideLockScreen();
+
+    // ===== Admin ডেটা লোড =====
+    loadAdminDashboard();
+    loadGrades();
+    loadCustomerList();
+    loadWithdrawals();
+    fillSettings();
+    loadInvites();
+    loadTeamMembers();
+
+    // ===== লাইভ Monitor চালু (রিয়েল-টাইম সাবস্ক্রিপশন আপডেট) =====
+    startSubscriptionMonitor();
+
   } catch (e) {
     console.error("Session load error:", e);
     adminLogout();
   }
+}
+
+ // ============================================================
+// SUBSCRIPTION ENFORCEMENT
+// ============================================================
+
+// --- সাবস্ক্রিপশন স্ট্যাটাস চেক ---
+function checkSubscriptionStatus() {
+  const result = { locked: false, daysLeft: null, reason: null };
+
+  if (!adminData) return result;
+
+  const endDate = adminData.subscriptionEnd?.toDate?.();
+
+  // কোনো মেয়াদ সেট নেই → সাবস্ক্রিপশন নেই → লক
+  if (!endDate) {
+    result.locked = true;
+    result.reason = 'no_subscription';
+    return result;
+  }
+
+  const now = new Date();
+  const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+  result.daysLeft = daysLeft;
+
+  // মেয়াদ শেষ → লক
+  if (daysLeft <= 0) {
+    result.locked = true;
+    result.reason = 'expired';
+    return result;
+  }
+
+  return result;
+}
+
+// --- Lock Screen দেখাও ---
+function showLockScreen(status) {
+  // Topbar, Container, BottomNav লুকান
+  const topbar = document.querySelector('#view-admin .topbar');
+  const container = document.querySelector('#view-admin .container');
+  const bottomNav = document.querySelector('#view-admin .bottom-nav');
+  if (topbar) topbar.style.display = 'none';
+  if (container) container.style.display = 'none';
+  if (bottomNav) bottomNav.style.display = 'none';
+
+  // Lock screen দেখাও
+  const lockScreen = document.getElementById('subLockScreen');
+  if (lockScreen) lockScreen.style.display = 'block';
+
+  // ডিটেইলস বসাও
+  if (status.reason === 'no_subscription') {
+    document.getElementById('lockTitle').innerText = 'কোনো সাবস্ক্রিপশন নেই';
+    document.getElementById('lockMessage').innerText =
+      'আপনি এখনো কোনো প্ল্যান কেনেননি। প্যানেল ব্যবহার করতে একটি প্ল্যান কিনুন।';
+    document.getElementById('lockStatus').innerText = 'Status: No Subscription';
+  } else {
+    document.getElementById('lockTitle').innerText = 'সাবস্ক্রিপশন শেষ';
+    document.getElementById('lockMessage').innerText =
+      'আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হয়েছে। চালিয়ে যেতে আবার রিনিউ করুন।';
+    const endDate = adminData.subscriptionEnd?.toDate?.();
+    document.getElementById('lockStatus').innerText =
+      'মেয়াদ শেষ: ' + (endDate?.toLocaleDateString('en-GB') || 'N/A');
+  }
+}
+
+// --- Lock Screen লুকাও ---
+function hideLockScreen() {
+  const lockScreen = document.getElementById('subLockScreen');
+  if (lockScreen) lockScreen.style.display = 'none';
+
+  const topbar = document.querySelector('#view-admin .topbar');
+  const container = document.querySelector('#view-admin .container');
+  const bottomNav = document.querySelector('#view-admin .bottom-nav');
+  if (topbar) topbar.style.display = 'flex';
+  if (container) container.style.display = 'block';
+  if (bottomNav) bottomNav.style.display = 'flex';
+}
+
+// --- Alert Banner দেখাও ---
+window.showSubAlert = function(daysLeft) {
+  const banner = document.getElementById('subAlertBanner');
+  const text = document.getElementById('subAlertText');
+  if (!banner || !text) return;
+
+  if (daysLeft === 1) {
+    text.innerText = '🚨 আপনার সাবস্ক্রিপশন আগামীকাল শেষ হবে!';
+  } else {
+    text.innerText = `⚠️ আপনার সাবস্ক্রিপশন ${daysLeft} দিন পরে শেষ হবে`;
+  }
+  banner.style.display = 'block';
+};
+
+// --- Alert Banner লুকাও ---
+window.hideSubAlert = function() {
+  const banner = document.getElementById('subAlertBanner');
+  if (banner) banner.style.display = 'none';
+};
+
+// --- Lock Screen থেকে Plan-এ যাও ---
+window.openSubscriptionFromLock = function() {
+  hideLockScreen();
+
+  document.querySelectorAll('.admin-page').forEach(p => p.style.display = 'none');
+  document.getElementById('ap-subscription').style.display = 'block';
+
+  loadSubscriptionPage();
+};
+
+// ============================================================
+// LIVE SUBSCRIPTION MONITOR
+// ============================================================
+
+let subscriptionMonitor = null;
+
+function startSubscriptionMonitor() {
+  if (!adminId) return;
+
+  // আগের monitor বন্ধ করো (যদি থাকে)
+  if (subscriptionMonitor) {
+    subscriptionMonitor();
+    subscriptionMonitor = null;
+  }
+
+  // লাইভ লিসেন
+  subscriptionMonitor = onSnapshot(doc(db, "admins", adminId), (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.data();
+
+    // Team Member হলে চেক লাগবে না
+    if (data.isTeamMember) return;
+
+    adminData = data;
+    const status = checkSubscriptionStatus();
+
+    if (status.locked) {
+      // মেয়াদ শেষ → Lock
+      showLockScreen(status);
+    } else {
+      // মেয়াদ আছে → Unlock
+      hideLockScreen();
+
+      // সতর্কতা Banner
+      if (status.daysLeft !== null && status.daysLeft <= 7 && status.daysLeft > 0) {
+        showSubAlert(status.daysLeft);
+      } else {
+        hideSubAlert();
+      }
+    }
+  });
 }
 
 // ============================================================
@@ -1690,7 +2398,12 @@ window.teamLogout = async function() {
     document.getElementById('ap-' + page).style.display = 'block';
     document.querySelectorAll('#view-admin .nav-item').forEach(n => n.classList.remove('active'));
     if (el) el.classList.add('active');
-  };
+    
+    // পেজ অনুযায়ী ডেটা লোড
+    if (page === 'subscription') {
+      loadSubscriptionPage();
+    }
+};
 
   // ==================== DASHBOARD STATS ====================
   async function loadAdminDashboard() {
@@ -2014,7 +2727,7 @@ window.closeCustomerModal = function() {
     document.getElementById('setHelpline').value = adminData.helpline || '';
     document.getElementById('setFooter').value = adminData.footer || '';
     document.getElementById('setWithdrawMin').value = adminData.withdrawalMin || 500;
-    document.getElementById('setLanguage').value = adminData.language || currentLang;
+    document.getElementById('setLanguage').value = adminData.language || getLanguage();
   }
 
   window.saveSettings = async function() {
@@ -2027,7 +2740,7 @@ window.closeCustomerModal = function() {
     };
     await updateDoc(doc(db, "admins", adminId), update);
     adminData = { ...adminData, ...update };
-    currentLang = update.language;
+    i18nSetLanguage(update.language);
     applyTranslations();
     document.getElementById('settingsStatus').innerHTML = '<div class="status success">✅ সেভ হয়েছে</div>';
     setTimeout(() => document.getElementById('settingsStatus').innerHTML = '', 2000);
@@ -2481,7 +3194,7 @@ window.deleteInvite = async function(inviteId) {
     }
     const a = aSnap.data();
     document.getElementById('custCompanyName').innerText = a.companyName || 'Coupon App';
-    if (a.language) { currentLang = a.language; applyTranslations(); }
+    if (a.language) i18nSetLanguage(a.language);
     const min = a.withdrawalMin || 500;
     document.getElementById('withdrawHint').innerText = `Minimum withdrawal: ₹${min}`;
     window.customerWithdrawMin = min;
@@ -2657,6 +3370,410 @@ window.deleteInvite = async function(inviteId) {
     }
   });
 
+// ============================================================
+// SUBSCRIPTION SYSTEM (Admin দিক)
+// ============================================================
+
+let superSettings = null;      // Super Admin এর সেটিংস
+let selectedPlan = null;       // ইউজার যে প্ল্যান সিলেক্ট করেছে
+
+// ==================== Super Settings লোড ====================
+async function loadSuperSettings() {
+  try {
+    const snap = await getDoc(doc(db, "super_settings", "main"));
+    if (snap.exists()) {
+      superSettings = snap.data();
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.error("Load super settings error:", e);
+    return false;
+  }
+}
+
+// ==================== Subscription Page লোড ====================
+async function loadSubscriptionPage() {
+  // Super Admin Settings লোড
+  await loadSuperSettings();
+
+  // === Current Status ===
+  renderCurrentSubscription();
+
+  // === Plan Cards ===
+  renderPlanCards();
+
+  // === Pending Requests ===
+  loadPendingRequests();
+}
+
+// ==================== Current Subscription Status ====================
+function renderCurrentSubscription() {
+  const el = document.getElementById('subCurrentStatus');
+  
+  if (!adminData) {
+    el.innerHTML = '<p class="empty">লোড হচ্ছে...</p>';
+    return;
+  }
+
+  const endDate = adminData.subscriptionEnd?.toDate?.();
+  const plan = adminData.plan || 'trial';
+  
+  let boxClass = '';
+  let planName = '';
+  let daysLeft = '';
+  let statusText = '';
+  
+   if (!endDate) {
+    boxClass = '';
+    planName = '⚪ কোনো প্ল্যান নেই';
+    daysLeft = 'N/A';
+    statusText = 'নিচে থেকে একটি প্ল্যান সিলেক্ট করুন';
+  } else {
+    const days = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+    
+    if (days <= 0) {
+      boxClass = 'expired';
+      planName = '🔴 মেয়াদ শেষ';
+      daysLeft = 'শেষ';
+      statusText = 'দ্রুত রিনিউ করুন';
+    } else if (plan === 'trial') {
+      boxClass = 'trial';
+      planName = '🟡 ট্রায়াল';
+      daysLeft = days + ' <span data-t="days_left">দিন</span>';
+      statusText = '<span data-t="trial_ends_on">ট্রায়াল শেষ হবে</span> ' + endDate.toLocaleDateString('en-GB');
+    } else {
+      const planNames = { starter: '🟢 Starter', pro: '🔵 Pro', enterprise: '🟣 Enterprise' };
+      planName = planNames[plan] || '🟢 Active';
+      daysLeft = days + ' <span data-t="days_left">দিন</span>';
+      statusText = '<span data-t="next_renew">পরবর্তী রিনিউ</span> ' + endDate.toLocaleDateString('en-GB');
+    }
+  }
+  
+  el.innerHTML = `
+    <div class="sub-status-box ${boxClass}">
+      <div class="sub-plan-name">${planName}</div>
+      <div class="sub-days-left">${daysLeft}</div>
+      <div class="sub-end-date">${statusText}</div>
+    </div>
+  `;
+  
+  // ⬇️ innerHTML দিয়ে যোগ করা data-t এলিমেন্টে অনুবাদ প্রয়োগ করুন
+  if (typeof applyTranslations === 'function') {
+    applyTranslations();
+  }
+}
+
+// ==================== Plan Cards Render ====================
+function renderPlanCards() {
+  const el = document.getElementById('planCards');
+  
+  if (!superSettings) {
+    el.innerHTML = '<p class="empty">Super Admin এখনো সেটিংস কনফিগার করেনি</p>';
+    return;
+  }
+  
+  const plans = [
+    {
+      id: 'starter',
+      name: '🟢 Starter',
+      price: superSettings.priceStarter || 300,
+      desc: 'ছোট ব্যবসার জন্য<br>• ৫০০ কুপন/মাস<br>• ২০০ কাস্টমার<br>• বেসিক সাপোর্ট'
+    },
+    {
+      id: 'pro',
+      name: '🔵 Pro',
+      price: superSettings.pricePro || 800,
+      desc: 'মাঝারি ব্যবসার জন্য<br>• ৫,০০০ কুপন/মাস<br>• ২,০০০ কাস্টমার<br>• প্রায়োরিটি সাপোর্ট'
+    },
+    {
+      id: 'enterprise',
+      name: '🟣 Enterprise',
+      price: superSettings.priceEnterprise || 2000,
+      desc: 'বড় কোম্পানির জন্য<br>• আনলিমিটেড<br>• সব ফিচার<br>• ডেডিকেটেড সাপোর্ট'
+    }
+  ];
+  
+  let html = '';
+  plans.forEach(p => {
+    html += `
+      <div class="plan-card ${p.id}" onclick="selectPlan('${p.id}', ${p.price})">
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-price">₹${p.price}<span>/মাস</span></div>
+        <div class="plan-desc">${p.desc}</div>
+      </div>
+    `;
+  });
+  el.innerHTML = html;
+}
+
+// ==================== Plan Select ====================
+window.selectPlan = function(planId, price) {
+  if (!superSettings) {
+    alert("Super Admin এখনো সেটিংস কনফিগার করেনি");
+    return;
+  }
+  
+  selectedPlan = { id: planId, price: price };
+  
+  // Modal সেটআপ
+  document.getElementById('subSelectedPlanInfo').innerText = 
+    `${planId.toUpperCase()} প্ল্যান · ₹${price}/মাস`;
+  document.getElementById('subPayAmount').innerText = price;
+  document.getElementById('subUpiId').innerText = superSettings.upiId || 'N/A';
+  document.getElementById('subUpiName').innerText = superSettings.upiName || '';
+  
+  // UPI QR জেনারেট
+  generateUpiQr(superSettings.upiId, superSettings.upiName, price);
+  
+  // Form Reset
+  document.getElementById('subScreenshot').value = '';
+  document.getElementById('subScreenshotPreview').style.display = 'none';
+  document.getElementById('subTxnRef').value = '';
+  document.getElementById('subRequestStatus').innerHTML = '';
+  
+  // Modal খুলুন
+  document.getElementById('subRequestModal').style.display = 'block';
+};
+
+// ==================== UPI QR জেনারেট ====================
+function generateUpiQr(upiId, payeeName, amount) {
+  const qrContainer = document.getElementById('subQrCode');
+  qrContainer.innerHTML = '';
+  
+  // UPI পেমেন্ট লিংক
+  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
+  
+  new QRCode(qrContainer, {
+    text: upiLink,
+    width: 180,
+    height: 180,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+window.closeSubRequest = function() {
+  document.getElementById('subRequestModal').style.display = 'none';
+  selectedPlan = null;
+};
+
+// ==================== Screenshot Preview ====================
+window.previewScreenshot = function(event) {
+  const file = event.target.files[0];
+  if (!file) {
+    document.getElementById('subScreenshotPreview').style.display = 'none';
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('subPreviewImg').src = e.target.result;
+    document.getElementById('subScreenshotPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+// ==================== ImgBB-এ ছবি আপলোড ====================
+async function uploadToImgBB(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function() {
+      try {
+        const base64 = reader.result.split(',')[1];
+        const formData = new FormData();
+        formData.append('key', IMGBB_API_KEY);
+        formData.append('image', base64);
+        
+        const res = await fetch('https://api.imgbb.com/1/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          resolve(data.data.url);
+        } else {
+          reject(new Error('ImgBB upload failed'));
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==================== Subscription Request Submit ====================
+window.submitSubscriptionRequest = async function() {
+  const statusEl = document.getElementById('subRequestStatus');
+  const fileInput = document.getElementById('subScreenshot');
+  const txnRef = document.getElementById('subTxnRef').value.trim();
+  
+  // Validation
+  if (!selectedPlan) {
+    statusEl.innerHTML = '<div class="status error">⚠️ প্ল্যান সিলেক্ট করুন</div>';
+    return;
+  }
+  if (!fileInput.files[0]) {
+    statusEl.innerHTML = '<div class="status error">⚠️ স্ক্রিনশট আপলোড করুন</div>';
+    return;
+  }
+  if (!txnRef) {
+    statusEl.innerHTML = '<div class="status error">⚠️ UPI Reference নাম্বার দিন</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ ছবি আপলোড হচ্ছে...</div>';
+  
+  try {
+    // ১. ImgBB-এ স্ক্রিনশট আপলোড
+    const screenshotUrl = await uploadToImgBB(fileInput.files[0]);
+    
+    statusEl.innerHTML = '<div class="status info">⏳ অনুরোধ জমা হচ্ছে...</div>';
+    
+    // ২. Firestore-এ request তৈরি
+    await addDoc(collection(db, "subscription_requests"), {
+      adminId: adminId,
+      adminCompany: adminData.companyName || '',
+      adminName: adminData.name || '',
+      adminWhatsapp: adminData.whatsapp || '',
+      adminEmail: adminData.email || '',
+      plan: selectedPlan.id,
+      amount: selectedPlan.price,
+      screenshotUrl: screenshotUrl,
+      upiReference: txnRef,
+      status: 'pending',
+      requestedAt: serverTimestamp(),
+      approvedAt: null,
+      approvedBy: null,
+      rejectionReason: null
+    });
+    
+    statusEl.innerHTML = `
+      <div class="status success">
+        ✅ অনুরোধ সফলভাবে জমা হয়েছে!<br>
+        <span style="font-size:11px;">Super Admin যাচাই করে অনুমোদন দেবেন</span>
+      </div>
+    `;
+    
+    // ৩. WhatsApp শেয়ার অফার
+    // ৩. WhatsApp শেয়ার (Mobile-Friendly)
+setTimeout(() => {
+  const msg = `🎫 নতুন সাবস্ক্রিপশন অনুরোধ\n\nকোম্পানি: ${adminData.companyName}\nপ্ল্যান: ${selectedPlan.id.toUpperCase()}\nপরিমাণ: ₹${selectedPlan.price}\nUPI Ref: ${txnRef}\n\nস্ক্রিনশট: ${screenshotUrl}`;
+  const encoded = encodeURIComponent(msg);
+  const webUrl = `https://wa.me/91${superSettings.whatsapp}?text=${encoded}`;
+  
+  if (confirm("✅ আপনার অনুরোধ জমা হয়েছে।\n\nWhatsApp-এ Super Admin-কে জানাবেন?")) {
+    // মোবাইল ব্রাউজারে সরাসরি WhatsApp অ্যাপ খুলবে
+    // location.href ব্যবহার করলে Android সিস্টেম বোঝে এবং WhatsApp অ্যাপ ওপেন করে
+    try {
+      // প্রথমে চেষ্টা — সরাসরি whatsapp:// scheme (native app)
+      const appUrl = `whatsapp://send?phone=91${superSettings.whatsapp}&text=${encoded}`;
+      
+      // Hidden iframe দিয়ে চেষ্টা (এটি app খোলে কিন্তু পেজ পরিবর্তন করে না)
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = appUrl;
+      document.body.appendChild(iframe);
+      
+      // ৫০০ms পর iframe সরিয়ে দাও
+      setTimeout(() => document.body.removeChild(iframe), 500);
+      
+      // Fallback: ২ সেকেন্ড পর wa.me লিংক চেক
+      setTimeout(() => {
+        // যদি অ্যাপ না খোলে, তাহলে web version
+        // location.href এর পরিবর্তে window.open ব্যবহার করলে ব্রাউজার নতুন tab খুলবে
+        window.location.href = webUrl;
+      }, 800);
+      
+    } catch (e) {
+      // কোনো সমস্যা হলে সরাসরি web URL
+      window.location.href = webUrl;
+    }
+  }
+  
+  // Modal বন্ধ + পেজ রিফ্রেশ
+  closeSubRequest();
+  loadSubscriptionPage();
+}, 1200);
+    
+  } catch (e) {
+    console.error("Submit error:", e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+
+// ==================== Pending Requests ====================
+function loadPendingRequests() {
+  if (!adminId) return;
+  
+  const q = query(
+    collection(db, "subscription_requests"),
+    where("adminId", "==", adminId)
+  );
+  
+  onSnapshot(q, (snap) => {
+    const el = document.getElementById('subPendingList');
+    const card = document.getElementById('subPendingCard');
+    
+    if (snap.empty) {
+      card.style.display = 'none';
+      return;
+    }
+    
+    const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    requests.sort((a, b) => {
+      const tA = a.requestedAt?.toMillis?.() || 0;
+      const tB = b.requestedAt?.toMillis?.() || 0;
+      return tB - tA;
+    });
+    
+    let html = '';
+    requests.slice(0, 5).forEach(r => {
+      const date = r.requestedAt?.toDate?.()?.toLocaleDateString('en-GB') || '';
+      let statusBadge = '';
+      let badgeColor = '';
+      
+      if (r.status === 'pending') {
+        statusBadge = '⏳ অপেক্ষমাণ';
+        badgeColor = '#f9a825';
+      } else if (r.status === 'approved') {
+        statusBadge = '✅ অনুমোদিত';
+        badgeColor = '#0f9d58';
+      } else if (r.status === 'rejected') {
+        statusBadge = '❌ প্রত্যাখ্যাত';
+        badgeColor = '#d93025';
+      }
+      
+      html += `
+        <div class="pending-request-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <b>${r.plan.toUpperCase()}</b> · ₹${r.amount}
+              <div style="font-size:11px; color:#666; margin-top:4px;">
+                ${date} · Ref: ${r.upiReference}
+              </div>
+            </div>
+            <div style="color:${badgeColor}; font-weight:600; font-size:12px;">
+              ${statusBadge}
+            </div>
+          </div>
+          ${r.status === 'rejected' && r.rejectionReason ? 
+            `<div style="font-size:11px; color:#d93025; margin-top:6px;">
+              কারণ: ${r.rejectionReason}
+            </div>` : ''}
+        </div>
+      `;
+    });
+    
+    el.innerHTML = html;
+    card.style.display = 'block';
+  });
+}
+ 
 </script>
 <!-- Customer Details Modal -->
 <div id="customerModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; overflow-y: auto; padding: 20px;">
@@ -2686,7 +3803,58 @@ window.deleteInvite = async function(inviteId) {
     </div>
   </div>
 </div>
-<!-- ==================== Team Member Detail Modal ==================== -->
+<!-- ============ Subscription Request Modal ============ -->
+<div id="subRequestModal" class="modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:12px; max-width:500px; margin:20px auto; padding:20px; position:relative;">
+    
+    <span onclick="closeSubRequest()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+    
+    <h3 style="color:#1a73e8; margin-bottom:8px; font-size:18px;">💎 সাবস্ক্রিপশন কিনুন</h3>
+    <p id="subSelectedPlanInfo" style="font-size:13px; color:#666; margin-bottom:16px;"></p>
+
+    <!-- Step 1: QR Code -->
+    <div style="background:#f8f9fa; border-radius:10px; padding:16px; text-align:center; margin-bottom:16px;">
+      <p style="font-size:12px; color:#666; margin-bottom:10px;">
+        📱 নিচের QR কোড UPI অ্যাপ দিয়ে স্ক্যান করে <b>₹<span id="subPayAmount">0</span></b> পাঠান
+      </p>
+      <div id="subQrCode" style="display:inline-block; padding:10px; background:white; border-radius:8px;"></div>
+      <p style="font-size:12px; color:#666; margin-top:12px;">
+        বা এই UPI ID-তে পাঠান:
+      </p>
+      <div id="subUpiId" style="font-family:monospace; font-size:14px; font-weight:bold; color:#1a73e8; margin-top:4px; padding:8px; background:white; border-radius:6px;">
+        -
+      </div>
+      <div id="subUpiName" style="font-size:11px; color:#666; margin-top:4px;"></div>
+    </div>
+
+    <!-- Step 2: Screenshot Upload -->
+    <label style="display:block; font-size:13px; font-weight:600; color:#333; margin-bottom:6px;">
+      📸 পেমেন্টের স্ক্রিনশট আপলোড করুন
+    </label>
+    <input type="file" id="subScreenshot" accept="image/*" 
+      style="width:100%; padding:10px; border:1px solid #dadce0; border-radius:8px; font-size:13px;"
+      onchange="previewScreenshot(event)">
+    
+    <div id="subScreenshotPreview" style="display:none; margin-top:10px; text-align:center;">
+      <img id="subPreviewImg" style="max-width:100%; max-height:200px; border-radius:8px; border:1px solid #ddd;">
+    </div>
+
+    <!-- Step 3: UPI Reference -->
+    <label style="display:block; font-size:13px; font-weight:600; color:#333; margin:14px 0 6px;">
+      🔢 UPI Reference / Transaction ID
+    </label>
+    <input type="text" id="subTxnRef" placeholder="যেমন: 123456789012" 
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+
+    <!-- Submit -->
+    <button class="success" onclick="submitSubscriptionRequest()" 
+      style="width:100%; padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; margin-top:16px; cursor:pointer;">
+      ✅ অনুরোধ জমা দিন
+    </button>
+    <div id="subRequestStatus"></div>
+  </div>
+</div>
+ <!-- ==================== Team Member Detail Modal ==================== -->
 <div id="memberDetailModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; overflow-y: auto; padding: 20px;">
   <div style="background: white; border-radius: 12px; max-width: 500px; margin: 20px auto; padding: 20px; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
     
@@ -2746,5 +3914,41 @@ window.deleteInvite = async function(inviteId) {
 
   </div>
 </div>
+<!-- ============ Forgot Password Modal ============ -->
+<div id="forgotPasswordModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:9999; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:12px; max-width:460px; margin:40px auto; padding:24px; position:relative;">
+    
+    <span onclick="closeForgotPassword()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+    
+    <div style="text-align: center; margin-bottom: 16px;">
+      <div style="font-size: 50px;">🔑</div>
+      <h3 style="color:#1a73e8; margin-top: 8px; font-size: 18px;">পাসওয়ার্ড রিসেট করুন</h3>
+      <p style="font-size: 13px; color: #666; margin-top: 8px; line-height: 1.5;">
+        আপনার রেজিস্টার করা ইমেইল দিন। আমরা একটি রিসেট লিংক পাঠাব।
+      </p>
+    </div>
+
+    <label style="display:block; font-size:13px; font-weight:600; color:#333; margin-bottom:6px;">
+      📧 আপনার ইমেইল
+    </label>
+    <input type="email" id="forgotEmail" placeholder="you@example.com"
+      style="width:100%; padding:12px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+
+    <button onclick="sendResetEmail()" 
+      style="width:100%; padding:13px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; margin-top:16px; cursor:pointer;">
+      📤 রিসেট লিংক পাঠান
+    </button>
+    
+    <div id="forgotStatus"></div>
+
+    <div style="text-align: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee;">
+      <p style="font-size: 11px; color: #999; line-height: 1.6;">
+        💡 <b>মনে রাখবেন:</b> ইমেইল না পেলে Spam/Junk ফোল্ডার চেক করুন।
+        রিসেট লিংক ১ ঘণ্টা পর্যন্ত বৈধ।
+      </p>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
