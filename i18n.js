@@ -182,15 +182,6 @@ export const translations = {
     close: "বন্ধ করুন",
     yes: "হ্যাঁ", no: "না",
     ok: "ঠিক আছে"
-    no_requests :"কোনো অনুরোধ নেই",
-    next_renewal :"পরবর্তী রিনিউ",
-    day :"দিন",
-    create_invite_code :"নতুন কর্মী যোগ করতে Invite Code তৈরি করুন. কোডটি WhatsApp-এ পাঠালে সে সেটি দিয়ে রেজিস্ট্রেশন করতে পারবে.",
-    no_code_created :"এখনো কোনো কোড তৈরি করা হয়নি",
-    your_team_members :"আপনার টিম মেম্বার",
-    company_stats :"আপনার কোম্পানিতে কতজন কর্মী কাজ করছে এবং কত কুপন ব্যবহার করেছে.",
-    no_team_member_joined :"এখনো কোনো টিম মেম্বার যোগ দেয়নি. উপরে Invite Code তৈরি করে WhatsApp-এ পাঠান.",
-    loading_problem :"লোড করতে সমস্যা হচ্ছে. Firebase Index চেক করুন."
   },
 
   // ============================================================
@@ -327,15 +318,6 @@ export const translations = {
     close: "Close",
     yes: "Yes", no: "No",
     ok: "OK"
-    no_requests :"No requests",
-    next_renewal :"Next renewal",
-    day :"Day",
-    create_invite_code :"Create an Invite Code to add a new employee. If you send the code on WhatsApp, they can use it to register.",
-    no_code_created :"No code has been created yet",
-    your_team_members :"Your team members",
-    company_stats :"How many employees are working in your company and how many coupons have been used.",
-    no_team_member_joined :"No team member has joined yet. Create an Invite Code above and send it on WhatsApp.",
-    loading_problem :"There is a loading problem. Check the Firebase Index."
   },
 
   // ============================================================
@@ -472,15 +454,6 @@ export const translations = {
     close: "बंद करें",
     yes: "हाँ", no: "नहीं",
     ok: "ठीक है"
-    no_requests :"कोई अनुरोध नहीं है",
-    next_renewal :"अगला नवीनीकरण",
-    day :"दिन",
-    create_invite_code :"नया कर्मचारी जोड़ने के लिए Invite Code बनाएँ. कोड को WhatsApp पर भेजने पर वह इसका उपयोग करके रजिस्टर कर सकेगा.",
-    no_code_created :"अभी तक कोई कोड नहीं बनाया गया है",
-    your_team_members :"आपके टीम सदस्य",
-    company_stats :"आपकी कंपनी में कितने कर्मचारी काम कर रहे हैं और कितने कूपन उपयोग किए गए हैं.",
-    no_team_member_joined :"अभी तक कोई टीम सदस्य शामिल नहीं हुआ है. ऊपर Invite Code बनाकर WhatsApp पर भेजें.",
-    loading_problem :"लोड करने में समस्या हो रही है. Firebase Index जाँचें."
   },
 
   // ============================================================
@@ -617,15 +590,6 @@ export const translations = {
     close: "ବନ୍ଦ କରନ୍ତୁ",
     yes: "ହଁ", no: "ନା",
     ok: "ଠିକ ଅଛି"
-    no_requests :"କୌଣସି ଅନୁରୋଧ ନାହିଁ",
-    next_renewal :"ପରବର୍ତ୍ତୀ ନବୀକରଣ",
-    day :"ଦିନ",
-    create_invite_code :"ନୂଆ କର୍ମଚାରୀ ଯୋଡ଼ିବା ପାଇଁ Invite Code ତିଆରି କରନ୍ତୁ. କୋଡଟି WhatsApp ରେ ପଠାଇଲେ ସେ ଏହାକୁ ବ୍ୟବହାର କରି ପଞ୍ଜିକରଣ କରିପାରିବ.",
-    no_code_created :"ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି କୋଡ ତିଆରି ହୋଇନାହିଁ",
-    your_team_members :"ଆପଣଙ୍କ ଟିମ୍ ସଦସ୍ୟ",
-    company_stats :"ଆପଣଙ୍କ କମ୍ପାନୀରେ କେତେଜଣ କର୍ମଚାରୀ କାମ କରୁଛନ୍ତି ଏବଂ କେତେଟି କୁପନ ବ୍ୟବହାର ହୋଇଛି.",
-    no_team_member_joined :"ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଟିମ୍ ସଦସ୍ୟ ଯୋଗ ଦେଇନାହାନ୍ତି. ଉପରେ Invite Code ତିଆରି କରି WhatsApp ରେ ପଠାନ୍ତୁ.",
-    loading_problem :"ଲୋଡ୍ କରିବାରେ ସମସ୍ୟା ହେଉଛି. Firebase Index ଯାଞ୍ଚ କରନ୍ତୁ." 
   },
 
   // ============================================================
@@ -762,15 +726,6 @@ export const translations = {
     close: "بند کریں",
     yes: "ہاں", no: "نہیں",
     ok: "ٹھیک ہے"
-    no_requests :"کوئی درخواست نہیں ہے",
-    next_renewal :"اگلی تجدید",
-    day :"دن",
-    create_invite_code :"نیا ملازم شامل کرنے کے لیے Invite Code بنائیں۔ کوڈ WhatsApp پر بھیجنے سے وہ اسے استعمال کر کے رجسٹر کر سکے گا۔",
-    no_code_created :"ابھی تک کوئی کوڈ نہیں بنایا گیا",
-    your_team_members :"آپ کے ٹیم ممبران",
-    company_stats :"آپ کی کمپنی میں کتنے ملازم کام کر رہے ہیں اور کتنے کوپن استعمال ہوئے ہیں۔",
-    no_team_member_joined :"ابھی تک کوئی ٹیم ممبر شامل نہیں ہوا۔ اوپر Invite Code بنا کر WhatsApp پر بھیجیں۔",
-    loading_problem :"لوڈ کرنے میں مسئلہ ہو رہا ہے۔ Firebase Index چیک کریں۔"
   },
 
   // ============================================================
@@ -907,15 +862,6 @@ export const translations = {
     close: "બંધ કરો",
     yes: "હા", no: "ના",
     ok: "બરાબર"
-    no_requests :"કોઈ વિનંતી નથી",
-    next_renewal :"આગલું નવીકરણ",
-    day :"દિવસ",
-    create_invite_code :"નવો કર્મચારી ઉમેરવા માટે Invite Code બનાવો. કોડ WhatsApp પર મોકલશો તો તે તેનો ઉપયોગ કરીને રજિસ્ટર કરી શકશે.",
-    no_code_created :"હજી સુધી કોઈ કોડ બનાવવામાં આવ્યો નથી",
-    your_team_members :"તમારા ટીમ સભ્યો",
-    company_stats :"તમારી કંપનીમાં કેટલા કર્મચારી કામ કરી રહ્યા છે અને કેટલા કૂપન વપરાયા છે.",
-    no_team_member_joined :"હજી સુધી કોઈ ટીમ સભ્ય જોડાયો નથી. ઉપર Invite Code બનાવીને WhatsApp પર મોકલો.",
-    loading_problem :"લોડ કરવામાં સમસ્યા આવી રહી છે. Firebase Index ચેક કરો."
   },
 
   // ============================================================
@@ -1052,16 +998,7 @@ export const translations = {
     close: "बंद करा",
     yes: "होय", no: "नाही",
     ok: "ठीक आहे"
-    no_requests :"कोणतीही विनंती नाही",
-    next_renewal :"पुढील नूतनीकरण",
-    day :"दिवस",
-    create_invite_code :"नवीन कर्मचारी जोडण्यासाठी Invite Code तयार करा. कोड WhatsApp वर पाठवल्यास तो तो वापरून नोंदणी करू शकेल.",
-    no_code_created :"अजून कोणताही कोड तयार केलेला नाही",
-    your_team_members :"तुमचे टीम सदस्य",
-    company_stats :"तुमच्या कंपनीत किती कर्मचारी काम करत आहेत आणि किती कूपन वापरले गेले आहेत.",
-    no_team_member_joined :"अजून कोणताही टीम सदस्य सामील झालेला नाही. वर Invite Code तयार करून WhatsApp वर पाठवा.",
-    loading_problem :"लोड करताना समस्या येत आहे. Firebase Index तपासा."
-   },
+  },
 
   // ============================================================
   // 🇮🇳 தமிழ் (Tamil)
@@ -1197,15 +1134,6 @@ export const translations = {
     close: "மூடு",
     yes: "ஆம்", no: "இல்லை",
     ok: "சரி"
-    no_requests :"எந்த கோரிக்கையும் இல்லை",
-    next_renewal :"அடுத்த புதுப்பித்தல்",
-    day :"நாள்",
-    create_invite_code :"புதிய ஊழியரைச் சேர்க்க Invite Code உருவாக்கவும். குறியீட்டை WhatsApp-இல் அனுப்பினால், அவர் அதைப் பயன்படுத்தி பதிவு செய்யலாம்.",
-    no_code_created :"இன்னும் எந்தக் குறியீடும் உருவாக்கப்படவில்லை",
-    your_team_members :"உங்கள் குழு உறுப்பினர்கள்",
-    company_stats :"உங்கள் நிறுவனத்தில் எத்தனை ஊழியர்கள் வேலை செய்கிறார்கள் மற்றும் எத்தனை கூப்பன்கள் பயன்படுத்தப்பட்டுள்ளன.",
-    no_team_member_joined :"இன்னும் எந்தக் குழு உறுப்பினரும் சேரவில்லை. மேலே Invite Code உருவாக்கி WhatsApp-இல் அனுப்பவும்.",
-    loading_problem :"ஏற்றுவதில் சிக்கல் உள்ளது. Firebase Index-ஐ சரிபார்க்கவும்."
   },
 
   // ============================================================
@@ -1342,15 +1270,6 @@ export const translations = {
     close: "మూసివేయి",
     yes: "అవును", no: "కాదు",
     ok: "సరే"
-    no_requests :"ఎలాంటి అభ్యర్థనలు లేవు",
-    next_renewal :"తదుపరి పునరుద్ధరణ",
-    day :"రోజు",
-    create_invite_code :"కొత్త ఉద్యోగిని జోడించడానికి Invite Code సృష్టించండి. కోడ్ను WhatsAppలో పంపితే, అతను దానిని ఉపయోగించి నమోదు చేసుకోవచ్చు.",
-    no_code_created :"ఇంకా ఎలాంటి కోడ్ సృష్టించబడలేదు",
-    your_team_members :"మీ టీమ్ సభ్యులు",
-    company_stats :"మీ కంపెనీలో ఎంతమంది ఉద్యోగులు పని చేస్తున్నారు మరియు ఎన్ని కూపన్లు ఉపయోగించబడ్డాయి.",
-    no_team_member_joined :"ఇంకా ఏ టీమ్ సభ్యుడూ చేరలేదు. పైన Invite Code సృష్టించి WhatsAppలో పంపండి.",
-    loading_problem :"లోడ్ చేయడంలో సమస్య ఉంది. Firebase Index తనిఖీ చేయండి."
   },
 
   // ============================================================
@@ -1487,15 +1406,6 @@ export const translations = {
     close: "അടയ്ക്കുക",
     yes: "അതെ", no: "ഇല്ല",
     ok: "ശരി"
-    no_requests :"അഭ്യർത്ഥനകളൊന്നുമില്ല",
-    next_renewal :"അടുത്ത പുതുക്കൽ",
-    day :"ദിവസം",
-    create_invite_code :"പുതിയ ജീവനക്കാരനെ ചേർക്കാൻ Invite Code സൃഷ്ടിക്കുക. കോഡ് WhatsApp-ൽ അയച്ചാൽ അത് ഉപയോഗിച്ച് അയാൾക്ക് രജിസ്റ്റർ ചെയ്യാം.",
-    no_code_created :"ഇതുവരെ ഒരു കോഡും സൃഷ്ടിച്ചിട്ടില്ല",
-    your_team_members :"നിങ്ങളുടെ ടീം അംഗങ്ങൾ",
-    company_stats :"നിങ്ങളുടെ കമ്പനിയിൽ എത്ര ജീവനക്കാർ ജോലി ചെയ്യുന്നു, എത്ര കൂപ്പണുകൾ ഉപയോഗിച്ചു.",
-    no_team_member_joined :"ഇതുവരെ ഒരു ടീം അംഗവും ചേർന്നിട്ടില്ല. മുകളിൽ Invite Code സൃഷ്ടിച്ച് WhatsApp-ൽ അയയ്ക്കുക.",
-    loading_problem :"ലോഡ് ചെയ്യുന്നതിൽ പ്രശ്നമുണ്ട്. Firebase Index പരിശോധിക്കുക."
   }
 };
 
