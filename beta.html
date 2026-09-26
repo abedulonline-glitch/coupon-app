@@ -898,7 +898,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   // ⬇⬇⬇ আপনার Firebase কনফিগ এখানে বসান ⬇⬇⬇
 //  measurementId is optional
+let superSettings = null;      // Super Admin এর সেটিংস
+let selectedPlan = null;       // ইউজার যে প্ল্যান সিলেক্ট করেছে
 
+ 
 const firebaseConfig = {
   apiKey: "AIzaSyC59_zbUP1xlqpowS-dfCyeUmQPR1VhPLk",
   authDomain: "couponsystem-beta.firebaseapp.com",
@@ -3027,48 +3030,104 @@ window.deleteInvite = async function(inviteId) {
 
   // ==================== CUSTOMER WITHDRAW ====================
   window.requestWithdraw = async function() {
-    const upi = document.getElementById('custUpi').value.trim();
-    if (!upi) return alert("UPI দিন");
-    const cid = customerAdminId + '_' + customerPhone;
-    const cs = await getDoc(doc(db, "customers", cid));
-    const bal = cs.data()?.balance || 0;
-    const min = window.customerWithdrawMin || 500;
-
-    if (bal < min) {
-      document.getElementById('withdrawStatus').innerHTML = `<div class="status error">⚠️ Minimum ₹${min}. আপনার ₹${bal}</div>`;
+    // ১. কাস্টমার লগইন চেক
+    if (!customerAdminId || !customerPhone) {
+      alert("⚠️ আগে লগইন করুন");
       return;
     }
+    
+    // ২. UPI ভ্যালিডেশন
+    const upi = document.getElementById('custUpi').value.trim();
+    if (!upi) return alert("UPI আইডি দিন");
+    if (!/^[\w.\-]+@[\w]+$/.test(upi)) {
+      return alert("⚠️ সঠিক UPI আইডি দিন (যেমন: name@upi)");
+    }
+    
+    const statusEl = document.getElementById('withdrawStatus');
+    statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+    
+    try {
+      // ৩. ব্যালেন্স চেক
+      const cid = customerAdminId + '_' + customerPhone;
+      const cs = await getDoc(doc(db, "customers", cid));
+      
+      if (!cs.exists()) {
+        statusEl.innerHTML = '<div class="status error">❌ কাস্টমার পাওয়া যায়নি</div>';
+        return;
+      }
+      
+      const bal = cs.data()?.balance || 0;
+      const min = window.customerWithdrawMin || 500;
 
-    await addDoc(collection(db, "withdrawals"), {
-      adminId: customerAdminId, phone: customerPhone,
-      amount: bal, upiId: upi, status: 'pending',
-      requestedAt: serverTimestamp()
-    });
-    document.getElementById('withdrawStatus').innerHTML = '<div class="status success">✅ অনুরোধ পাঠানো হয়েছে</div>';
+      if (bal < min) {
+        statusEl.innerHTML = `<div class="status error">⚠️ ন্যূনতম ₹${min} প্রয়োজন। আপনার আছে ₹${bal}</div>`;
+        return;
+      }
+      
+      // ৪. ডুপ্লিকেট pending request চেক
+      const existingQ = query(
+        collection(db, "withdrawals"),
+        where("adminId", "==", customerAdminId),
+        where("phone", "==", customerPhone),
+        where("status", "==", "pending")
+      );
+      const existing = await getDocs(existingQ);
+      
+      if (!existing.empty) {
+        statusEl.innerHTML = '<div class="status error">⚠️ আপনার একটি অনুরোধ ইতিমধ্যে অপেক্ষমাণ আছে</div>';
+        return;
+      }
+
+      // ৫. অনুরোধ তৈরি
+      await addDoc(collection(db, "withdrawals"), {
+        adminId: customerAdminId,
+        phone: customerPhone,
+        amount: bal,
+        upiId: upi,
+        status: 'pending',
+        requestedAt: serverTimestamp()
+      });
+      
+      statusEl.innerHTML = '<div class="status success">✅ অনুরোধ পাঠানো হয়েছে। Super Admin শীঘ্রই প্রক্রিয়া করবে।</div>';
+      
+      // ফর্ম ক্লিয়ার
+      document.getElementById('custUpi').value = '';
+      
+    } catch (e) {
+      console.error("Withdraw error:", e);
+      statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+    }
   };
 
-  // ==================== INIT ====================
-  // ============================================================
+ // ============================================================
+// Global Variables (Init-এর আগে থাকতে হবে)
+// ============================================================
+
+let superSettings = null;
+let selectedPlan = null;
+
+// ============================================================
 // App Init
 // ============================================================
 
-// ভাষা লোড করো (localStorage থেকে, ডিফল্ট বাংলা)
+// ১. ভাষা লোড করো
 const savedLang = localStorage.getItem('app_lang') || 'bn';
 i18nSetLanguage(savedLang);
 
-// সব Language Dropdown পপুলেট করো
+// ২. সব Language Dropdown পপুলেট করো
 populateLanguageDropdowns();
 
-// লোডিং মেসেজ দেখাও (ঐচ্ছিক)
+// ৩. প্রাথমিক view দেখাও (এই লাইনটি ছাড়া স্ক্রিন খালি থাকে!)
+showView('view-auth');
+
+// ৪. Auto-translate চালু করো (দেরিতে, DOM রেডি হওয়ার পর)
+setTimeout(() => {
+  if (typeof autoTranslate === 'function') autoTranslate();
+  if (typeof startAutoTranslateObserver === 'function') startAutoTranslateObserver();
+}, 400);
+
+// ৫. Console-এ নিশ্চিত করো
 console.log("✅ App ready. Language:", savedLang);
-
-// ============================================================
-// SUBSCRIPTION SYSTEM (Admin দিক)
-// ============================================================
-
-let superSettings = null;      // Super Admin এর সেটিংস
-let selectedPlan = null;       // ইউজার যে প্ল্যান সিলেক্ট করেছে
-
 // ==================== Super Settings লোড ====================
 async function loadSuperSettings() {
   try {
