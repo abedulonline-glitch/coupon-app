@@ -317,21 +317,6 @@
 </head>
 <body>
 
-<!-- ============ LANGUAGE SELECT ============ -->
-<div id="view-lang" class="view active">
-  <div class="auth-screen">
-    <div class="auth-logo">
-      <h1>🌐 Language / ভাষা</h1>
-      <p>আপনার পছন্দের ভাষা সিলেক্ট করুন</p>
-    </div>
-    <div class="card" style="text-align: center;">
-      <div class="lang-btn" onclick="setLanguage('bn')">বাংলা</div>
-      <div class="lang-btn" onclick="setLanguage('en')">English</div>
-      <div class="lang-btn" onclick="setLanguage('hi')">हिन्दी</div>
-      <div class="lang-btn" onclick="setLanguage('ta')">தமிழ்</div>
-    </div>
-  </div>
-</div>
 
 <!-- ============ ADMIN LOGIN ============ -->
 <div id="view-auth" class="view">
@@ -3063,20 +3048,19 @@ window.deleteInvite = async function(inviteId) {
   };
 
   // ==================== INIT ====================
-  applyTranslations();
-  // যদি ভাষা আগে সেট না থাকে
-  if (!localStorage.getItem('lang')) {
-    showView('view-lang');
-  } else {
-    setLanguage(currentLang);
-  }
+  // ============================================================
+// App Init
+// ============================================================
 
-  // ভাষা সেট করার পর কল হবে
-  window.addEventListener('load', () => {
-    if (localStorage.getItem('lang') && !document.getElementById('view-lang').classList.contains('active')) {
-      setLanguage(currentLang);
-    }
-  });
+// ভাষা লোড করো (localStorage থেকে, ডিফল্ট বাংলা)
+const savedLang = localStorage.getItem('app_lang') || 'bn';
+i18nSetLanguage(savedLang);
+
+// সব Language Dropdown পপুলেট করো
+populateLanguageDropdowns();
+
+// লোডিং মেসেজ দেখাও (ঐচ্ছিক)
+console.log("✅ App ready. Language:", savedLang);
 
 // ============================================================
 // SUBSCRIPTION SYSTEM (Admin দিক)
