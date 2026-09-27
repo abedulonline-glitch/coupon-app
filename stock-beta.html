@@ -1260,7 +1260,13 @@ window.addProductRow = function() {
         <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
         <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
         <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
-                <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+        </div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
         <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
           <span>📦 প্রতি বক্সে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
         </div>
@@ -1385,13 +1391,12 @@ window.recalcProduct = function(id) {
   const allowL = parseFloat(row.querySelector('.p-allow-l')?.value) || 0;
   const allowW = parseFloat(row.querySelector('.p-allow-w')?.value) || 0;
   
-  // ===== GST পড়া (Select অথবা Custom Input) =====
+  // ===== GST পড়া =====
   let gstPct = 0;
   const gstSelectEl = row.querySelector('.p-gst');
   const gstCustomEl = row.querySelector('.p-gst-custom');
   
   if (gstSelectEl) {
-    // Custom Input দেখানো/লুকানো
     if (gstSelectEl.value === 'custom') {
       if (gstCustomEl) {
         gstCustomEl.style.display = 'block';
@@ -1403,7 +1408,7 @@ window.recalcProduct = function(id) {
     }
   }
   
-  // ===== Total Quantity হিসাব =====
+  // ===== Total Quantity =====
   let totalQty = 0;
   let qtyUnit = 'sqft';
   
@@ -1418,13 +1423,49 @@ window.recalcProduct = function(id) {
     qtyUnit = 'piece';
   }
   
-  // ===== পাকা ও Cash হিসাব =====
+  // ===== পাকা, Cash, GST হিসাব =====
   const pakkaAmount = totalQty * pakkaRate;
   const cashAmount = totalQty * cashRate;
   const gstAmount = pakkaAmount * (gstPct / 100);
-  const totalAmount = pakkaAmount + cashAmount + gstAmount;
+  const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
   
-  // ===== Simple / Details Mode =====
+  // ===== এই পণ্যের মোট ওজন =====
+  const thisProductWeight = weight * boxes;
+  
+  // ===== সব পণ্যের মোট ওজন (গ্লোবাল ভাগের জন্য) =====
+  let totalAllWeight = 0;
+  document.querySelectorAll('.product-row').forEach(r => {
+    const w = parseFloat(r.querySelector('.p-weight')?.value) || 0;
+    const b = parseFloat(r.querySelector('.p-boxes')?.value) || 0;
+    totalAllWeight += w * b;
+  });
+  
+  // ===== ওজন অনুপাত (শতাংশ) =====
+  const weightShare = totalAllWeight > 0 ? (thisProductWeight / totalAllWeight) : 0;
+  
+  // ===== গ্লোবাল খরচ পড়া =====
+  const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
+  const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
+  const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
+  const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
+  const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
+  const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
+  
+  // ===== এই পণ্যের ভাগ =====
+  const thisLoading = loading * weightShare;
+  const thisUnloading = unloading * weightShare;
+  const thisInsurance = insurance * weightShare;
+  const thisOther = otherPakka * weightShare;
+  const thisOptional = optionalCost * weightShare;
+  
+  // পরিবহন: প্রতি পণ্যের ওজন × রেট (₹/টন)
+  const thisTransport = (transportRate * thisProductWeight) / 1000;
+  
+  // ===== এই পণ্যের মোট খরচ =====
+  const totalExtraForThis = thisLoading + thisUnloading + thisInsurance + thisOther;
+  const totalLanding = pakkaCashGst + totalExtraForThis + thisTransport;
+  
+  // ===== Simple/Details Mode Benefit =====
   let paperSize = 0;
   let actualSize = 0;
   let extra = 0;
@@ -1447,7 +1488,7 @@ window.recalcProduct = function(id) {
       extra = actualSize - paperSize;
       if (paperSize > 0) extraPct = (extra / paperSize) * 100;
       if (actualSize > 0) savingsPct = (extra / actualSize) * 100;
-      if (actualSize > 0) realRate = totalAmount / actualSize;
+      if (actualSize > 0) realRate = totalLanding / actualSize;
       
       showBenefit = true;
     }
@@ -1461,14 +1502,21 @@ window.recalcProduct = function(id) {
   box.querySelector('.calc-pakka').innerText = '₹' + pakkaAmount.toFixed(2);
   box.querySelector('.calc-cash').innerText = '₹' + cashAmount.toFixed(2);
   box.querySelector('.calc-gst').innerText = '₹' + gstAmount.toFixed(2);
-  box.querySelector('.calc-total').innerText = '₹' + totalAmount.toFixed(2);
+  
+  // Extra খরচ আলাদা দেখাই
+  const extraEl = box.querySelector('.calc-extra-share');
+  if (extraEl) {
+    extraEl.innerText = '₹' + (totalExtraForThis + thisTransport).toFixed(2);
+  }
+  
+  box.querySelector('.calc-total').innerText = '₹' + totalLanding.toFixed(2);
   
   // প্রতি বক্সে Landing
-  const perBox = boxes > 0 ? (totalAmount / boxes) : 0;
+  const perBox = boxes > 0 ? (totalLanding / boxes) : 0;
   const perBoxEl = box.querySelector('.calc-per-box');
   if (perBoxEl) perBoxEl.innerText = '₹' + perBox.toFixed(2);
   
-  // Benefit Box
+  // ===== Benefit Box =====
   const benefitBox = box.querySelector('.benefit-box');
   if (benefitBox) {
     if (showBenefit) {
@@ -1482,6 +1530,12 @@ window.recalcProduct = function(id) {
     } else {
       benefitBox.style.display = 'none';
     }
+  }
+  
+  // ===== ওজন ভাগের তথ্য =====
+  const shareEl = box.querySelector('.calc-weight-share');
+  if (shareEl) {
+    shareEl.innerText = (weightShare * 100).toFixed(2) + '% (' + thisProductWeight.toFixed(0) + ' kg)';
   }
   
   updateSummary();
@@ -1506,7 +1560,6 @@ function updateSummary() {
     const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
     const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
     
-    // GST পড়া (Select অথবা Custom)
     let gstPct = 0;
     const gstSelectEl = row.querySelector('.p-gst');
     const gstCustomEl = row.querySelector('.p-gst-custom');
@@ -1524,45 +1577,35 @@ function updateSummary() {
     else if (rating === 'box') qty = boxes;
     else if (rating === 'piece') qty = pieces * boxes;
     
-    const pakka = qty * pakkaRate;
-    const cash = qty * cashRate;
-    const gst = pakka * (gstPct / 100);
-    
+    totalPakka += qty * pakkaRate;
+    totalCash += qty * cashRate;
+    totalGST += (qty * pakkaRate) * (gstPct / 100);
     totalBoxes += boxes;
     totalWeight += weight * boxes;
-    totalPakka += pakka;
-    totalCash += cash;
-    totalGST += gst;
   });
   
-  // Whole Bill Extra Cost
+  // Global extras
   const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
   const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
   const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
   const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
+  const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
   const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
   
-  // পরিবহন হিসাব (₹/টন × মোট ওজন/১০০০)
   const transportCost = (transportRate * totalWeight) / 1000;
   const extraCost = loading + unloading + insurance + otherPakka;
   
-  const totalLanding = totalPakka + totalGST + transportCost + extraCost;
+  const totalLanding = totalPakka + totalGST + totalCash + transportCost + extraCost + optionalCost;
   
-  // Display আপডেট
+  // Display
   document.getElementById('sumBoxes').innerText = totalBoxes.toFixed(0);
   document.getElementById('sumWeight').innerText = totalWeight.toFixed(0) + ' kg';
   document.getElementById('sumPakka').innerText = '₹' + totalPakka.toFixed(2);
+  document.getElementById('sumOptional').innerText = '₹' + (totalCash + optionalCost).toFixed(2);
   document.getElementById('sumTransport').innerText = '₹' + transportCost.toFixed(2);
   document.getElementById('sumExtra').innerText = '₹' + extraCost.toFixed(2);
   document.getElementById('sumLanding').innerText = '₹' + totalLanding.toFixed(2);
-  
-  const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
-  const sumOptional = document.getElementById('sumOptional');
-  if (sumOptional) {
-    sumOptional.innerText = '₹' + (totalCash + optionalCost).toFixed(2);
-  }
 }
-
 // ============================================================
 // LIVE LISTENERS — Common Info Fields
 // ============================================================
