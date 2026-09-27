@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🟣 Super Admin Panel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; min-height: 100vh; color: #eee; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Login / Setup */
+  .auth-box { max-width: 420px; margin: 0 auto; padding: 30px 20px; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+  .brand { text-align: center; margin-bottom: 30px; }
+  .brand h1 { font-size: 28px; color: #b794f6; margin-bottom: 8px; }
+  .brand p { font-size: 13px; color: #888; }
+  .form-card { background: #16213e; border: 1px solid #2a2a4a; border-radius: 14px; padding: 24px; }
+  .form-card h3 { font-size: 16px; color: #b794f6; margin-bottom: 18px; text-align: center; }
+  label { display: block; font-size: 12px; color: #999; margin: 12px 0 6px; font-weight: 600; }
+  input { width: 100%; padding: 12px; background: #0f1420; border: 1px solid #2a2a4a; border-radius: 8px; font-size: 14px; color: #fff; }
+  input:focus { outline: none; border-color: #b794f6; }
+  button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 14px; }
+  .btn-primary { background: #7b1fa2; color: white; }
+  .btn-primary:hover { background: #6a1b9a; }
+  .btn-secondary { background: #2a2a4a; color: #ccc; }
+  .status { padding: 10px; border-radius: 8px; margin-top: 12px; font-size: 13px; text-align: center; font-weight: 600; }
+  .status.error { background: #4a1a1a; color: #ff9999; }
+  .status.success { background: #1a4a2a; color: #99ff99; }
+  .status.info { background: #1a2a4a; color: #99ccff; }
+
+  /* Dashboard */
+  .topbar { background: #16213e; border-bottom: 1px solid #2a2a4a; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+  .topbar h2 { font-size: 16px; color: #b794f6; }
+  .topbar .logout { background: #7b1fa2; color: white; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .container { padding: 16px; max-width: 700px; margin: 0 auto; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-num { font-size: 24px; font-weight: bold; color: #b794f6; }
+  .stat-lbl { font-size: 11px; color: #888; margin-top: 4px; }
+
+  .section-title { font-size: 14px; color: #b794f6; margin: 20px 0 10px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+
+  .admin-card { background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+  .admin-card:hover { border-color: #b794f6; box-shadow: 0 4px 12px rgba(183, 148, 246, 0.15); }
+  .admin-card.suspended { opacity: 0.6; border-color: #d93025; }
+  .admin-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .admin-name { font-size: 14px; font-weight: 600; color: #fff; }
+  .admin-meta { font-size: 11px; color: #888; margin-top: 3px; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+  .badge-active { background: #1a4a2a; color: #6ddf6d; }
+  .badge-trial { background: #4a3a1a; color: #ffcc66; }
+  .badge-expired { background: #4a1a1a; color: #ff8888; }
+  .badge-suspended { background: #4a1a1a; color: #ff8888; }
+  .badge-new { background: #2a2a4a; color: #999; }
+  .admin-stats { display: flex; gap: 14px; font-size: 11px; color: #888; padding-top: 8px; border-top: 1px dashed #2a2a4a; }
+  .admin-stats b { color: #b794f6; font-size: 13px; display: block; }
+
+  .empty { text-align: center; color: #666; padding: 30px; font-size: 13px; }
+
+  /* Modal */
+  .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 999; overflow-y: auto; padding: 20px; }
+  .modal.open { display: block; }
+  .modal-box { background: #16213e; border: 1px solid #2a2a4a; border-radius: 14px; max-width: 480px; margin: 20px auto; padding: 20px; position: relative; }
+  .close-x { position: absolute; top: 10px; right: 16px; font-size: 26px; color: #888; cursor: pointer; line-height: 1; }
+  .modal-box h3 { color: #b794f6; font-size: 17px; margin-bottom: 16px; }
+  .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2a4a; font-size: 13px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-row span:first-child { color: #888; }
+  .info-row span:last-child { color: #fff; font-weight: 500; }
+
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .action-grid button { margin-top: 0; padding: 10px; font-size: 12px; }
+  .btn-success { background: #0f9d58; color: white; }
+  .btn-warn { background: #b06000; color: white; }
+  .btn-danger { background: #d93025; color: white; }
+
+  .plan-input { display: flex; gap: 8px; margin-top: 8px; }
+  .plan-input input { flex: 1; }
+  .plan-input button { width: auto; padding: 10px 14px; margin: 0; }
+
+  .loader { text-align: center; color: #b794f6; padding: 20px; font-weight: 600; font-size: 13px; }
+/* Subscription Request Card in Modal */
+.req-card {
+  background: #0f1420;
+  border: 1px solid #2a2a4a;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.req-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.req-plan-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #b794f6;
+}
+.req-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: #6ddf6d;
+}
+.req-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.req-status-pending { background: #4a3a1a; color: #ffcc66; }
+.req-status-approved { background: #1a4a2a; color: #6ddf6d; }
+.req-status-rejected { background: #4a1a1a; color: #ff8888; }
+.req-meta {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+}
+.req-screenshot {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #2a2a4a;
+  margin: 8px 0;
+  cursor: pointer;
+  background: #000;
+}
+.req-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.req-actions button {
+  padding: 10px;
+  font-size: 12px;
+  margin-top: 0;
+}
+.req-reason-input {
+  width: 100%;
+  padding: 8px;
+  background: #0f1420;
+  border: 1px solid #4a1a1a;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.req-details {
+  background: #0a0f1a;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+}
+
+/* Pending Section (Dashboard) */
+.pending-item {
+  background: #16213e;
+  border: 1px solid #4a3a1a;
+  border-left: 4px solid #ffcc66;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pending-item:hover {
+  border-color: #b794f6;
+  transform: translateX(4px);
+}
+.pending-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.pending-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+.pending-item-amount {
+  font-size: 16px;
+  font-weight: bold;
+  color: #6ddf6d;
+}
+.pending-item-meta {
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Image Preview Modal */
+#imagePreviewModal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 99999;
+  padding: 20px;
+  overflow: auto;
+}
+#imagePreviewModal.open { display: block; }
+#imagePreviewModal img {
+  max-width: 100%;
+  margin: 40px auto;
+  display: block;
+  border-radius: 8px;
+}
+#imagePreviewModal .close-preview {
+  position: fixed;
+  top: 15px;
+  right: 25px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  z-index: 100000;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN / SETUP VIEW ============ -->
+<div id="view-auth" class="view active">
+  <div class="auth-box">
+    <div class="brand">
+      <h1>🟣 Super Admin</h1>
+      <p>Platform Control Panel</p>
+    </div>
+
+    <!-- Setup form (first time only) -->
+    <div id="setupBox" class="form-card" style="display: none;">
+      <h3>⚙️ প্রথমবার সেটআপ</h3>
+      <p style="font-size: 12px; color: #888; text-align: center; margin-bottom: 8px;">
+        একবার সেটআপ হয়ে গেলে এই ফর্ম আর কাজ করবে না
+      </p>
+      <label>আপনার নাম</label>
+      <input type="text" id="setupName" placeholder="আপনার নাম">
+      <label>Email</label>
+      <input type="email" id="setupEmail" placeholder="super@admin.com">
+      <label>Password (৬+ অক্ষর)</label>
+      <input type="password" id="setupPassword" placeholder="••••••••">
+      <button class="btn-primary" onclick="setupSuperAdmin()">🟣 Super Admin তৈরি করুন</button>
+      <div id="setupStatus"></div>
+    </div>
+
+    <!-- Login form -->
+    <div id="loginBox" class="form-card">
+      <h3>🔐 Super Admin Login</h3>
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="super@admin.com">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+      <button class="btn-primary" onclick="superLogin()">লগইন করুন</button>
+      <div id="loginStatus"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD VIEW ============ -->
+<div id="view-dashboard" class="view">
+  <div class="topbar">
+    <h2>🟣 Super Admin Panel</h2>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <div onclick="scrollToPending()" style="position: relative; cursor: pointer; padding: 4px 8px; border-radius: 6px; background: #2a2a4a;">
+        🔔
+        <span id="notificationBadge" style="display: none; position: absolute; top: -6px; right: -6px; background: #d93025; color: white; font-size: 10px; font-weight: bold; border-radius: 10px; min-width: 18px; height: 18px; line-height: 18px; text-align: center; padding: 0 4px;"></span>
+      </div>
+      <div class="logout" onclick="openSettings()" style="background: #2a2a4a;">⚙️</div>
+      <div class="logout" onclick="superLogout()">Logout</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="statTotalAdmins">0</div>
+        <div class="stat-lbl">মোট অ্যাডমিন</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statActiveAdmins">0</div>
+        <div class="stat-lbl">🟢 অ্যাকটিভ</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statTrialAdmins">0</div>
+        <div class="stat-lbl">🟡 ট্রায়ালে</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statExpiredAdmins">0</div>
+        <div class="stat-lbl">🔴 মেয়াদ শেষ</div>
+      </div>
+    </div>
+
+    <!-- ==================== PENDING REQUESTS ==================== -->
+<div id="pendingSection" style="display: none; margin-top: 20px;">
+  <div class="section-title">
+    <span>🔔 অপেক্ষমাণ অনুরোধ <span id="pendingCountText" style="color: #d93025;"></span></span>
+  </div>
+  <div id="pendingRequestsList"></div>
+</div>
+
+<div class="section-title">
+  <span>👥 সব অ্যাডমিন</span>
+  <span id="refreshText" style="font-size:11px; color:#666;"></span>
+</div>
+
+<div id="adminList"><div class="loader">লোড হচ্ছে...</div></div>
+
+    <div id="adminList"><div class="loader">লোড হচ্ছে...</div></div>
+  </div>
+</div>
+<!-- ============ SETTINGS BUTTON (Topbar) ============ -->
+<!-- এটি topbar-এ যোগ করুন -->
+
+<!-- ============ SETTINGS MODAL ============ -->
+<div id="settingsModal" class="modal">
+  <div class="modal-box">
+    <span class="close-x" onclick="closeSettings()">&times;</span>
+    <h3>⚙️ প্ল্যাটফর্ম সেটিংস</h3>
+    <p style="font-size: 12px; color: #888; margin-bottom: 16px;">
+      এই তথ্যগুলো অ্যাডমিনরা সাবস্ক্রিপশনের সময় দেখবে
+    </p>
+
+    <!-- UPI তথ্য -->
+    <label>🟣 আপনার UPI ID</label>
+    <input type="text" id="setUpiId" placeholder="yourname@upi">
+
+    <label>🟣 UPI Payee Name (যে নামে পেমেন্ট যাবে)</label>
+    <input type="text" id="setUpiName" placeholder="আপনার নাম">
+
+    <label>📱 আপনার WhatsApp Number</label>
+    <input type="tel" id="setWhatsapp" placeholder="9876543210" maxlength="10">
+
+    <!-- প্ল্যান মূল্য -->
+    <h3 style="margin-top: 20px; font-size: 14px;">💰 প্ল্যান মূল্য (মাসিক)</h3>
+
+    <label>🟢 Starter Plan</label>
+    <input type="number" id="setPriceStarter" placeholder="300" value="300">
+
+    <label>🔵 Pro Plan</label>
+    <input type="number" id="setPricePro" placeholder="800" value="800">
+
+    <label>🟣 Enterprise Plan</label>
+    <input type="number" id="setPriceEnterprise" placeholder="2000" value="2000">
+
+    <!-- ডিফল্ট ট্রায়াল -->
+    <label>⏱️ ডিফল্ট ট্রায়াল (দিন)</label>
+    <input type="number" id="setDefaultTrial" placeholder="30" value="30">
+
+    <button class="btn-primary" onclick="saveSettings()">💾 সেভ করুন</button>
+    <div id="settingsStatus"></div>
+  </div>
+</div>
+
+ <!-- ============ ADMIN DETAIL MODAL ============ -->
+<div id="adminModal" class="modal">
+  <div class="modal-box">
+    <span class="close-x" onclick="closeAdminModal()">&times;</span>
+    <h3 id="modalAdminName">Admin</h3>
+
+    <div id="modalAdminInfo">
+      <!-- Populated by JS -->
+    </div>
+
+    <h3 style="margin-top: 20px; font-size: 14px;">🎛️ সাবস্ক্রিপশন ম্যানেজমেন্ট</h3>
+
+    <label>প্ল্যান সিলেক্ট</label>
+    <select id="modalPlanSelect" style="width:100%; padding:10px; background:#0f1420; border:1px solid #2a2a4a; border-radius:8px; color:#fff; font-size:13px;">
+      <option value="trial">🟡 Trial</option>
+      <option value="starter">🟢 Starter</option>
+      <option value="pro">🔵 Pro</option>
+      <option value="enterprise">🟣 Enterprise</option>
+    </select>
+
+    <label>মেয়াদ বাড়ান (দিন)</label>
+    <div class="plan-input">
+      <input type="number" id="modalExtendDays" placeholder="যেমন: 30" value="30">
+      <button class="btn-success" onclick="extendSubscription()">➕ যোগ</button>
+    </div>
+
+    <label>মেয়াদ নির্দিষ্ট তারিখ</label>
+    <div class="plan-input">
+      <input type="date" id="modalEndDate">
+      <button class="btn-primary" onclick="setSubscriptionDate()">📅 সেট</button>
+    </div>
+
+        <!-- ==================== Subscription Requests ==================== -->
+    <h3 style="margin-top: 20px; font-size: 14px;">💰 সাবস্ক্রিপশন অনুরোধ</h3>
+    <div id="modalRequestsArea">
+      <div class="loader">লোড হচ্ছে...</div>
+    </div>
+
+    <!-- Admin Actions -->
+    <div class="action-grid" style="margin-top: 20px;">
+      <button class="btn-warn" onclick="suspendCurrentAdmin()">🚫 সাসপেন্ড</button>
+      <button class="btn-danger" onclick="removeSubscription()">🗑️ সাবস্ক্রিপশন মুছুন</button>
+    </div>
+
+    <div id="modalStatus" style="margin-top: 12px;"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { db, auth } from './firebase-config-prod.js';
+  import {
+    collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+    query, where, onSnapshot, serverTimestamp, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import {
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  // ⚠️ এই সিক্রেট কী পরিবর্তন করুন — এটি দিয়ে একবারই Super Admin তৈরি করা যাবে
+//  const SETUP_SECRET = "SUPER2026CHANGE_ME";
+  const SETUP_SECRET = "AMAR_GOPON_2026_XYZ";
+ 
+  let currentAdmin = null;      // বর্তমান Super Admin
+  let allAdmins = [];            // সব অ্যাডমিন ডেটা
+  let selectedAdminForModal = null;
+
+  // ==================== ইউটিলিটি ====================
+  function showView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function getAdminStatus(admin) {
+    if (admin.suspended === true) {
+      return { label: '🚫 Suspended', cls: 'badge-suspended', key: 'suspended' };
+    }
+    const end = admin.subscriptionEnd?.toDate?.();
+    if (!end) {
+      return { label: '⚪ Not Set', cls: 'badge-new', key: 'new' };
+    }
+    if (end < new Date()) {
+      return { label: '🔴 Expired', cls: 'badge-expired', key: 'expired' };
+    }
+    if (admin.plan === 'trial') {
+      return { label: '🟡 Trial', cls: 'badge-trial', key: 'trial' };
+    }
+    return { label: '🟢 Active', cls: 'badge-active', key: 'active' };
+  }
+
+  // ==================== INIT ====================
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // Super Admin কি না যাচাই
+      const snap = await getDoc(doc(db, "super_admins", user.uid));
+      if (snap.exists()) {
+  currentAdmin = { uid: user.uid, ...snap.data() };
+  loadDashboard();
+  loadPendingRequests();  // ⬅️ নতুন লাইন
+  showView('view-dashboard');
+} else {
+        // সাধারণ অ্যাডমিন — Super Admin Panel থেকে বের করে দাও
+        alert("⛔ আপনি Super Admin নন। এই প্যানেলে ঢুকতে পারবেন না।");
+        await signOut(auth);
+        showView('view-auth');
+      }
+    } else {
+      // লগইন নেই — setup নাকি login?
+      const urlParams = new URLSearchParams(window.location.search);
+      const setupKey = urlParams.get('setup');
+      
+      // Super admin আছে কি না চেক
+      const superSnap = await getDocs(collection(db, "super_admins"));
+      
+      if (superSnap.empty && setupKey === SETUP_SECRET) {
+        // কোনো Super Admin নেই, তাই setup দেখাও
+        document.getElementById('setupBox').style.display = 'block';
+        document.getElementById('loginBox').style.display = 'none';
+      } else {
+        // লগইন দেখাও
+        document.getElementById('setupBox').style.display = 'none';
+        document.getElementById('loginBox').style.display = 'block';
+      }
+      showView('view-auth');
+    }
+  });
+
+  // ==================== SETUP (প্রথমবার) ====================
+  window.setupSuperAdmin = async function() {
+    const name = document.getElementById('setupName').value.trim();
+    const email = document.getElementById('setupEmail').value.trim().toLowerCase();
+    const password = document.getElementById('setupPassword').value;
+    const statusEl = document.getElementById('setupStatus');
+
+    if (!name || !email || !password) {
+      statusEl.innerHTML = '<div class="status error">সব তথ্য দিন</div>';
+      return;
+    }
+    if (password.length < 6) {
+      statusEl.innerHTML = '<div class="status error">পাসওয়ার্ড ৬+ অক্ষর</div>';
+      return;
+    }
+
+    statusEl.innerHTML = '<div class="status info">⏳ তৈরি হচ্ছে...</div>';
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, "super_admins", cred.user.uid), {
+        uid: cred.user.uid,
+        name: name,
+        email: email,
+        role: 'super_admin',
+        createdAt: serverTimestamp()
+      });
+      statusEl.innerHTML = '<div class="status success">✅ সফল! ড্যাশবোর্ডে যাচ্ছি...</div>';
+    } catch (e) {
+      let msg = e.message;
+      if (e.code === 'auth/email-already-in-use') msg = 'এই ইমেইল আগেই ব্যবহৃত';
+      statusEl.innerHTML = `<div class="status error">${msg}</div>`;
+    }
+  };
+
+  // ==================== LOGIN ====================
+  window.superLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const statusEl = document.getElementById('loginStatus');
+
+    if (!email || !password) {
+      statusEl.innerHTML = '<div class="status error">ইমেইল ও পাসওয়ার্ড দিন</div>';
+      return;
+    }
+
+    statusEl.innerHTML = '<div class="status info">⏳ যাচাই হচ্ছে...</div>';
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged দেখবে এবং ভেতরে ঢুকবে
+      
+      // কিন্তু যাচাই করো Super Admin কি না
+      const snap = await getDoc(doc(db, "super_admins", cred.user.uid));
+      if (!snap.exists()) {
+        await signOut(auth);
+        statusEl.innerHTML = '<div class="status error">⛔ আপনি Super Admin নন</div>';
+      }
+    } catch (e) {
+      let msg = 'ভুল ইমেইল বা পাসওয়ার্ড';
+      if (e.code === 'auth/too-many-requests') msg = 'অনেকবার চেষ্টা করেছেন, কিছুক্ষণ পরে চেষ্টা করুন';
+      statusEl.innerHTML = `<div class="status error">${msg}</div>`;
+    }
+  };
+
+  // ==================== LOGOUT ====================
+  window.superLogout = async function() {
+    await signOut(auth);
+    currentAdmin = null;
+    location.reload();
+  };
+
+  // ==================== SETTINGS ====================
+const SETTINGS_DOC = () => doc(db, "super_settings", "main");
+
+window.openSettings = async function() {
+  document.getElementById('settingsModal').classList.add('open');
+  document.getElementById('settingsStatus').innerHTML = '';
+  
+  try {
+    const snap = await getDoc(SETTINGS_DOC());
+    if (snap.exists()) {
+      const d = snap.data();
+      document.getElementById('setUpiId').value = d.upiId || '';
+      document.getElementById('setUpiName').value = d.upiName || '';
+      document.getElementById('setWhatsapp').value = d.whatsapp || '';
+      document.getElementById('setPriceStarter').value = d.priceStarter || 300;
+      document.getElementById('setPricePro').value = d.pricePro || 800;
+      document.getElementById('setPriceEnterprise').value = d.priceEnterprise || 2000;
+      document.getElementById('setDefaultTrial').value = d.defaultTrial || 30;
+    }
+  } catch (e) {
+    console.error("Load settings error:", e);
+  }
+};
+
+window.closeSettings = function() {
+  document.getElementById('settingsModal').classList.remove('open');
+};
+
+window.saveSettings = async function() {
+  const upiId = document.getElementById('setUpiId').value.trim();
+  const upiName = document.getElementById('setUpiName').value.trim();
+  const whatsapp = document.getElementById('setWhatsapp').value.trim();
+  const priceStarter = parseInt(document.getElementById('setPriceStarter').value) || 300;
+  const pricePro = parseInt(document.getElementById('setPricePro').value) || 800;
+  const priceEnterprise = parseInt(document.getElementById('setPriceEnterprise').value) || 2000;
+  const defaultTrial = parseInt(document.getElementById('setDefaultTrial').value) || 30;
+  
+  const statusEl = document.getElementById('settingsStatus');
+  
+  if (!upiId || !whatsapp) {
+    statusEl.innerHTML = '<div class="status error">UPI ID ও WhatsApp নাম্বার দিন</div>';
+    return;
+  }
+  if (!/^\d{10}$/.test(whatsapp)) {
+    statusEl.innerHTML = '<div class="status error">WhatsApp নাম্বার ১০ ডিজিটের হতে হবে</div>';
+    return;
+  }
+  
+  statusEl.innerHTML = '<div class="status info">⏳ সেভ হচ্ছে...</div>';
+  
+  try {
+    await setDoc(SETTINGS_DOC(), {
+      upiId: upiId,
+      upiName: upiName,
+      whatsapp: whatsapp,
+      priceStarter: priceStarter,
+      pricePro: pricePro,
+      priceEnterprise: priceEnterprise,
+      defaultTrial: defaultTrial,
+      updatedAt: serverTimestamp(),
+      updatedBy: currentAdmin?.uid || 'unknown'
+    }, { merge: true });
+    
+    statusEl.innerHTML = '<div class="status success">✅ সেভ হয়েছে!</div>';
+    
+    setTimeout(() => {
+      closeSettings();
+    }, 1500);
+    
+  } catch (e) {
+    console.error("Save settings error:", e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+ 
+ // ==================== DASHBOARD ====================
+  function loadDashboard() {
+    // সব admins লোড (team member বাদ দিয়ে)
+    onSnapshot(collection(db, "admins"), (snap) => {
+      allAdmins = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(a => !a.isTeamMember);
+      
+      renderAdminList();
+      updateStats();
+    });
+  }
+
+  function updateStats() {
+    let active = 0, trial = 0, expired = 0;
+    allAdmins.forEach(a => {
+      const s = getAdminStatus(a).key;
+      if (s === 'active') active++;
+      else if (s === 'trial') trial++;
+      else if (s === 'expired' || s === 'suspended') expired++;
+    });
+    document.getElementById('statTotalAdmins').innerText = allAdmins.length;
+    document.getElementById('statActiveAdmins').innerText = active;
+    document.getElementById('statTrialAdmins').innerText = trial;
+    document.getElementById('statExpiredAdmins').innerText = expired;
+  }
+
+  function renderAdminList() {
+    const el = document.getElementById('adminList');
+    
+    if (allAdmins.length === 0) {
+      el.innerHTML = '<div class="empty">এখনো কোনো অ্যাডমিন রেজিস্ট্রেশন করেনি</div>';
+      return;
+    }
+
+    // স্ট্যাটাস অনুযায়ী সর্ট: Active → Trial → New → Expired → Suspended
+    const order = { active: 1, trial: 2, new: 3, expired: 4, suspended: 5 };
+    allAdmins.sort((a, b) => {
+      const oa = order[getAdminStatus(a).key] || 99;
+      const ob = order[getAdminStatus(b).key] || 99;
+      if (oa !== ob) return oa - ob;
+      return (a.companyName || '').localeCompare(b.companyName || '');
+    });
+
+    let html = '';
+    allAdmins.forEach(a => {
+      const status = getAdminStatus(a);
+      const endDate = a.subscriptionEnd?.toDate?.();
+      const endStr = endDate ? endDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A';
+      
+      let daysLeft = '';
+      if (endDate) {
+        const days = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+        if (days > 0) daysLeft = `${days} দিন বাকি`;
+        else daysLeft = 'মেয়াদ শেষ';
+      }
+
+      html += `
+        <div class="admin-card ${a.suspended ? 'suspended' : ''}" onclick="openAdminModal('${a.id}')">
+          <div class="admin-header">
+            <div style="flex:1;">
+              <div class="admin-name">${a.companyName || 'Unknown Company'}</div>
+              <div class="admin-meta">👤 ${a.name || '-'} · 📱 ${a.whatsapp || '-'}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge ${status.cls}">${status.label}</span>
+              <div style="font-size:10px; color:#666; margin-top:4px;">${daysLeft}</div>
+            </div>
+          </div>
+          <div class="admin-stats">
+            <div><b>${a.plan || 'none'}</b>প্ল্যান</div>
+            <div><b>${endStr}</b>মেয়াদ শেষ</div>
+          </div>
+        </div>
+      `;
+    });
+    el.innerHTML = html;
+  }
+
+  // ==================== ADMIN DETAIL MODAL ====================
+  window.openAdminModal = async function(adminId) {
+    const admin = allAdmins.find(a => a.id === adminId);
+    if (!admin) return;
+    selectedAdminForModal = admin;
+
+    document.getElementById('modalAdminName').innerText = admin.companyName || 'Admin';
+
+    const endDate = admin.subscriptionEnd?.toDate?.();
+    const startDate = admin.subscriptionStart?.toDate?.();
+    const createdDate = admin.createdAt?.toDate?.();
+    const status = getAdminStatus(admin);
+
+    document.getElementById('modalAdminInfo').innerHTML = `
+      <div class="info-row"><span>মালিক</span><span>${admin.name || '-'}</span></div>
+      <div class="info-row"><span>WhatsApp</span><span>${admin.whatsapp || '-'}</span></div>
+      <div class="info-row"><span>Email</span><span style="font-size:11px;">${admin.email || '-'}</span></div>
+      <div class="info-row"><span>স্ট্যাটাস</span><span><span class="badge ${status.cls}">${status.label}</span></span></div>
+      <div class="info-row"><span>প্ল্যান</span><span>${admin.plan || 'none'}</span></div>
+      <div class="info-row"><span>সাবস্ক্রিপশন শুরু</span><span>${startDate ? startDate.toLocaleDateString('en-GB') : 'N/A'}</span></div>
+      <div class="info-row"><span>মেয়াদ শেষ</span><span>${endDate ? endDate.toLocaleDateString('en-GB') : 'N/A'}</span></div>
+      <div class="info-row"><span>রেজিস্ট্রেশন</span><span>${createdDate ? createdDate.toLocaleDateString('en-GB') : 'N/A'}</span></div>
+    `;
+
+    // ডিফল্ট মান বসাও
+    document.getElementById('modalPlanSelect').value = admin.plan || 'trial';
+document.getElementById('modalStatus').innerHTML = '';
+
+// ⬇️ সাবস্ক্রিপশন অনুরোধ লোড
+loadAdminRequests(adminId);
+
+document.getElementById('adminModal').classList.add('open'); };
+
+  window.closeAdminModal = function() {
+  document.getElementById('adminModal').classList.remove('open');
+  selectedAdminForModal = null;
+};
+
+// ==================== SUBSCRIPTION REQUESTS IN MODAL ====================
+async function loadAdminRequests(adminId) {
+  const area = document.getElementById('modalRequestsArea');
+  
+  try {
+    const q = query(
+      collection(db, "subscription_requests"),
+      where("adminId", "==", adminId)
+    );
+    const snap = await getDocs(q);
+    
+    if (snap.empty) {
+      area.innerHTML = `
+        <div class="req-details" style="text-align:center; padding: 20px; color: #666;">
+          কোনো অনুরোধ নেই
+        </div>
+      `;
+      return;
+    }
+    
+    const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    requests.sort((a, b) => {
+      const tA = a.requestedAt?.toMillis?.() || 0;
+      const tB = b.requestedAt?.toMillis?.() || 0;
+      return tB - tA;
+    });
+    
+    let html = '';
+    requests.forEach(r => {
+      const date = r.requestedAt?.toDate?.()?.toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      }) || '';
+      
+      let statusClass = 'req-status-pending';
+      let statusLabel = '⏳ অপেক্ষমাণ';
+      if (r.status === 'approved') {
+        statusClass = 'req-status-approved';
+        statusLabel = '✅ অনুমোদিত';
+      } else if (r.status === 'rejected') {
+        statusClass = 'req-status-rejected';
+        statusLabel = '❌ প্রত্যাখ্যাত';
+      }
+      
+      html += `
+        <div class="req-card">
+          <div class="req-card-header">
+            <div>
+              <div class="req-plan-name">${r.plan?.toUpperCase() || 'PLAN'}</div>
+              <div class="req-meta">${date}</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="req-amount">₹${r.amount || 0}</div>
+              <div style="margin-top: 4px;">
+                <span class="req-status ${statusClass}">${statusLabel}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="req-details">
+            <div class="req-meta">🔢 UPI Ref: <b style="color:#b794f6;">${r.upiReference || 'N/A'}</b></div>
+            ${r.approvedAt ? `<div class="req-meta">✅ অনুমোদিত: ${r.approvedAt.toDate?.()?.toLocaleString('en-GB') || ''}</div>` : ''}
+            ${r.rejectionReason ? `<div class="req-meta" style="color:#ff8888;">❌ কারণ: ${r.rejectionReason}</div>` : ''}
+          </div>
+          
+          ${r.screenshotUrl ? `
+            <div class="req-meta" style="margin-bottom:6px;">📸 পেমেন্টের স্ক্রিনশট (ট্যাপ করে বড় করুন):</div>
+            <img src="${r.screenshotUrl}" class="req-screenshot" 
+              onclick="openImagePreview('${r.screenshotUrl}')"
+              onerror="this.style.display='none'">
+          ` : ''}
+          
+          ${r.status === 'pending' ? `
+            <div class="req-actions">
+              <button class="btn-success" onclick="approveRequest('${r.id}', ${r.amount}, '${r.plan}')">✅ Approve</button>
+              <button class="btn-danger" onclick="showRejectInput('${r.id}')">❌ Reject</button>
+            </div>
+            <div id="reject-${r.id}" style="display: none;">
+              <input type="text" class="req-reason-input" id="reason-${r.id}" 
+                placeholder="প্রত্যাখ্যানের কারণ লিখুন...">
+              <div class="req-actions" style="margin-top:8px;">
+                <button class="secondary" onclick="hideRejectInput('${r.id}')">বাতিল</button>
+                <button class="btn-danger" onclick="rejectRequest('${r.id}')">নিশ্চিত করুন</button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    
+    area.innerHTML = html;
+    
+  } catch (e) {
+    console.error("Load requests error:", e);
+    area.innerHTML = `<div class="req-details" style="color: #ff8888;">লোড করতে সমস্যা: ${e.message}</div>`;
+  }
+}
+
+// ==================== Image Preview ====================
+window.openImagePreview = function(url) {
+  let modal = document.getElementById('imagePreviewModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'imagePreviewModal';
+    modal.innerHTML = `
+      <span class="close-preview" onclick="closeImagePreview()">&times;</span>
+      <img id="imagePreviewImg" src="">
+    `;
+    modal.onclick = function(e) {
+      if (e.target === modal) closeImagePreview();
+    };
+    document.body.appendChild(modal);
+  }
+  document.getElementById('imagePreviewImg').src = url;
+  modal.classList.add('open');
+};
+
+window.closeImagePreview = function() {
+  document.getElementById('imagePreviewModal')?.classList.remove('open');
+};
+
+// ==================== Approve Request ====================
+window.approveRequest = async function(requestId, amount, plan) {
+  if (!confirm(`এই অনুরোধ অনুমোদন করবেন?\n\nপ্ল্যান: ${plan.toUpperCase()}\nপরিমাণ: ₹${amount}\n\nঅনুমোদন করলে সাবস্ক্রিপশন স্বয়ংক্রিয়ভাবে চালু হবে।`)) return;
+  
+  const statusEl = document.getElementById('modalStatus');
+  statusEl.innerHTML = '<div class="status info">⏳ অনুমোদন করা হচ্ছে...</div>';
+  
+  try {
+    const admin = selectedAdminForModal;
+    if (!admin) throw new Error("Admin পাওয়া যায়নি");
+    
+    // ১. সাবস্ক্রিপশন মেয়াদ সেট (৩০ দিন)
+    const newEnd = new Date();
+    newEnd.setDate(newEnd.getDate() + 30);
+    
+    await updateDoc(doc(db, "admins", admin.id), {
+      plan: plan,
+      subscriptionStart: serverTimestamp(),
+      subscriptionEnd: newEnd,
+      suspended: false,
+      lastUpdatedBy: currentAdmin.uid,
+      lastUpdatedAt: serverTimestamp()
+    });
+    
+    // ২. Request আপডেট
+    await updateDoc(doc(db, "subscription_requests", requestId), {
+      status: 'approved',
+      approvedAt: serverTimestamp(),
+      approvedBy: currentAdmin.uid
+    });
+    
+    statusEl.innerHTML = '<div class="status success">✅ অনুমোদিত! সাবস্ক্রিপশন চালু হয়েছে।</div>';
+    
+    // রিফ্রেশ
+    setTimeout(() => {
+      if (selectedAdminForModal) {
+        openAdminModal(selectedAdminForModal.id);
+      }
+    }, 1500);
+    
+  } catch (e) {
+    console.error("Approve error:", e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+
+// ==================== Reject UI ====================
+window.showRejectInput = function(requestId) {
+  document.getElementById('reject-' + requestId).style.display = 'block';
+};
+
+window.hideRejectInput = function(requestId) {
+  document.getElementById('reject-' + requestId).style.display = 'none';
+};
+
+window.rejectRequest = async function(requestId) {
+  const reason = document.getElementById('reason-' + requestId).value.trim();
+  if (!reason) {
+    alert("প্রত্যাখ্যানের কারণ লিখুন");
+    return;
+  }
+  
+  const statusEl = document.getElementById('modalStatus');
+  statusEl.innerHTML = '<div class="status info">⏳ প্রক্রিয়া করা হচ্ছে...</div>';
+  
+  try {
+    await updateDoc(doc(db, "subscription_requests", requestId), {
+      status: 'rejected',
+      rejectionReason: reason,
+      approvedAt: serverTimestamp(),
+      approvedBy: currentAdmin.uid
+    });
+    
+    statusEl.innerHTML = '<div class="status error">❌ প্রত্যাখ্যান করা হয়েছে</div>';
+    
+    setTimeout(() => {
+      if (selectedAdminForModal) {
+        openAdminModal(selectedAdminForModal.id);
+      }
+    }, 1500);
+    
+  } catch (e) {
+    console.error("Reject error:", e);
+    statusEl.innerHTML = `<div class="status error">❌ ${e.message}</div>`;
+  }
+};
+
+// ==================== PENDING REQUESTS (Dashboard) ====================
+function loadPendingRequests() {
+  onSnapshot(collection(db, "subscription_requests"), (snap) => {
+    const allReqs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const pending = allReqs.filter(r => r.status === 'pending');
+    
+    // Notification Badge আপডেট
+    const badge = document.getElementById('notificationBadge');
+    if (pending.length > 0) {
+      badge.style.display = 'block';
+      badge.innerText = pending.length;
+    } else {
+      badge.style.display = 'none';
+    }
+    
+    // Pending Section
+    const section = document.getElementById('pendingSection');
+    const listEl = document.getElementById('pendingRequestsList');
+    const countText = document.getElementById('pendingCountText');
+    
+    if (pending.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    
+    section.style.display = 'block';
+    countText.innerText = `(${pending.length}টি)`;
+    
+    // Sort by newest
+    pending.sort((a, b) => {
+      const tA = a.requestedAt?.toMillis?.() || 0;
+      const tB = b.requestedAt?.toMillis?.() || 0;
+      return tB - tA;
+    });
+    
+    let html = '';
+    pending.forEach(r => {
+      const date = r.requestedAt?.toDate?.()?.toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+      }) || '';
+      
+      html += `
+        <div class="pending-item" onclick="openAdminModal('${r.adminId}')">
+          <div class="pending-item-header">
+            <div class="pending-item-title">${r.adminCompany || 'Unknown'}</div>
+            <div class="pending-item-amount">₹${r.amount}</div>
+          </div>
+          <div class="pending-item-meta">
+            <span>📋 ${r.plan?.toUpperCase()}</span>
+            <span>${date}</span>
+          </div>
+          <div class="pending-item-meta" style="margin-top: 4px;">
+            <span>🔢 ${r.upiReference || 'N/A'}</span>
+            <span style="color:#ffcc66;">ট্যাপ করে দেখুন →</span>
+          </div>
+        </div>
+      `;
+    });
+    listEl.innerHTML = html;
+  });
+}
+
+// ==================== Scroll to Pending ====================
+window.scrollToPending = function() {
+  const section = document.getElementById('pendingSection');
+  if (section.style.display === 'none') {
+    alert("🎉 এখন কোনো অপেক্ষমাণ অনুরোধ নেই!");
+    return;
+  }
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+// ==================== সব পেজ লোড হলে ====================
+// onAuthStateChanged এর ভেতরে loadDashboard() কল হওয়ার পর loadPendingRequests() যোগ করতে হবে
+
+  // ==================== SUBSCRIPTION ACTIONS ====================
+  window.extendSubscription = async function() {
+    if (!selectedAdminForModal) return;
+    const days = parseInt(document.getElementById('modalExtendDays').value);
+    if (!days || days < 1) return alert("সঠিক দিন সংখ্যা দিন");
+
+    const statusEl = document.getElementById('modalStatus');
+    statusEl.innerHTML = '<div class="status info">⏳ আপডেট হচ্ছে...</div>';
+
+    try {
+      // বর্তমান মেয়াদ শেষের তারিখ থেকে শুরু (নাকি আজ থেকে? — আজ থেকে ভালো)
+      const admin = selectedAdminForModal;
+      const currentEnd = admin.subscriptionEnd?.toDate?.();
+      let newEnd;
+      
+      if (currentEnd && currentEnd > new Date()) {
+        // এখনো মেয়াদ শেষ হয়নি — বর্তমান তারিখ থেকে যোগ
+        newEnd = new Date(currentEnd);
+        newEnd.setDate(newEnd.getDate() + days);
+      } else {
+        // মেয়াদ শেষ বা নেই — আজ থেকে শুরু
+        newEnd = new Date();
+        newEnd.setDate(newEnd.getDate() + days);
+      }
+
+      const plan = document.getElementById('modalPlanSelect').value;
+
+      await updateDoc(doc(db, "admins", selectedAdminForModal.id), {
+        plan: plan,
+        subscriptionStart: admin.subscriptionStart || serverTimestamp(),
+        subscriptionEnd: newEnd,
+        lastUpdatedBy: currentAdmin.uid,
+        lastUpdatedAt: serverTimestamp()
+      });
+
+      statusEl.innerHTML = `<div class="status success">✅ ${days} দিন যোগ হয়েছে। মেয়াদ: ${newEnd.toLocaleDateString('en-GB')}</div>`;
+      
+      // Modal বন্ধ করার আগে আপডেট দেখাও
+      setTimeout(() => {
+        if (selectedAdminForModal) {
+          openAdminModal(selectedAdminForModal.id);
+        }
+      }, 1500);
+    } catch (e) {
+      statusEl.innerHTML = `<div class="status error">${e.message}</div>`;
+    }
+  };
+
+  window.setSubscriptionDate = async function() {
+    if (!selectedAdminForModal) return;
+    const dateInput = document.getElementById('modalEndDate').value;
+    if (!dateInput) return alert("তারিখ দিন");
+
+    const statusEl = document.getElementById('modalStatus');
+    statusEl.innerHTML = '<div class="status info">⏳ আপডেট হচ্ছে...</div>';
+
+    try {
+      const newEnd = new Date(dateInput + 'T23:59:59');
+      const plan = document.getElementById('modalPlanSelect').value;
+
+      await updateDoc(doc(db, "admins", selectedAdminForModal.id), {
+        plan: plan,
+        subscriptionStart: selectedAdminForModal.subscriptionStart || serverTimestamp(),
+        subscriptionEnd: newEnd,
+        lastUpdatedBy: currentAdmin.uid,
+        lastUpdatedAt: serverTimestamp()
+      });
+
+      statusEl.innerHTML = `<div class="status success">✅ মেয়াদ সেট হয়েছে: ${newEnd.toLocaleDateString('en-GB')}</div>`;
+      
+      setTimeout(() => {
+        if (selectedAdminForModal) openAdminModal(selectedAdminForModal.id);
+      }, 1500);
+    } catch (e) {
+      statusEl.innerHTML = `<div class="status error">${e.message}</div>`;
+    }
+  };
+
+  window.suspendCurrentAdmin = async function() {
+    if (!selectedAdminForModal) return;
+    const isSuspended = selectedAdminForModal.suspended === true;
+    const action = isSuspended ? 'আনসাসপেন্ড' : 'সাসপেন্ড';
+    
+    if (!confirm(`এই অ্যাডমিনকে ${action} করবেন?`)) return;
+
+    try {
+      await updateDoc(doc(db, "admins", selectedAdminForModal.id), {
+        suspended: !isSuspended,
+        suspendedAt: isSuspended ? null : serverTimestamp(),
+        lastUpdatedBy: currentAdmin.uid,
+        lastUpdatedAt: serverTimestamp()
+      });
+      
+      alert(`✅ ${action} হয়েছে!`);
+      closeAdminModal();
+    } catch (e) {
+      alert("❌ " + e.message);
+    }
+  };
+
+  window.removeSubscription = async function() {
+    if (!selectedAdminForModal) return;
+    if (!confirm("সাবস্ক্রিপশন মেয়াদ মুছে ফেলবেন? অ্যাডমিন 'Not Set' অবস্থায় চলে যাবে।")) return;
+
+    try {
+      await updateDoc(doc(db, "admins", selectedAdminForModal.id), {
+        plan: 'trial',
+        subscriptionStart: null,
+        subscriptionEnd: null,
+        lastUpdatedBy: currentAdmin.uid,
+        lastUpdatedAt: serverTimestamp()
+      });
+      alert("✅ মুছে ফেলা হয়েছে");
+      closeAdminModal();
+    } catch (e) {
+      alert("❌ " + e.message);
+    }
+  };
+
+</script>
+</body>
+</html>p
