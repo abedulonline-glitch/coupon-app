@@ -256,6 +256,9 @@
 .cat-picker-item.selected { background: #e8f0fe; color: #1a73e8; font-weight: 600; }
 .cat-picker-item.empty { color: #999; text-align: center; cursor: default; }
 
+.settings-section {
+  padding: 8px 0;
+}
 </style>
 </head>
 <body>
@@ -628,7 +631,7 @@
   <div class="nav-item" onclick="switchTab('dashboard', this)">
     <span class="icon">📊</span><span>Dashboard</span>
   </div>
-  <div class="nav-item" onclick="showSettings()">
+  <div class="nav-item" onclick="openStockSettings()">
     <span class="icon">⚙️</span><span>Settings</span>
   </div>
 </div>
@@ -819,7 +822,7 @@ async function saveBusinessType(type) {
 
 // Categories লোড
 async function loadCategories(bizType) {
-  if (!adminId) return;
+  if (!adminId || !bizType) return;
   
   try {
     const q = query(
@@ -830,20 +833,62 @@ async function loadCategories(bizType) {
     
     const snap = await getDocs(q);
     
-        if (snap.empty) {
-      // Race condition এড়াতে re-check করি
-      const recheck = await getDocs(q);
-      if (recheck.empty && !window['_creatingCats_' + bizType]) {
-        window['_creatingCats_' + bizType] = true;
-        await createDefaultCategories(bizType);
-        window['_creatingCats_' + bizType] = false;
-        return loadCategories(bizType);
-      } else if (recheck.empty) {
-        // ইতিমধ্যে কেউ তৈরি করছে, একটু অপেক্ষা করি
-        await new Promise(r => setTimeout(r, 800));
+    if (snap.empty) {
+      // Race condition protection — শুধু একটি instance তৈরি করবে
+      const lockKey = `_creating_cats_${adminId}_${bizType}`;
+      if (window[lockKey]) {
+        console.log('⏳ Already creating categories, waiting...');
+        await new Promise(r => setTimeout(r, 1000));
         return loadCategories(bizType);
       }
+      
+      window[lockKey] = true;
+      console.log('📦 Creating default categories for:', bizType);
+      await createDefaultCategories(bizType);
+      window[lockKey] = false;
+      
+      return loadCategories(bizType);
     }
+    
+    // ডুপ্লিকেট চেক — নাম অনুযায়ী
+    const seen = new Set();
+    const duplicates = [];
+    const uniqueCats = [];
+    
+    snap.docs.forEach(d => {
+      const cat = { id: d.id, ...d.data() };
+      const nameLower = (cat.name || '').toLowerCase();
+      if (seen.has(nameLower)) {
+        duplicates.push(cat.id);
+      } else {
+        seen.add(nameLower);
+        uniqueCats.push(cat);
+      }
+    });
+    
+    // ডুপ্লিকেট ডিলিট
+    if (duplicates.length > 0) {
+      console.log(`🗑️ Deleting ${duplicates.length} duplicate categories...`);
+      for (const dupId of duplicates) {
+        try {
+          await deleteDoc(doc(db, "categories", dupId));
+        } catch (e) {
+          console.error('Delete dup error:', e);
+        }
+      }
+    }
+    
+    currentCategories = uniqueCats;
+    currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    renderCategories();
+    updateCategoryDropdowns();
+    
+    console.log(`✅ Loaded ${currentCategories.length} unique categories`);
+  } catch (e) {
+    console.error('❌ Load categories error:', e);
+  }
+}
     
     currentCategories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -861,17 +906,36 @@ async function loadCategories(bizType) {
 async function createDefaultCategories(bizType) {
   const defaults = DEFAULT_CATEGORIES[bizType] || ['Others'];
   
+  console.log(`📝 Creating ${defaults.length} default categories for ${bizType}...`);
+  
   for (const name of defaults) {
-    await addDoc(collection(db, "categories"), {
-      adminId: adminId,
-      businessType: bizType,
-      name: name,
-      isDefault: true,
-      createdAt: serverTimestamp()
-    });
+    // Deterministic ID — একই ক্যাটাগরি দুইবার তৈরি হবে না
+    const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const catId = `${adminId}_${bizType}_${safeName}`;
+    const catRef = doc(db, "categories", catId);
+    
+    // Already exists কিনা চেক করি
+    const existing = await getDoc(catRef);
+    if (existing.exists()) {
+      console.log(`  ⏭️ Skip (exists): ${name}`);
+      continue;
+    }
+    
+    try {
+      await setDoc(catRef, {
+        adminId: adminId,
+        businessType: bizType,
+        name: name,
+        isDefault: true,
+        createdAt: serverTimestamp()
+      });
+      console.log(`  ✅ Created: ${name}`);
+    } catch (e) {
+      console.error(`  ❌ Error creating ${name}:`, e);
+    }
   }
   
-  console.log(`✅ Created ${defaults.length} default categories`);
+  console.log(`✅ Default categories ready`);
 }
 
 // ক্যাটাগরি Render (Manager Modal-এ)
@@ -1045,14 +1109,18 @@ window.addNewCategory = async function() {
     return;
   }
   
-  // ডুপ্লিকেট চেক
+  // ডুপ্লিকেট চেক (case insensitive)
   if (currentCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
     statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">⚠️ এই ক্যাটাগরি আগেই আছে</div>';
     return;
   }
   
   try {
-    await addDoc(collection(db, "categories"), {
+    // Deterministic ID
+    const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const catId = `${adminId}_${currentBizType}_${safeName}_${Date.now()}`;
+    
+    await setDoc(doc(db, "categories", catId), {
       adminId: adminId,
       businessType: currentBizType,
       name: name,
@@ -1063,7 +1131,6 @@ window.addNewCategory = async function() {
     input.value = '';
     statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ ক্যাটাগরি যোগ হয়েছে</div>';
     
-    // আবার লোড
     await loadCategories(currentBizType);
     
     setTimeout(() => statusEl.innerHTML = '', 2500);
@@ -2160,29 +2227,7 @@ window.editOptionalLabel = function() {
     if (confirm('সব তথ্য মুছে ফেলবেন?')) location.reload();
   };
 
-  window.showSettings = function() {
-  const choice = prompt(
-    '⚙️ Settings\n\n' +
-    'বর্তমান ব্যবসার ধরন: ' + (currentBizTypeName || 'Not Set') + '\n\n' +
-    'কী করতে চান?\n' +
-    '১ = Business Type পরিবর্তন\n' +
-    '২ = অন্য ব্যবসায় যান (নতুন করে শুরু)\n\n' +
-    'সংখ্যা টাইপ করুন (1 বা 2):',
-    '1'
-  );
   
-  if (choice === '1' || choice === '2') {
-    // Business Selector দেখাও
-    document.getElementById('mainAppPage').classList.remove('active');
-    document.getElementById('bottomNav').style.display = 'none';
-    document.getElementById('businessSelectorPage').classList.add('active');
-    
-    document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
-    
-    productCount = 0;
-    document.getElementById('productsList').innerHTML = '';
-  }
-};
 
  window.handleLogout = async function() {
   if (!confirm('লগআউট করবেন?')) return;
@@ -2300,6 +2345,179 @@ window.validateGstin = function(input) {
   } else {
     helper.style.color = '#d93025';
     helper.innerText = '❌ ভুল ফরম্যাট';
+  }
+};
+
+// ============================================================
+// STOCK SETTINGS MODAL
+// ============================================================
+window.openStockSettings = function() {
+  document.getElementById('stockSettingsModal').style.display = 'block';
+  updateStockSettings();
+};
+
+window.closeStockSettings = function() {
+  document.getElementById('stockSettingsModal').style.display = 'none';
+};
+
+function updateStockSettings() {
+  const bizEl = document.getElementById('settingsBizType');
+  if (bizEl) bizEl.innerText = currentBizTypeName || '-';
+  
+  const companyEl = document.getElementById('settingsCompanyName');
+  if (companyEl) companyEl.innerText = adminData?.companyName || '-';
+  
+  const adminEl = document.getElementById('settingsAdminName');
+  if (adminEl) adminEl.innerText = adminData?.name || '-';
+  
+  // Vault Status
+  const vaultStatus = document.getElementById('vaultStatus');
+  const hasVault = localStorage.getItem('stock_vault_password');
+  if (hasVault) {
+    vaultStatus.style.background = '#e6f4ea';
+    vaultStatus.style.color = '#0f9d58';
+    vaultStatus.innerText = '✅ Vault Password সেট করা আছে';
+  } else {
+    vaultStatus.style.background = '#fef7e0';
+    vaultStatus.style.color = '#b06000';
+    vaultStatus.innerText = '⚠️ এখনো Vault Password সেট করা হয়নি';
+  }
+}
+
+// ============================================================
+// VAULT PASSWORD SETUP
+// ============================================================
+window.openVaultPasswordSetup = function() {
+  document.getElementById('vaultSetupModal').style.display = 'block';
+  document.getElementById('vaultSaveStatus').innerHTML = '';
+  
+  // আগের নাম্বার থাকলে দেখাও
+  const savedPhone = localStorage.getItem('stock_vault_phone') || '';
+  document.getElementById('vaultPhone').value = savedPhone;
+  
+  previewVaultPassword();
+};
+
+window.closeVaultSetup = function() {
+  document.getElementById('vaultSetupModal').style.display = 'none';
+};
+
+window.previewVaultPassword = function() {
+  const method = document.getElementById('vaultMethod').value;
+  const phone = document.getElementById('vaultPhone').value.trim();
+  const customWrap = document.getElementById('vaultCustomWrap');
+  const preview = document.getElementById('vaultPreview');
+  
+  if (method === 'custom') {
+    customWrap.style.display = 'block';
+    preview.innerText = '🔒 কাস্টম পাসওয়ার্ড ব্যবহার করুন';
+    return;
+  }
+  
+  customWrap.style.display = 'none';
+  
+  if (!phone || phone.length < 4) {
+    preview.innerText = '🔒 ফোন নাম্বার দিন';
+    return;
+  }
+  
+  let password = '';
+  if (method === 'last4') password = phone.slice(-4);
+  else if (method === 'last6') password = phone.slice(-6);
+  else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+  else if (method === 'first4') password = phone.slice(0, 4);
+  
+  preview.innerHTML = `🔒 পাসওয়ার্ড: <b>${password}</b>`;
+};
+
+window.saveVaultPassword = async function() {
+  const phone = document.getElementById('vaultPhone').value.trim();
+  const method = document.getElementById('vaultMethod').value;
+  const status = document.getElementById('vaultSaveStatus');
+  
+  if (!phone || phone.length < 10) {
+    status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ সঠিক ১০ ডিজিটের নাম্বার দিন</div>';
+    return;
+  }
+  
+  let password = '';
+  if (method === 'last4') password = phone.slice(-4);
+  else if (method === 'last6') password = phone.slice(-6);
+  else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+  else if (method === 'first4') password = phone.slice(0, 4);
+  else if (method === 'custom') {
+    password = document.getElementById('vaultCustomPwd').value.trim();
+    if (!password || password.length < 4) {
+      status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ কাস্টম পাসওয়ার্ড কমপক্ষে ৪ অক্ষর</div>';
+      return;
+    }
+  }
+  
+  // Simple hash (localStorage-এ প্লেইন রাখব না)
+  const hashed = simpleHash(password);
+  
+  localStorage.setItem('stock_vault_password', hashed);
+  localStorage.setItem('stock_vault_phone', phone);
+  localStorage.setItem('stock_vault_method', method);
+  
+  // Firebase-এ backup (ভবিষ্যতে OTP reset-এর জন্য)
+  if (adminId) {
+    try {
+      await updateDoc(doc(db, "admins", adminId), {
+        vaultPhone: phone,
+        vaultMethod: method,
+        vaultUpdatedAt: serverTimestamp()
+      });
+    } catch (e) {
+      console.log('Vault backup error:', e);
+    }
+  }
+  
+  status.innerHTML = '<div style="color:#0f9d58; font-size:13px;">✅ পাসওয়ার্ড সেভ হয়েছে!</div>';
+  
+  setTimeout(() => {
+    closeVaultSetup();
+    updateStockSettings();
+  }, 1500);
+};
+
+// Simple hash function
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return 'vault_' + Math.abs(hash).toString(36);
+}
+
+// ============================================================
+// CLEAR CATEGORIES
+// ============================================================
+window.clearAllCategories = async function() {
+  if (!confirm(`"${currentBizTypeName}"-এর সব ক্যাটাগরি মুছে ফেলবেন?`)) return;
+  if (!confirm('⚠️ সতর্কতা: এটা আর ফিরিয়ে আনা যাবে না। নিশ্চিত?')) return;
+  
+  try {
+    const q = query(
+      collection(db, "categories"),
+      where("adminId", "==", adminId),
+      where("businessType", "==", currentBizType)
+    );
+    const snap = await getDocs(q);
+    
+    for (const d of snap.docs) {
+      await deleteDoc(doc(db, "categories", d.id));
+    }
+    
+    alert(`✅ ${snap.size}টি ক্যাটাগরি মুছে ফেলা হয়েছে`);
+    closeStockSettings();
+    
+    // আবার ডিফল্ট তৈরি হবে
+    await loadCategories(currentBizType);
+  } catch (e) {
+    alert('❌ ' + e.message);
   }
 };
 
