@@ -890,17 +890,6 @@ async function loadCategories(bizType) {
   }
 }
     
-    currentCategories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    
-    renderCategories();
-    updateCategoryDropdowns();
-    
-    console.log(`✅ Loaded ${currentCategories.length} categories`);
-  } catch (e) {
-    console.error('❌ Load categories error:', e);
-  }
-}
 
 // ডিফল্ট ক্যাটাগরি তৈরি
 async function createDefaultCategories(bizType) {
