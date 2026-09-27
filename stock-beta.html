@@ -736,30 +736,36 @@ function updateBizTypeBadge() {
   }
 }
   // ==================== Business Selection ====================
-  window.selectBusiness = function(type, el) {
-    selectedBusiness = type;
-    document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
-    if (el) el.classList.add('selected');
+ window.selectBusiness = function(type, el) {
+  selectedBusiness = type;
+  currentBizType = type;
+  currentBizTypeName = BIZ_TYPE_NAMES[type] || type;
+  
+  document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  
+  setTimeout(async () => {
+    document.getElementById('businessSelectorPage').classList.remove('active');
+    document.getElementById('mainAppPage').classList.add('active');
+    document.getElementById('bottomNav').style.display = 'flex';
     
-    setTimeout(() => {
-      document.getElementById('businessSelectorPage').classList.remove('active');
-      document.getElementById('mainAppPage').classList.add('active');
-      document.getElementById('bottomNav').style.display = 'flex';
-      
-      const names = {
-        hardware: '🔨 Hardware', paints: '🎨 Paints', medicine: '💊 Medicine',
-        restaurant: '🍽️ Restaurant', fruits: '🥬 Fruits & Veg', grocery: '🛒 Grocery',
-        marble: '🏛️ Marble & Tiles', clothing: '👕 Clothing', electronics: '📱 Electronics',
-        auto: '🚗 Auto Parts', jewellery: '💎 Jewellery', cosmetics: '🧴 Cosmetics'
-      };
-      document.getElementById('topbarTitle').innerText = '📦 ' + (names[type] || 'Stock');
-      
-      // প্রথম পণ্য রো
-          if (productCount === 0) addProductRow();
-    updateSummary();  // ⬅️ নতুন লাইন
-    }, 250);
-  };
-
+    document.getElementById('topbarTitle').innerText = '📦 ' + (BIZ_TYPE_NAMES[type] || 'Stock');
+    
+    updateBizTypeBadge();
+    
+    // ⬇️⬇️⬇️ নতুন লাইন — পুরনো সব reset করুন
+    productCount = 0;
+    document.getElementById('productsList').innerHTML = '';
+    // ⬆️⬆️⬆️
+    
+    await saveBusinessType(type);
+    await loadCategories(type);
+    productCount = 0;
+    document.getElementById('productsList').innerHTML = '';
+    if (productCount === 0) addProductRow();
+    updateSummary();
+  }, 250);
+};
  // ============================================================
 // FIREBASE: BUSINESS TYPE + CATEGORIES
 // ============================================================
@@ -1079,11 +1085,19 @@ window.changeBusinessType = function() {
   if (!confirm('ব্যবসার ধরন পরিবর্তন করলে আগের ক্যাটাগরিগুলো মুছে যাবে। নিশ্চিত?')) return;
   
   closeCategoryModal();
+  
   document.getElementById('mainAppPage').classList.remove('active');
-  document.getElementById('businessSelectorPage').classList.add('active');
   document.getElementById('bottomNav').style.display = 'none';
+  document.getElementById('businessSelectorPage').classList.add('active');
+  
+  document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+  
+  // পুরনো সব reset
   productCount = 0;
   document.getElementById('productsList').innerHTML = '';
+  currentBizType = null;
+  currentBizTypeName = null;
+  currentCategories = [];
 };
   
   // ==================== Tab Switching ====================
@@ -2186,7 +2200,9 @@ onAuthStateChanged(auth, async (user) => {
     }, 100);
     
     await loadCategories(currentBizType);
-        if (productCount === 0) addProductRow();
+         productCount = 0;
+    document.getElementById('productsList').innerHTML = '';  
+    if (productCount === 0) addProductRow();
     updateSummary();  // ⬅️ নতুন লাইন
   }
   
