@@ -148,6 +148,39 @@
 .lang-item .flag { font-size: 22px; }
 .lang-item .check { color: #1a73e8; font-size: 18px; font-weight: bold; }
 
+/* Category Manager */
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.category-item .name { font-weight: 600; color: #202124; }
+.category-item .delete-btn {
+  background: #d93025;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.category-item.default-cat .delete-btn {
+  display: none;
+}
+.default-tag {
+  font-size: 10px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
 </style>
 </head>
 <body>
@@ -242,6 +275,15 @@
       <!-- Common Info -->
       <div class="card">
         <h3>📋 সাপ্লায়ার ও কমন তথ্য</h3>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+  <div id="bizTypeBadge" style="background:#e8f0fe; color:#1a73e8; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600;">
+    🏢 Business Type
+  </div>
+  <button onclick="openCategoryModal()" style="padding:6px 12px; background:#f0f2f5; color:#1a73e8; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+    ⚙️ Category Manager
+  </button>
+</div>
         
         <label>কোম্পানি / সাপ্লায়ার নাম <span class="required">*</span></label>
         <input type="text" id="supplierName" placeholder="যেমন: Gujarat Tiles Pvt Ltd">
@@ -395,7 +437,46 @@
 
 </div>
 
+<!-- ============ CATEGORY MANAGER MODAL ============ -->
+<div id="categoryModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:14px; max-width:520px; margin:20px auto; padding:20px; position:relative;">
+    
+    <span onclick="closeCategoryModal()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+    
+    <h3 style="color:#1a73e8; margin-bottom:16px; font-size:18px;">⚙️ Category Manager</h3>
+
+    <!-- Business Type Info -->
+    <div style="background:#e8f0fe; padding:12px; border-radius:8px; margin-bottom:16px;">
+      <div style="font-size:12px; color:#666;">বর্তমান ব্যবসার ধরন</div>
+      <div id="currentBizType" style="font-size:16px; font-weight:700; color:#1a73e8; margin-top:4px;">-</div>
+      <button onclick="changeBusinessType()" style="margin-top:8px; padding:6px 12px; background:#1a73e8; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer;">
+        🔄 পরিবর্তন করুন
+      </button>
+    </div>
+
+    <!-- Categories List -->
+    <h4 style="font-size:14px; color:#202124; margin-bottom:10px;">📦 ক্যাটাগরি তালিকা</h4>
+    <div id="categoryList" style="margin-bottom:16px;">
+      <div style="text-align:center; padding:20px; color:#999; font-size:13px;">লোড হচ্ছে...</div>
+    </div>
+
+    <!-- Add New Category -->
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:5px;">নতুন ক্যাটাগরি যোগ করুন</label>
+    <div style="display:flex; gap:8px;">
+      <input type="text" id="newCategoryName" placeholder="যেমন: Vitrified Tiles" 
+        style="flex:1; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+      <button onclick="addNewCategory()" style="padding:11px 16px; background:#0f9d58; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">
+        ➕ যোগ
+      </button>
+    </div>
+    <div id="categoryStatus" style="margin-top:10px;"></div>
+
+  </div>
+</div>
+
 <!-- ============ BOTTOM NAV ============ -->
+  
+  <!-- ============ BOTTOM NAV ============ -->
 <div class="bottom-nav" id="bottomNav" style="display: none;">
   <div class="nav-item active" onclick="switchTab('add', this)">
     <span class="icon">➕</span><span>Add</span>
@@ -412,6 +493,14 @@
 </div>
 
 <script type="module">
+ import { db } from './firebase-config-beta.js';
+import { 
+  collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { auth } from './firebase-config-beta.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  
   import { 
     t, 
     setLanguage as i18nSetLanguage, 
@@ -433,6 +522,36 @@
   let selectedBusiness = null;
   let productCount = 0;
   let optionalVisible = false;
+
+  let adminId = null;
+let adminData = null;
+let currentCategories = [];
+let currentBizType = null;
+let currentBizTypeName = null;
+
+// ডিফল্ট ক্যাটাগরি — প্রতিটি Business Type-এর জন্য
+const DEFAULT_CATEGORIES = {
+  hardware:   ['Tiles', 'Adhesive', 'Cement', 'Paint', 'Sanitary', 'Fittings', 'Tools'],
+  paints:     ['Interior', 'Exterior', 'Primer', 'Thinner', 'Brush', 'Roller'],
+  medicine:   ['Tablet', 'Syrup', 'Injection', 'Ointment', 'Drops', 'Bandage'],
+  restaurant: ['Starter', 'Main Course', 'Dessert', 'Beverage', 'Combo'],
+  fruits:     ['Fruits', 'Vegetables', 'Herbs', 'Dry Fruits'],
+  grocery:    ['Rice & Dal', 'Oil & Ghee', 'Spices', 'Snacks', 'Beverages'],
+  marble:     ['Marble', 'Granite', 'Tiles', 'Adhesive', 'Polish'],
+  clothing:   ['Shirt', 'Pant', 'Saree', 'Kids', 'Accessories'],
+  electronics:['Mobile', 'Laptop', 'TV', 'Accessories', 'Charger'],
+  auto:       ['Engine Parts', 'Body Parts', 'Electricals', 'Tyres', 'Oil'],
+  jewellery:  ['Gold', 'Silver', 'Diamond', 'Imitation', 'Stones'],
+  cosmetics:  ['Skin Care', 'Hair Care', 'Makeup', 'Fragrance', 'Tools']
+};
+
+// Business Type নাম
+const BIZ_TYPE_NAMES = {
+  hardware: '🔨 Hardware', paints: '🎨 Paints', medicine: '💊 Medicine',
+  restaurant: '🍽️ Restaurant', fruits: '🥬 Fruits & Veg', grocery: '🛒 Grocery',
+  marble: '🏛️ Marble & Tiles', clothing: '👕 Clothing', electronics: '📱 Electronics',
+  auto: '🚗 Auto Parts', jewellery: '💎 Jewellery', cosmetics: '🧴 Cosmetics'
+};
 
   // ==================== Language Dropdown (Custom) ====================
 function buildLangMenu() {
@@ -517,6 +636,201 @@ function initLangButton() {
     }, 250);
   };
 
+ // ============================================================
+// FIREBASE: BUSINESS TYPE + CATEGORIES
+// ============================================================
+
+// Business Type সেভ
+async function saveBusinessType(type) {
+  if (!adminId) return;
+  try {
+    await updateDoc(doc(db, "admins", adminId), {
+      businessType: type,
+      businessTypeName: BIZ_TYPE_NAMES[type] || type,
+      updatedAt: serverTimestamp()
+    });
+    console.log('✅ Business Type saved:', type);
+  } catch (e) {
+    console.error('❌ Business Type save error:', e);
+  }
+}
+
+// Categories লোড
+async function loadCategories(bizType) {
+  if (!adminId) return;
+  
+  try {
+    const q = query(
+      collection(db, "categories"),
+      where("adminId", "==", adminId),
+      where("businessType", "==", bizType)
+    );
+    
+    const snap = await getDocs(q);
+    
+    if (snap.empty) {
+      // প্রথমবার — ডিফল্ট ক্যাটাগরি তৈরি করো
+      await createDefaultCategories(bizType);
+      return loadCategories(bizType);  // আবার লোড
+    }
+    
+    currentCategories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    renderCategories();
+    updateCategoryDropdowns();
+    
+    console.log(`✅ Loaded ${currentCategories.length} categories`);
+  } catch (e) {
+    console.error('❌ Load categories error:', e);
+  }
+}
+
+// ডিফল্ট ক্যাটাগরি তৈরি
+async function createDefaultCategories(bizType) {
+  const defaults = DEFAULT_CATEGORIES[bizType] || ['Others'];
+  
+  for (const name of defaults) {
+    await addDoc(collection(db, "categories"), {
+      adminId: adminId,
+      businessType: bizType,
+      name: name,
+      isDefault: true,
+      createdAt: serverTimestamp()
+    });
+  }
+  
+  console.log(`✅ Created ${defaults.length} default categories`);
+}
+
+// ক্যাটাগরি Render (Manager Modal-এ)
+function renderCategories() {
+  const listEl = document.getElementById('categoryList');
+  if (!listEl) return;
+  
+  if (currentCategories.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-size:13px;">কোনো ক্যাটাগরি নেই</div>';
+    return;
+  }
+  
+  let html = '';
+  currentCategories.forEach(cat => {
+    html += `
+      <div class="category-item ${cat.isDefault ? 'default-cat' : ''}">
+        <div>
+          <span class="name">${cat.name}</span>
+          ${cat.isDefault ? '<span class="default-tag">Default</span>' : ''}
+        </div>
+        <button class="delete-btn" onclick="deleteCategory('${cat.id}')">🗑️</button>
+      </div>
+    `;
+  });
+  
+  listEl.innerHTML = html;
+}
+
+// ড্রপডাউন আপডেট (সব পণ্য রো-তে)
+function updateCategoryDropdowns() {
+  document.querySelectorAll('.p-category').forEach(select => {
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">-- সিলেক্ট --</option>';
+    
+    currentCategories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.name.toLowerCase().replace(/\s+/g, '_');
+      opt.textContent = cat.name;
+      opt.dataset.categoryId = cat.id;
+      select.appendChild(opt);
+    });
+    
+    // আগের মান পুনরুদ্ধার
+    if (currentValue) select.value = currentValue;
+  });
+}
+
+// নতুন ক্যাটাগরি যোগ
+window.addNewCategory = async function() {
+  const input = document.getElementById('newCategoryName');
+  const name = input.value.trim();
+  const statusEl = document.getElementById('categoryStatus');
+  
+  if (!name) {
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">⚠️ ক্যাটাগরির নাম দিন</div>';
+    return;
+  }
+  
+  // ডুপ্লিকেট চেক
+  if (currentCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">⚠️ এই ক্যাটাগরি আগেই আছে</div>';
+    return;
+  }
+  
+  try {
+    await addDoc(collection(db, "categories"), {
+      adminId: adminId,
+      businessType: currentBizType,
+      name: name,
+      isDefault: false,
+      createdAt: serverTimestamp()
+    });
+    
+    input.value = '';
+    statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ ক্যাটাগরি যোগ হয়েছে</div>';
+    
+    // আবার লোড
+    await loadCategories(currentBizType);
+    
+    setTimeout(() => statusEl.innerHTML = '', 2500);
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">❌ এরর: ' + e.message + '</div>';
+  }
+};
+
+// ক্যাটাগরি ডিলিট
+window.deleteCategory = async function(catId) {
+  const cat = currentCategories.find(c => c.id === catId);
+  if (!cat) return;
+  
+  if (cat.isDefault) {
+    alert('ডিফল্ট ক্যাটাগরি মুছে ফেলা যাবে না');
+    return;
+  }
+  
+  if (!confirm(`"${cat.name}" ক্যাটাগরিটি মুছে ফেলবেন?`)) return;
+  
+  try {
+    await deleteDoc(doc(db, "categories", catId));
+    await loadCategories(currentBizType);
+    console.log('✅ Category deleted');
+  } catch (e) {
+    alert('❌ ' + e.message);
+  }
+};
+
+// Category Modal খোলা/বন্ধ
+window.openCategoryModal = async function() {
+  document.getElementById('categoryModal').style.display = 'block';
+  document.getElementById('currentBizType').innerText = currentBizTypeName || '-';
+  await loadCategories(currentBizType);
+};
+
+window.closeCategoryModal = function() {
+  document.getElementById('categoryModal').style.display = 'none';
+  document.getElementById('categoryStatus').innerHTML = '';
+};
+
+window.changeBusinessType = function() {
+  if (!confirm('ব্যবসার ধরন পরিবর্তন করলে আগের ক্যাটাগরিগুলো মুছে যাবে। নিশ্চিত?')) return;
+  
+  closeCategoryModal();
+  document.getElementById('mainAppPage').classList.remove('active');
+  document.getElementById('businessSelectorPage').classList.add('active');
+  document.getElementById('bottomNav').style.display = 'none';
+  productCount = 0;
+  document.getElementById('productsList').innerHTML = '';
+};
+  
   // ==================== Tab Switching ====================
   window.switchTab = function(tab, el) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -718,10 +1032,59 @@ window.editOptionalLabel = function() {
     alert('⚙️ Settings — Phase 5-এ কাজ করবে');
   };
 
-  window.handleLogout = function() {
-    if (confirm('লগআউট করবেন?')) location.href = 'beta.html';
-  };
+ window.handleLogout = async function() {
+  if (!confirm('লগআউট করবেন?')) return;
+  try {
+    await signOut(auth);
+    window.location.href = 'beta.html';
+  } catch (e) {
+    alert('❌ ' + e.message);
+  }
+};
 
+  // ============================================================
+// AUTH CHECK
+// ============================================================
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    // লগইন নেই → beta.html এ পাঠান
+    window.location.href = 'beta.html';
+    return;
+  }
+  
+  adminId = user.uid;
+  const snap = await getDoc(doc(db, "admins", adminId));
+  
+  if (!snap.exists()) {
+    alert('অ্যাডমিন ডেটা পাওয়া যায়নি');
+    window.location.href = 'beta.html';
+    return;
+  }
+  
+  adminData = snap.data();
+  
+  // Business Type আগে সেট করা থাকলে সরাসরি Main App-এ যান
+  if (adminData.businessType) {
+    currentBizType = adminData.businessType;
+    currentBizTypeName = adminData.businessTypeName || BIZ_TYPE_NAMES[adminData.businessType];
+    selectedBusiness = adminData.businessType;
+    
+    document.getElementById('businessSelectorPage').classList.remove('active');
+    document.getElementById('mainAppPage').classList.add('active');
+    document.getElementById('bottomNav').style.display = 'flex';
+    document.getElementById('topbarTitle').innerText = '📦 ' + currentBizTypeName;
+    
+    const badge = document.getElementById('bizTypeBadge');
+    if (badge) badge.innerText = currentBizTypeName;
+    
+    await loadCategories(currentBizType);
+    if (productCount === 0) addProductRow();
+  }
+  
+  console.log('✅ Auth ready. Admin:', adminData.companyName || adminData.name);
+});
+  
   // ==================== Init ====================
  initLanguage();
 initLangButton();
