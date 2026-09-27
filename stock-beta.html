@@ -4,17 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📦 Stock Management</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<!--
+  ============================================================
+  📦 STOCK MANAGEMENT MODULE (Beta)
+  ============================================================
+  Module ID: stock_management
+  Module Price: ₹1000/month (future)
+  
+  ভবিষ্যতে Subscription System-এর সাথে যুক্ত হবে:
+  adminData.subscription.modules.stock_management.active === true
+  
+  Version: 2.0 (Multi-Language + GST + HSN + Smart Cost Split)
+  File: stock-beta.html
+  ============================================================
+-->
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; min-height: 100vh; padding-bottom: 80px; }
   
   /* Topbar */
-  .topbar { background: linear-gradient(135deg, #1a73e8, #4285f4); color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-  .topbar h2 { font-size: 16px; font-weight: 600; }
-  .topbar .logout { background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .topbar { background: linear-gradient(135deg, #1a73e8, #4285f4); color: white; padding: 12px 14px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .topbar h2 { font-size: 15px; font-weight: 600; }
+  .topbar-right { display: flex; gap: 8px; align-items: center; }
+  .topbar select { background: rgba(255,255,255,0.18); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 5px 8px; font-size: 11px; cursor: pointer; }
+  .topbar select option { color: #000; background: #fff; }
+  .topbar .logout { background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; }
   
   /* Container */
-  .container { padding: 14px; max-width: 700px; margin: 0 auto; }
+  .container { padding: 14px; max-width: 750px; margin: 0 auto; }
   
   /* Business Selector */
   .business-selector { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -49,9 +70,7 @@
   .btn-primary { background: #1a73e8; color: white; width: 100%; }
   .btn-primary:hover { background: #1557b0; }
   .btn-success { background: #0f9d58; color: white; }
-  .btn-danger { background: #d93025; color: white; }
   .btn-secondary { background: #5f6368; color: white; }
-  .btn-small { padding: 6px 10px; font-size: 12px; }
   
   /* Radio Group */
   .radio-group { display: flex; gap: 8px; margin-top: 6px; }
@@ -59,7 +78,7 @@
   .radio-option.selected { border-color: #1a73e8; background: #e8f0fe; color: #1a73e8; }
   
   /* Product Row */
-  .product-row { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; margin-bottom: 12px; position: relative; }
+  .product-row { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
   .product-row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
   .product-row-header .num { font-size: 13px; font-weight: 700; color: #1a73e8; }
   .product-row-header .remove { background: #d93025; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
@@ -80,10 +99,11 @@
   .add-product-btn { width: 100%; padding: 14px; background: #e8f0fe; color: #1a73e8; border: 2px dashed #1a73e8; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 14px; }
   .add-product-btn:hover { background: #d2e3fc; }
   
-  /* Vault Input */
-  .vault-input { position: relative; }
-  .vault-input input { padding-right: 40px; background: #fef7e0; }
-  .vault-lock { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; }
+  /* Optional (Hidden) Input */
+  .optional-wrap { position: relative; }
+  .optional-wrap input { padding-right: 40px; background: #fef7e0; }
+  .optional-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; }
+  .optional-hint { font-size: 11px; color: #b06000; margin-top: 4px; font-weight: 600; }
   
   /* Bottom Nav */
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #e0e0e0; z-index: 99; }
@@ -98,9 +118,12 @@
   /* Empty State */
   .empty { text-align: center; color: #999; padding: 30px; font-size: 13px; }
   
-  /* Small Helper */
+  /* Helper */
   .helper { font-size: 11px; color: #999; margin-top: 4px; }
   .required { color: #d93025; }
+  
+  /* Section Divider */
+  .section-divider { font-size: 12px; font-weight: 700; color: #1a73e8; margin: 14px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #e8f0fe; }
 </style>
 </head>
 <body>
@@ -108,12 +131,17 @@
 <!-- ============ TOPBAR ============ -->
 <div class="topbar">
   <h2 id="topbarTitle">📦 Stock Management</h2>
-  <div class="logout" onclick="handleLogout()">Logout</div>
+  <div class="topbar-right">
+    <select id="languageSelector" onchange="changeLanguage(this.value)">
+      <!-- Language options JS দিয়ে পপুলেট হবে -->
+    </select>
+    <div class="logout" onclick="handleLogout()">Logout</div>
+  </div>
 </div>
 
 <div class="container">
 
-  <!-- ============ BUSINESS TYPE SELECTOR ============ -->
+  <!-- ============ BUSINESS SELECTOR ============ -->
   <div id="businessSelectorPage" class="page active">
     <div class="business-selector">
       <h3>🏢 আপনার ব্যবসার ধরন সিলেক্ট করুন</h3>
@@ -122,53 +150,41 @@
       </p>
       
       <div class="business-grid">
-        <div class="business-card" onclick="selectBusiness('hardware')">
-          <div class="icon">🔨</div>
-          <div class="name">Hardware</div>
+        <div class="business-card" onclick="selectBusiness('hardware', this)">
+          <div class="icon">🔨</div><div class="name">Hardware</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('paints')">
-          <div class="icon">🎨</div>
-          <div class="name">Paints</div>
+        <div class="business-card" onclick="selectBusiness('paints', this)">
+          <div class="icon">🎨</div><div class="name">Paints</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('medicine')">
-          <div class="icon">💊</div>
-          <div class="name">Medicine</div>
+        <div class="business-card" onclick="selectBusiness('medicine', this)">
+          <div class="icon">💊</div><div class="name">Medicine</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('restaurant')">
-          <div class="icon">🍽️</div>
-          <div class="name">Restaurant</div>
+        <div class="business-card" onclick="selectBusiness('restaurant', this)">
+          <div class="icon">🍽️</div><div class="name">Restaurant</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('fruits')">
-          <div class="icon">🥬</div>
-          <div class="name">Fruits & Veg</div>
+        <div class="business-card" onclick="selectBusiness('fruits', this)">
+          <div class="icon">🥬</div><div class="name">Fruits & Veg</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('grocery')">
-          <div class="icon">🛒</div>
-          <div class="name">Grocery</div>
+        <div class="business-card" onclick="selectBusiness('grocery', this)">
+          <div class="icon">🛒</div><div class="name">Grocery</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('marble')">
-          <div class="icon">🏛️</div>
-          <div class="name">Marble & Tiles</div>
+        <div class="business-card" onclick="selectBusiness('marble', this)">
+          <div class="icon">🏛️</div><div class="name">Marble & Tiles</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('clothing')">
-          <div class="icon">👕</div>
-          <div class="name">Clothing</div>
+        <div class="business-card" onclick="selectBusiness('clothing', this)">
+          <div class="icon">👕</div><div class="name">Clothing</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('electronics')">
-          <div class="icon">📱</div>
-          <div class="name">Electronics</div>
+        <div class="business-card" onclick="selectBusiness('electronics', this)">
+          <div class="icon">📱</div><div class="name">Electronics</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('auto')">
-          <div class="icon">🚗</div>
-          <div class="name">Auto Parts</div>
+        <div class="business-card" onclick="selectBusiness('auto', this)">
+          <div class="icon">🚗</div><div class="name">Auto Parts</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('jewellery')">
-          <div class="icon">💎</div>
-          <div class="name">Jewellery</div>
+        <div class="business-card" onclick="selectBusiness('jewellery', this)">
+          <div class="icon">💎</div><div class="name">Jewellery</div>
         </div>
-        <div class="business-card" onclick="selectBusiness('cosmetics')">
-          <div class="icon">🧴</div>
-          <div class="name">Cosmetics</div>
+        <div class="business-card" onclick="selectBusiness('cosmetics', this)">
+          <div class="icon">🧴</div><div class="name">Cosmetics</div>
         </div>
       </div>
     </div>
@@ -177,7 +193,6 @@
   <!-- ============ MAIN APP ============ -->
   <div id="mainAppPage" class="page">
     
-    <!-- Tabs -->
     <div class="tabs">
       <div class="tab active" onclick="switchTab('add', this)">➕ Add Stock</div>
       <div class="tab" onclick="switchTab('list', this)">📋 Stock List</div>
@@ -187,12 +202,16 @@
     <!-- ============ ADD STOCK TAB ============ -->
     <div id="tab-add" class="tab-content page active">
       
-      <!-- Common Info Card -->
+      <!-- Common Info -->
       <div class="card">
-        <h3>📋 কমন তথ্য</h3>
+        <h3>📋 সাপ্লায়ার ও কমন তথ্য</h3>
         
-        <label>কোম্পানি / সাপ্লায়ার <span class="required">*</span></label>
-        <input type="text" id="companyName" placeholder="যেমন: Gujarat Tiles">
+        <label>কোম্পানি / সাপ্লায়ার নাম <span class="required">*</span></label>
+        <input type="text" id="supplierName" placeholder="যেমন: Gujarat Tiles Pvt Ltd">
+        
+        <label>সাপ্লায়ারের GST নাম্বার <span class="required">*</span></label>
+        <input type="text" id="supplierGst" placeholder="24AAAAA0000A1Z5" maxlength="15" style="text-transform: uppercase;">
+        <div class="helper">রিটার্ন ও রিপোর্টের জন্য প্রয়োজন</div>
         
         <div class="row-2">
           <div>
@@ -207,80 +226,70 @@
         
         <label>উৎস <span class="required">*</span></label>
         <div class="radio-group">
-          <div class="radio-option selected" onclick="selectRadio('source', 'local', this)">
-            🏠 Local
-          </div>
-          <div class="radio-option" onclick="selectRadio('source', 'import', this)">
-            ✈️ Import
-          </div>
+          <div class="radio-option selected" onclick="selectRadio('source', 'local', this)">🏠 Local</div>
+          <div class="radio-option" onclick="selectRadio('source', 'import', this)">✈️ Import</div>
         </div>
         
         <label>পরিবহন পদ্ধতি <span class="required">*</span></label>
         <div class="radio-group">
-          <div class="radio-option selected" onclick="selectRadio('transport', 'lorry', this)">
-            🚛 লরি
-          </div>
-          <div class="radio-option" onclick="selectRadio('transport', 'container', this)">
-            📦 কনটেইনার
-          </div>
+          <div class="radio-option selected" onclick="selectRadio('transport', 'lorry', this)">🚛 লরি</div>
+          <div class="radio-option" onclick="selectRadio('transport', 'container', this)">📦 কনটেইনার</div>
         </div>
         
         <label>পরিবহন রেট (₹/টন)</label>
         <input type="number" id="transportRate" placeholder="4800">
-        <div class="helper">মোট ওজনের উপর ভিত্তি করে অটো হিসাব হবে</div>
+        <div class="helper">মোট ওজন অনুপাতে প্রতিটি পণ্যে ভাগ হবে</div>
       </div>
 
-      <!-- Additional Costs Card -->
+      <!-- Additional Costs (Whole Bill) -->
       <div class="card">
-        <h3>💰 অতিরিক্ত খরচ</h3>
+        <h3>💰 অতিরিক্ত খরচ (পুরো বিলের জন্য)</h3>
+        <p class="helper" style="margin-bottom: 10px;">
+          ⚠️ এই খরচগুলো একটি নির্দিষ্ট পণ্যের নয়, পুরো বিলের। ওজনের অনুপাতে প্রতিটি পণ্যে ভাগ হবে।
+        </p>
         
         <div class="row-2">
           <div>
             <label>🟢 লোডিং (₹)</label>
-            <input type="number" id="loadingCost" placeholder="0" style="background: #e6f4ea;">
+            <input type="number" id="loadingCost" placeholder="যেমন: 10000" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟢 আনলোডিং (₹)</label>
-            <input type="number" id="unloadingCost" placeholder="0" style="background: #e6f4ea;">
+            <input type="number" id="unloadingCost" placeholder="যেমন: 12000" style="background: #e6f4ea;">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>🟢 ইন্সুরেন্স (₹)</label>
-            <input type="number" id="insuranceCost" placeholder="0" style="background: #e6f4ea;">
+            <input type="number" id="insuranceCost" placeholder="যেমন: 1500" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟢 অন্যান্য (₹)</label>
-            <input type="number" id="otherPakka" placeholder="0" style="background: #e6f4ea;">
+            <input type="number" id="otherPakka" placeholder="যেমন: 300" style="background: #e6f4ea;">
           </div>
         </div>
         
-        <label>🔴 অন্যান্য কাঁচা (₹) 🔒</label>
-        <div class="vault-input">
-          <input type="number" id="otherKacha" placeholder="0" style="background: #fce8e6;">
-          <span class="vault-lock" onclick="toggleVault()">🔒</span>
+        <label>🟡 Optional খরচ (₹) <span style="font-size:11px; color:#b06000;">(প্রাইভেট)</span></label>
+        <div class="optional-wrap">
+          <input type="number" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
+          <span class="optional-icon" onclick="toggleOptional()">👁️</span>
         </div>
-        <div class="helper">🔒 কাঁচা হিসাব লুকানো থাকে, পাসওয়ার্ড দিলে দেখাবে</div>
+        <div class="optional-hint" id="optionalHint">🔒 এই খরচ শুধু অ্যাডমিন দেখতে পাবেন</div>
       </div>
 
-      <!-- Products Card -->
+      <!-- Products -->
       <div class="card">
         <h3>📦 পণ্যের তালিকা</h3>
-        
-        <div id="productsList">
-          <!-- Product rows will be added here -->
-        </div>
-        
+        <div id="productsList"></div>
         <button class="add-product-btn" onclick="addProductRow()">
           ➕ আরেকটি পণ্য যোগ করুন
         </button>
       </div>
 
-      <!-- Summary Card -->
+      <!-- Summary -->
       <div class="card">
         <h3>📊 সারসংক্ষেপ (Auto)</h3>
-        
         <div class="summary-box">
           <div class="summary-row">
             <span>মোট বক্স</span>
@@ -295,12 +304,16 @@
             <span id="sumPakka">₹0</span>
           </div>
           <div class="summary-row">
-            <span>🔴 মোট কাঁচা 🔒</span>
-            <span id="sumKacha">₹•••</span>
+            <span>🟡 Optional মোট</span>
+            <span id="sumOptional">₹•••</span>
           </div>
           <div class="summary-row">
             <span>পরিবহন</span>
             <span id="sumTransport">₹0</span>
+          </div>
+          <div class="summary-row">
+            <span>অতিরিক্ত খরচ</span>
+            <span id="sumExtra">₹0</span>
           </div>
           <div class="summary-row">
             <span>🎯 Landing Cost</span>
@@ -333,9 +346,7 @@
     <div id="tab-dashboard" class="tab-content page">
       <div class="card">
         <h3>📊 Dashboard</h3>
-        <div class="empty">
-          এন্ট্রি করার পর এখানে পরিসংখ্যান দেখা যাবে
-        </div>
+        <div class="empty">এন্ট্রি করার পর এখানে পরিসংখ্যান দেখা যাবে</div>
       </div>
     </div>
 
@@ -346,109 +357,112 @@
 <!-- ============ BOTTOM NAV ============ -->
 <div class="bottom-nav" id="bottomNav" style="display: none;">
   <div class="nav-item active" onclick="switchTab('add', this)">
-    <span class="icon">➕</span>
-    <span>Add</span>
+    <span class="icon">➕</span><span>Add</span>
   </div>
   <div class="nav-item" onclick="switchTab('list', this)">
-    <span class="icon">📋</span>
-    <span>List</span>
+    <span class="icon">📋</span><span>List</span>
   </div>
   <div class="nav-item" onclick="switchTab('dashboard', this)">
-    <span class="icon">📊</span>
-    <span>Dashboard</span>
+    <span class="icon">📊</span><span>Dashboard</span>
   </div>
   <div class="nav-item" onclick="showSettings()">
-    <span class="icon">⚙️</span>
-    <span>Settings</span>
+    <span class="icon">⚙️</span><span>Settings</span>
   </div>
 </div>
 
-<!--
-  ============================================================
-  Stock Management Module
-  ============================================================
-  Module ID: stock_management
-  Module Price: ₹1000/month
-  
-  এই ফাইলটি ভবিষ্যতে Subscription System-এর সাথে যুক্ত হবে:
-  adminData.subscription.modules.stock_management.active === true
-  ============================================================
--->
-  
-  <script type="module">
-  // ============================================
-  // PHASE 1 — Layout Only (No Logic)
-  // শুধু UI দেখানোর জন্য, সেভ হবে না
-  // ============================================
+<script type="module">
+  import { 
+    t, 
+    setLanguage as i18nSetLanguage, 
+    getLanguage, 
+    initLanguage, 
+    applyTranslations, 
+    autoTagTranslations, 
+    autoTagPlaceholders, 
+    autoTranslateAll, 
+    startMutationObserver,
+    LANGUAGES 
+  } from './i18n.js';
+
+  // ============================================================
+  // STOCK MANAGEMENT MODULE - Phase 1 Layout
+  // Module ID: stock_management
+  // ============================================================
 
   let selectedBusiness = null;
   let productCount = 0;
-  let vaultUnlocked = false;
+  let optionalVisible = false;
+
+  // ==================== Language Setup ====================
+  function populateLanguageDropdown() {
+    const sel = document.getElementById('languageSelector');
+    if (!sel) return;
+    sel.innerHTML = '';
+    const current = getLanguage();
+    
+    LANGUAGES.forEach(lang => {
+      const opt = document.createElement('option');
+      opt.value = lang.code;
+      opt.innerText = `${lang.flag} ${lang.name}`;
+      if (lang.code === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  window.changeLanguage = function(lang) {
+    if (i18nSetLanguage(lang)) {
+      populateLanguageDropdown();
+      setTimeout(() => {
+        autoTranslateAll();
+      }, 100);
+    }
+  };
 
   // ==================== Business Selection ====================
-  window.selectBusiness = function(type) {
+  window.selectBusiness = function(type, el) {
     selectedBusiness = type;
-    
-    // সব কার্ড থেকে selected সরান
     document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+    if (el) el.classList.add('selected');
     
-    // সিলেক্ট করা কার্ডে selected যোগ
-    event.target.closest('.business-card').classList.add('selected');
-    
-    // ৩০০ms পর main app দেখাও
     setTimeout(() => {
       document.getElementById('businessSelectorPage').classList.remove('active');
       document.getElementById('mainAppPage').classList.add('active');
       document.getElementById('bottomNav').style.display = 'flex';
       
-      // Topbar-এ business type দেখাও
       const names = {
-        hardware: '🔨 Hardware',
-        paints: '🎨 Paints',
-        medicine: '💊 Medicine',
-        restaurant: '🍽️ Restaurant',
-        fruits: '🥬 Fruits & Veg',
-        grocery: '🛒 Grocery',
-        marble: '🏛️ Marble & Tiles',
-        clothing: '👕 Clothing',
-        electronics: '📱 Electronics',
-        auto: '🚗 Auto Parts',
-        jewellery: '💎 Jewellery',
-        cosmetics: '🧴 Cosmetics'
+        hardware: '🔨 Hardware', paints: '🎨 Paints', medicine: '💊 Medicine',
+        restaurant: '🍽️ Restaurant', fruits: '🥬 Fruits & Veg', grocery: '🛒 Grocery',
+        marble: '🏛️ Marble & Tiles', clothing: '👕 Clothing', electronics: '📱 Electronics',
+        auto: '🚗 Auto Parts', jewellery: '💎 Jewellery', cosmetics: '🧴 Cosmetics'
       };
       document.getElementById('topbarTitle').innerText = '📦 ' + (names[type] || 'Stock');
       
-      // প্রথম পণ্য রো যোগ করো
-      addProductRow();
+      // প্রথম পণ্য রো
+      if (productCount === 0) addProductRow();
     }, 250);
   };
 
   // ==================== Tab Switching ====================
   window.switchTab = function(tab, el) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab)?.classList.add('active');
     
     document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.bottom-nav .nav-item').forEach(t => t.classList.remove('active'));
     
     if (el) {
-      if (el.classList.contains('tab')) {
-        el.classList.add('active');
-      } else {
-        el.classList.add('active');
-        // Top tab sync
+      el.classList.add('active');
+      if (el.classList.contains('nav-item')) {
         const tabs = document.querySelectorAll('.tabs .tab');
-        if (tab === 'add') tabs[0]?.classList.add('active');
-        if (tab === 'list') tabs[1]?.classList.add('active');
-        if (tab === 'dashboard') tabs[2]?.classList.add('active');
+        const idx = { add: 0, list: 1, dashboard: 2 }[tab];
+        if (idx !== undefined && tabs[idx]) tabs[idx].classList.add('active');
       }
     }
   };
 
-  // ==================== Radio Selection ====================
+  // ==================== Radio ====================
   window.selectRadio = function(groupName, value, el) {
-    const parent = el.parentElement;
-    parent.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
     el.classList.add('selected');
   };
 
@@ -464,60 +478,74 @@
           <span class="remove" onclick="removeProductRow(${id})">🗑️ মুছুন</span>
         </div>
         
-        <label>ক্যাটাগরি <span class="required">*</span></label>
-        <select>
-          <option value="">-- সিলেক্ট করুন --</option>
-          <option value="tiles">Tiles</option>
-          <option value="adhesive">Adhesive</option>
-          <option value="cement">Cement</option>
-          <option value="paint">Paint</option>
-          <option value="sanitary">Sanitary</option>
-          <option value="fittings">Fittings</option>
-          <option value="tools">Tools</option>
-        </select>
-        
-        <label>ব্র্যান্ড / কোম্পানি</label>
-        <input type="text" placeholder="যেমন: Kohinoor">
+        <label>পণ্যের নাম <span class="required">*</span></label>
+        <input type="text" class="p-name" placeholder="যেমন: Vitrified Tile 4x2">
         
         <div class="row-2">
           <div>
+            <label>ক্যাটাগরি <span class="required">*</span></label>
+            <select class="p-category">
+              <option value="">-- সিলেক্ট --</option>
+              <option value="tiles">Tiles</option>
+              <option value="adhesive">Adhesive</option>
+              <option value="cement">Cement</option>
+              <option value="paint">Paint</option>
+              <option value="sanitary">Sanitary</option>
+              <option value="fittings">Fittings</option>
+              <option value="tools">Tools</option>
+            </select>
+          </div>
+          <div>
+            <label>ব্র্যান্ড</label>
+            <input type="text" class="p-brand" placeholder="যেমন: Kohinoor">
+          </div>
+        </div>
+        
+        <div class="row-2">
+          <div>
+            <label>HSN Code <span class="required">*</span></label>
+            <input type="text" class="p-hsn" placeholder="যেমন: 6907" maxlength="8">
+          </div>
+          <div>
+            <label>GST %</label>
+            <input type="number" class="p-gst" placeholder="18">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div>
             <label>সাইজ</label>
-            <input type="text" placeholder="4' × 2'">
+            <input type="text" class="p-size" placeholder="4' × 2'">
           </div>
           <div>
             <label>পিস/বক্স</label>
-            <input type="number" placeholder="2">
+            <input type="number" class="p-pieces" placeholder="2">
+          </div>
+          <div>
+            <label>স্কয়ার ফিট</label>
+            <input type="number" class="p-sqft" placeholder="15.55">
           </div>
         </div>
         
         <div class="row-3">
           <div>
             <label>ওজন/বক্স (kg)</label>
-            <input type="number" placeholder="27">
-          </div>
-          <div>
-            <label>স্কয়ার ফিট</label>
-            <input type="number" placeholder="15.55">
+            <input type="number" class="p-weight" placeholder="27">
           </div>
           <div>
             <label>বক্স সংখ্যা</label>
-            <input type="number" placeholder="100">
+            <input type="number" class="p-boxes" placeholder="100">
+          </div>
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="15" style="background: #e6f4ea;">
           </div>
         </div>
         
-        <div class="row-3">
-          <div>
-            <label>🟢 পাকা রেট</label>
-            <input type="number" placeholder="15" style="background: #e6f4ea;">
-          </div>
-          <div>
-            <label>🔴 কাঁচা রেট 🔒</label>
-            <input type="number" placeholder="12" style="background: #fce8e6;">
-          </div>
-          <div>
-            <label>GST %</label>
-            <input type="number" placeholder="18">
-          </div>
+        <label>🟡 Optional রেট (₹/sqft)</label>
+        <div class="optional-wrap">
+          <input type="number" class="p-optional" placeholder="12" style="background: #fef7e0;">
+          <span class="optional-icon" onclick="toggleOptional()">👁️</span>
         </div>
         
         <label>📸 ছবি ও ভিডিও</label>
@@ -528,15 +556,14 @@
           </div>
           <div class="upload-box" onclick="alert('Phase 3-এ কাজ করবে')">
             <div class="icon">🖼️</div>
-            <div class="label">গ্যালারি</div>
+            <div class="label">গ্যালারি (৫টি)</div>
           </div>
           <div class="upload-box" onclick="alert('Phase 3-এ কাজ করবে')">
             <div class="icon">🎥</div>
-            <div class="label">ভিডিও</div>
+            <div class="label">ভিডিও (YouTube)</div>
           </div>
         </div>
         <div class="helper">📷 ক্যামেরা বা গ্যালারি থেকে (সরাসরি URL নয়)</div>
-        
       </div>
     `;
     
@@ -548,28 +575,24 @@
       alert('কমপক্ষে একটি পণ্য থাকতে হবে');
       return;
     }
-    const row = document.getElementById('product-row-' + id);
-    if (row) {
-      row.remove();
-      productCount--;
-    }
+    document.getElementById('product-row-' + id)?.remove();
+    productCount--;
   };
 
-  // ==================== Vault ====================
-  window.toggleVault = function() {
-    const input = document.getElementById('otherKacha');
-    if (vaultUnlocked) {
-      input.type = 'password';
-      vaultUnlocked = false;
-    } else {
-      const pwd = prompt('🔒 Vault Password দিন:');
-      if (pwd === '1234') {
-        input.type = 'number';
-        vaultUnlocked = true;
-        alert('✅ Vault আনলক হয়েছে');
-      } else if (pwd !== null) {
-        alert('❌ ভুল পাসওয়ার্ড');
-      }
+  // ==================== Optional Toggle ====================
+  window.toggleOptional = function() {
+    optionalVisible = !optionalVisible;
+    
+    // সব optional input দৃশ্যমান/লুকানো
+    document.querySelectorAll('.p-optional, #optionalCost').forEach(input => {
+      input.type = optionalVisible ? 'number' : 'password';
+    });
+    
+    const hint = document.getElementById('optionalHint');
+    if (hint) {
+      hint.innerText = optionalVisible 
+        ? '✅ Optional খরচ দৃশ্যমান' 
+        : '🔒 এই খরচ শুধু অ্যাডমিন দেখতে পাবেন';
     }
   };
 
@@ -579,9 +602,7 @@
   };
 
   window.resetForm = function() {
-    if (confirm('সব তথ্য মুছে ফেলবেন?')) {
-      location.reload();
-    }
+    if (confirm('সব তথ্য মুছে ফেলবেন?')) location.reload();
   };
 
   window.showSettings = function() {
@@ -589,10 +610,17 @@
   };
 
   window.handleLogout = function() {
-    if (confirm('লগআউট করবেন?')) {
-      location.href = 'beta.html';
-    }
+    if (confirm('লগআউট করবেন?')) location.href = 'beta.html';
   };
+
+  // ==================== Init ====================
+  initLanguage();
+  populateLanguageDropdown();
+  
+  setTimeout(() => {
+    autoTranslateAll();
+    startMutationObserver();
+  }, 500);
 
 </script>
 
