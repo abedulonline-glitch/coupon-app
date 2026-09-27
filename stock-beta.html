@@ -294,10 +294,42 @@
         একবার সিলেক্ট করলে পরে সেটিংস থেকে পরিবর্তন করতে পারবেন
       </p>
       
-      <div class="business-grid">
-        <div class="business-card" onclick="selectBusiness('hardware', this)">
-          <div class="icon">🔨</div><div class="name">Hardware</div>
-        </div>
+      <div class="business-card" data-biz="hardware" onclick="selectBusiness('hardware', this)">
+  <div class="icon">🔨</div><div class="name">Hardware</div>
+</div>
+<div class="business-card" data-biz="paints" onclick="selectBusiness('paints', this)">
+  <div class="icon">🎨</div><div class="name">Paints</div>
+</div>
+<div class="business-card" data-biz="medicine" onclick="selectBusiness('medicine', this)">
+  <div class="icon">💊</div><div class="name">Medicine</div>
+</div>
+<div class="business-card" data-biz="restaurant" onclick="selectBusiness('restaurant', this)">
+  <div class="icon">🍽️</div><div class="name">Restaurant</div>
+</div>
+<div class="business-card" data-biz="fruits" onclick="selectBusiness('fruits', this)">
+  <div class="icon">🥬</div><div class="name">Fruits & Veg</div>
+</div>
+<div class="business-card" data-biz="grocery" onclick="selectBusiness('grocery', this)">
+  <div class="icon">🛒</div><div class="name">Grocery</div>
+</div>
+<div class="business-card" data-biz="marble" onclick="selectBusiness('marble', this)">
+  <div class="icon">🏛️</div><div class="name">Marble & Tiles</div>
+</div>
+<div class="business-card" data-biz="clothing" onclick="selectBusiness('clothing', this)">
+  <div class="icon">👕</div><div class="name">Clothing</div>
+</div>
+<div class="business-card" data-biz="electronics" onclick="selectBusiness('electronics', this)">
+  <div class="icon">📱</div><div class="name">Electronics</div>
+</div>
+<div class="business-card" data-biz="auto" onclick="selectBusiness('auto', this)">
+  <div class="icon">🚗</div><div class="name">Auto Parts</div>
+</div>
+<div class="business-card" data-biz="jewellery" onclick="selectBusiness('jewellery', this)">
+  <div class="icon">💎</div><div class="name">Jewellery</div>
+</div>
+<div class="business-card" data-biz="cosmetics" onclick="selectBusiness('cosmetics', this)">
+  <div class="icon">🧴</div><div class="name">Cosmetics</div>
+</div>
         <div class="business-card" onclick="selectBusiness('paints', this)">
           <div class="icon">🎨</div><div class="name">Paints</div>
         </div>
@@ -2129,8 +2161,28 @@ window.editOptionalLabel = function() {
   };
 
   window.showSettings = function() {
-    alert('⚙️ Settings — Phase 5-এ কাজ করবে');
-  };
+  const choice = prompt(
+    '⚙️ Settings\n\n' +
+    'বর্তমান ব্যবসার ধরন: ' + (currentBizTypeName || 'Not Set') + '\n\n' +
+    'কী করতে চান?\n' +
+    '১ = Business Type পরিবর্তন\n' +
+    '২ = অন্য ব্যবসায় যান (নতুন করে শুরু)\n\n' +
+    'সংখ্যা টাইপ করুন (1 বা 2):',
+    '1'
+  );
+  
+  if (choice === '1' || choice === '2') {
+    // Business Selector দেখাও
+    document.getElementById('mainAppPage').classList.remove('active');
+    document.getElementById('bottomNav').style.display = 'none';
+    document.getElementById('businessSelectorPage').classList.add('active');
+    
+    document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+    
+    productCount = 0;
+    document.getElementById('productsList').innerHTML = '';
+  }
+};
 
  window.handleLogout = async function() {
   if (!confirm('লগআউট করবেন?')) return;
@@ -2142,72 +2194,74 @@ window.editOptionalLabel = function() {
   }
 };
 
-  // ============================================================
-// AUTH CHECK
 // ============================================================
-
-let authChecked = false;
-let redirectTimer = null;
+// AUTH CHECK — Delay সহ (Firebase session restore-এর জন্য)
+// ============================================================
+let authInitialized = false;
 
 onAuthStateChanged(auth, async (user) => {
-  // প্রথমবার auth state আসার আগে ৫০০ms অপেক্ষা করব
-  if (!authChecked) {
-    authChecked = true;
-    await new Promise(r => setTimeout(r, 500));
+  // প্রথমবার ৮০০ms অপেক্ষা করি (session restore-এর জন্য)
+  if (!authInitialized) {
+    authInitialized = true;
+    await new Promise(r => setTimeout(r, 800));
   }
   
   if (!user) {
-    // লগইন নেই → beta.html এ পাঠান
-    if (redirectTimer) clearTimeout(redirectTimer);
-    redirectTimer = setTimeout(() => {
-      window.location.href = 'beta.html';
-    }, 100);
-    return;
-  }
-  
-  if (redirectTimer) clearTimeout(redirectTimer);
-  
-  adminId = user.uid;
-  const snap = await getDoc(doc(db, "admins", adminId));
-  
-  if (!snap.exists()) {
-    alert('অ্যাডমিন ডেটা পাওয়া যায়নি');
+    console.log('❌ No user — redirect to beta.html');
+    // আগে beta.html চেক করি আমরা সেখানেই আছি কি না
+    if (!window.location.href.includes('stock-beta.html')) return;
     window.location.href = 'beta.html';
     return;
   }
   
-  adminData = snap.data();
+  adminId = user.uid;
+  console.log('✅ User logged in:', user.email);
   
-  // Business Type আগে সেট করা থাকলে সরাসরি Main App-এ যান
-  if (adminData.businessType) {
-    currentBizType = adminData.businessType;
-    currentBizTypeName = BIZ_TYPE_NAMES[adminData.businessType] || adminData.businessTypeName || '🏢 Business';
-    selectedBusiness = adminData.businessType;
+  try {
+    const snap = await getDoc(doc(db, "admins", adminId));
     
-    document.getElementById('businessSelectorPage').classList.remove('active');
-    document.getElementById('mainAppPage').classList.add('active');
-    document.getElementById('bottomNav').style.display = 'flex';
-    document.getElementById('topbarTitle').innerText = '📦 ' + currentBizTypeName;
+    if (!snap.exists()) {
+      alert('অ্যাডমিন ডেটা পাওয়া যায়নি');
+      window.location.href = 'beta.html';
+      return;
+    }
     
-        // Business Type Badge আপডেট
-       setTimeout(() => {
-      const badge = document.getElementById('bizTypeBadge');
-      if (badge) {
-        badge.innerText = currentBizTypeName;
-        badge.style.background = '#e6f4ea';
-        badge.style.color = '#0f9d58';
-      }
-    }, 100);
+    adminData = snap.data();
+    console.log('📋 Admin Data:', adminData.companyName || adminData.name);
+    console.log('🏢 Business Type:', adminData.businessType || 'NOT SET');
     
-    await loadCategories(currentBizType);
-         productCount = 0;
-    document.getElementById('productsList').innerHTML = '';  
-    if (productCount === 0) addProductRow();
-    updateSummary();  // ⬅️ নতুন লাইন
+    // Business Type আগে সেট করা থাকলে সরাসরি Main App
+    if (adminData.businessType) {
+      currentBizType = adminData.businessType;
+      currentBizTypeName = BIZ_TYPE_NAMES[adminData.businessType] || adminData.businessTypeName || 'Business';
+      selectedBusiness = adminData.businessType;
+      
+      document.getElementById('businessSelectorPage').classList.remove('active');
+      document.getElementById('mainAppPage').classList.add('active');
+      document.getElementById('bottomNav').style.display = 'flex';
+      document.getElementById('topbarTitle').innerText = '📦 ' + currentBizTypeName;
+      
+      updateBizTypeBadge();
+      
+      await loadCategories(currentBizType);
+      
+      productCount = 0;
+      document.getElementById('productsList').innerHTML = '';
+      addProductRow();
+      updateSummary();
+    } else {
+      // ❌ Business Type সেট করা নেই — Selector দেখাও
+      console.log('🏢 Showing business selector');
+      document.getElementById('businessSelectorPage').classList.add('active');
+      document.getElementById('mainAppPage').classList.remove('active');
+      document.getElementById('bottomNav').style.display = 'none';
+    }
+  } catch (e) {
+    console.error('Auth error:', e);
+    alert('❌ এরর: ' + e.message);
   }
-  
-  console.log('✅ Auth ready. Admin:', adminData.companyName || adminData.name);
 });
+
   
   // ==================== Init ====================
  initLanguage();
