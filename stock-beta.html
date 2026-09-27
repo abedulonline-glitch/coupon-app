@@ -270,12 +270,12 @@
           </div>
         </div>
         
-        <label>🟡 Optional খরচ (₹) <span style="font-size:11px; color:#b06000;">(প্রাইভেট)</span></label>
+       <label>🟡 Cash (Optional) — ₹ <span style="font-size:11px; color:#b06000;">(নগদ খরচ)</span></label>
         <div class="optional-wrap">
           <input type="number" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
           <span class="optional-icon" onclick="toggleOptional()">👁️</span>
         </div>
-        <div class="optional-hint" id="optionalHint">🔒 এই খরচ শুধু অ্যাডমিন দেখতে পাবেন</div>
+       <div class="optional-hint" id="optionalHint">🔒 শুধু অ্যাডমিন দেখতে পারবেন (নগদ খরচ)</div>
       </div>
 
       <!-- Products -->
@@ -304,7 +304,7 @@
             <span id="sumPakka">₹0</span>
           </div>
           <div class="summary-row">
-            <span>🟡 Optional মোট</span>
+           <span>🟡 Cash (Optional) মোট</span>
             <span id="sumOptional">₹•••</span>
           </div>
           <div class="summary-row">
@@ -542,7 +542,7 @@
           </div>
         </div>
         
-        <label>🟡 Optional রেট (₹/sqft)</label>
+        <label>🟡 Cash (Optional) রেট (₹/sqft)</label>
         <div class="optional-wrap">
           <input type="number" class="p-optional" placeholder="12" style="background: #fef7e0;">
           <span class="optional-icon" onclick="toggleOptional()">👁️</span>
@@ -590,9 +590,9 @@
     
     const hint = document.getElementById('optionalHint');
     if (hint) {
-      hint.innerText = optionalVisible 
-        ? '✅ Optional খরচ দৃশ্যমান' 
-        : '🔒 এই খরচ শুধু অ্যাডমিন দেখতে পাবেন';
+    hint.innerText = optionalVisible 
+  ? '✅ Cash খরচ দৃশ্যমান' 
+  : '🔒 শুধু অ্যাডমিন দেখতে পারবেন (নগদ খরচ)';
     }
   };
 
