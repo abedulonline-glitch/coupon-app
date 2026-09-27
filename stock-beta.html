@@ -1367,17 +1367,6 @@ function parseSize(sizeStr) {
 // PHASE 3A — MAIN CALCULATION FUNCTION
 // ============================================================
 window.recalcProduct = function(id) {
-   // GST custom check
-  const gstSelect = row.querySelector('.p-gst');
-  const gstCustom = row.querySelector('.p-gst-custom');
-  if (gstSelect && gstCustom) {
-    if (gstSelect.value === 'custom') {
-      gstCustom.style.display = 'block';
-    } else {
-      gstCustom.style.display = 'none';
-    }
-  }
-  
   const row = document.getElementById('product-row-' + id);
   if (!row) return;
   
@@ -1392,38 +1381,40 @@ window.recalcProduct = function(id) {
   const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
   const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
   const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-   let gstPct = 0;
-  const gstSelectEl = row.querySelector('.p-gst');
-  if (gstSelectEl) {
-    if (gstSelectEl.value === 'custom') {
-      gstPct = parseFloat(row.querySelector('.p-gst-custom')?.value) || 0;
-    } else {
-      gstPct = parseFloat(gstSelectEl.value) || 0;
-    }
-  }
   
   const allowL = parseFloat(row.querySelector('.p-allow-l')?.value) || 0;
   const allowW = parseFloat(row.querySelector('.p-allow-w')?.value) || 0;
+  
+  // ===== GST পড়া (Select অথবা Custom Input) =====
+  let gstPct = 0;
+  const gstSelectEl = row.querySelector('.p-gst');
+  const gstCustomEl = row.querySelector('.p-gst-custom');
+  
+  if (gstSelectEl) {
+    // Custom Input দেখানো/লুকানো
+    if (gstSelectEl.value === 'custom') {
+      if (gstCustomEl) {
+        gstCustomEl.style.display = 'block';
+        gstPct = parseFloat(gstCustomEl.value) || 0;
+      }
+    } else {
+      if (gstCustomEl) gstCustomEl.style.display = 'none';
+      gstPct = parseFloat(gstSelectEl.value) || 0;
+    }
+  }
   
   // ===== Total Quantity হিসাব =====
   let totalQty = 0;
   let qtyUnit = 'sqft';
   
   if (rating === 'sqft') {
-    // স্কয়ার ফিট / বক্স × বক্স = মোট স্কয়ার ফিট
-    if (sqftPerBox > 0 && boxes > 0) {
-      totalQty = sqftPerBox * boxes;
-    }
+    if (sqftPerBox > 0 && boxes > 0) totalQty = sqftPerBox * boxes;
     qtyUnit = 'sqft';
   } else if (rating === 'box') {
-    // সরাসরি বক্স সংখ্যা
     totalQty = boxes;
     qtyUnit = 'box';
   } else if (rating === 'piece') {
-    // পিস/বক্স × বক্স = মোট পিস
-    if (pieces > 0 && boxes > 0) {
-      totalQty = pieces * boxes;
-    }
+    if (pieces > 0 && boxes > 0) totalQty = pieces * boxes;
     qtyUnit = 'piece';
   }
   
@@ -1433,7 +1424,7 @@ window.recalcProduct = function(id) {
   const gstAmount = pakkaAmount * (gstPct / 100);
   const totalAmount = pakkaAmount + cashAmount + gstAmount;
   
-  // ===== Simple Mode / Details Mode =====
+  // ===== Simple / Details Mode =====
   let paperSize = 0;
   let actualSize = 0;
   let extra = 0;
@@ -1445,22 +1436,17 @@ window.recalcProduct = function(id) {
   if (mode === 'details' && size) {
     const parsed = parseSize(size);
     if (parsed && parsed.l > 0 && parsed.w > 0) {
-      // হিসাব মাপ (Allowance সহ) — এটি কাগজে দেখাবে
       const paperL = Math.max(0, parsed.l - (allowL / 12));
       const paperW = Math.max(0, parsed.w - (allowW / 12));
       const paperPerPiece = paperL * paperW;
-      paperSize = paperPerPiece * boxes * pieces;  // বক্স × পিস/বক্স
+      paperSize = paperPerPiece * boxes * pieces;
       
-      // আসল মাপ (Allowance ছাড়া) — এটি ভৌত পরিমাপ
       const actualPerPiece = parsed.l * parsed.w;
       actualSize = actualPerPiece * boxes * pieces;
       
-      // Benefit
       extra = actualSize - paperSize;
       if (paperSize > 0) extraPct = (extra / paperSize) * 100;
       if (actualSize > 0) savingsPct = (extra / actualSize) * 100;
-      
-      // প্রকৃত রেট (মোট ল্যান্ডিং ÷ আসল মাপ)
       if (actualSize > 0) realRate = totalAmount / actualSize;
       
       showBenefit = true;
@@ -1476,9 +1462,11 @@ window.recalcProduct = function(id) {
   box.querySelector('.calc-cash').innerText = '₹' + cashAmount.toFixed(2);
   box.querySelector('.calc-gst').innerText = '₹' + gstAmount.toFixed(2);
   box.querySelector('.calc-total').innerText = '₹' + totalAmount.toFixed(2);
-    // প্রতি বক্সে ল্যান্ডিং
+  
+  // প্রতি বক্সে Landing
   const perBox = boxes > 0 ? (totalAmount / boxes) : 0;
-  box.querySelector('.calc-per-box').innerText = '₹' + perBox.toFixed(2);
+  const perBoxEl = box.querySelector('.calc-per-box');
+  if (perBoxEl) perBoxEl.innerText = '₹' + perBox.toFixed(2);
   
   // Benefit Box
   const benefitBox = box.querySelector('.benefit-box');
@@ -1496,7 +1484,6 @@ window.recalcProduct = function(id) {
     }
   }
   
-  // ===== Summary Panel আপডেট =====
   updateSummary();
 };
 
@@ -1515,18 +1502,22 @@ function updateSummary() {
     const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
     const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
     const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-     let gstPct = 0;
-  const gstSelectEl = row.querySelector('.p-gst');
-  if (gstSelectEl) {
-    if (gstSelectEl.value === 'custom') {
-      gstPct = parseFloat(row.querySelector('.p-gst-custom')?.value) || 0;
-    } else {
-      gstPct = parseFloat(gstSelectEl.value) || 0;
-    }
-  }
     const rating = row.dataset.rating || 'sqft';
     const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
     const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
+    
+    // GST পড়া (Select অথবা Custom)
+    let gstPct = 0;
+    const gstSelectEl = row.querySelector('.p-gst');
+    const gstCustomEl = row.querySelector('.p-gst-custom');
+    
+    if (gstSelectEl) {
+      if (gstSelectEl.value === 'custom') {
+        gstPct = parseFloat(gstCustomEl?.value) || 0;
+      } else {
+        gstPct = parseFloat(gstSelectEl.value) || 0;
+      }
+    }
     
     let qty = 0;
     if (rating === 'sqft') qty = sqftPerBox * boxes;
@@ -1565,7 +1556,6 @@ function updateSummary() {
   document.getElementById('sumExtra').innerText = '₹' + extraCost.toFixed(2);
   document.getElementById('sumLanding').innerText = '₹' + totalLanding.toFixed(2);
   
-  // Optional মোট
   const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
   const sumOptional = document.getElementById('sumOptional');
   if (sumOptional) {
