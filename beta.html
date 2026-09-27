@@ -1519,7 +1519,7 @@ window.adminRegister = async function() {
       whatsapp: whatsapp,
       companyName: company,
       role: finalRole,
-      language: currentLang,
+      language: getLanguage(),
       createdAt: serverTimestamp()
     };
     
@@ -1737,7 +1737,7 @@ window.changeLanguage = function(lang) {
     // Admine save
     if (adminId && adminData && !adminData.isTeamMember) {
       updateDoc(doc(db, "admins", adminId), {
-        language: lang
+        language: getLanguage(),
       }).catch(e => console.log("Language save error:", e));
     }
   }
