@@ -1977,15 +1977,45 @@ export function applyTranslations(lang = null) {
 
 let BN_REVERSE_MAP = null;
 
+// ============================================================
+// SMART REVERSE MAP — স্ল্যাশ, ব্র্যাকেট, টাকা, % সব বাদ দিয়ে ম্যাচ
+// ============================================================
+
+// একটি "নরমালাইজ" ফাংশন — সব বিশেষ চিহ্ন বাদ দিয়ে শুধু অক্ষর রাখে
+function normalizeText(text) {
+  if (!text) return '';
+  return text
+    .replace(/[\p{Emoji}\p{So}\p{Sk}]/gu, '')  // Emoji, symbol বাদ
+    .replace(/[\/\\\(\)\[\]\{\}]/g, ' ')       // / ( ) [ ] { } → space
+    .replace(/[₹$€£¥%*#@!&~^,;:'"`|]/g, ' ')  // টাকা, %, চিহ্ন → space
+    .replace(/[।॥\.\?\!\-\_\+\=<>]/g, ' ')    // দাঁড়ি, ডট, ড্যাশ → space
+    .replace(/\s+/g, ' ')                       // একাধিক স্পেস → একটি
+    .trim()
+    .toLowerCase();                              // ছোট হাতের
+}
+
 function buildBengaliReverseMap() {
   const map = {};
   Object.entries(translations.bn).forEach(([key, value]) => {
     if (typeof value !== 'string') return;
-    // পুরো মান
+    
+    // ১. পুরো মান (হুবহু)
     map[value.trim()] = key;
-    // ইমোজি/স্পেস বাদ দিয়ে
-    const cleanValue = value.replace(/[\p{Emoji}\s]+/gu, '').trim();
-    if (cleanValue) map[cleanValue] = key;
+    
+    // ২. নরমালাইজ করা মান (স্ল্যাশ, ব্র্যাকেট বাদ)
+    const normalized = normalizeText(value);
+    if (normalized && normalized.length > 1) {
+      map[normalized] = key;
+    }
+    
+    // ৩. পুরো ছোট হাতের
+    const lower = value.trim().toLowerCase();
+    if (lower) map[lower] = key;
+    
+    // ৪. নরমালাইজ + ছোট হাতের
+    if (normalized) {
+      map[normalized.toLowerCase()] = key;
+    }
   });
   return map;
 }
@@ -2021,20 +2051,33 @@ export function autoTagTranslations() {
     const original = node.textContent;
     const trimmed = original.trim();
     
-    // সরাসরি ম্যাচ
+    // === ৫ স্তরের ম্যাচিং ===
+    
+    // ১. সরাসরি ম্যাচ
     let key = BN_REVERSE_MAP[trimmed];
     
-    // ইমোজি বাদ দিয়ে ম্যাচ
+    // ২. ছোট হাতের ম্যাচ
+    if (!key) key = BN_REVERSE_MAP[trimmed.toLowerCase()];
+    
+    // ৩. নরমালাইজ ম্যাচ (স্ল্যাশ, ব্র্যাকেট, ₹ সব বাদ)
+    if (!key) {
+      const normalized = normalizeText(trimmed);
+      if (normalized) key = BN_REVERSE_MAP[normalized];
+    }
+    
+    // ৪. ইমোজি বাদ দিয়ে ম্যাচ (পুরনো সিস্টেম, ফলব্যাক)
     if (!key) {
       const withoutEmoji = trimmed.replace(/[\p{Emoji}\s]+/gu, '').trim();
       key = BN_REVERSE_MAP[withoutEmoji];
     }
     
-    // কেস-ইনসেনসিটিভ ম্যাচ
+    // ৫. কেস-ইনসেনসিটিভ partial ম্যাচ (শেষ চেষ্টা)
     if (!key) {
       const lower = trimmed.toLowerCase();
-      key = Object.keys(BN_REVERSE_MAP).find(k => k.toLowerCase() === lower);
-      if (key) key = BN_REVERSE_MAP[key];
+      const foundKey = Object.keys(BN_REVERSE_MAP).find(k => 
+        k.toLowerCase() === lower
+      );
+      if (foundKey) key = BN_REVERSE_MAP[foundKey];
     }
     
     if (key) nodesToProcess.push({ node, key, original });
@@ -2072,7 +2115,18 @@ export function autoTagPlaceholders() {
     const ph = el.getAttribute('placeholder').trim();
     if (!ph) return;
     
-    let key = BN_REVERSE_MAP[ph];
+        let key = BN_REVERSE_MAP[ph];
+    
+    // ছোট হাতের ম্যাচ
+    if (!key) key = BN_REVERSE_MAP[ph.toLowerCase()];
+    
+    // নরমালাইজ ম্যাচ (স্ল্যাশ, ব্র্যাকেট, ₹ সব বাদ)
+    if (!key) {
+      const normalized = normalizeText(ph);
+      if (normalized) key = BN_REVERSE_MAP[normalized];
+    }
+    
+    // ইমোজি বাদ দিয়ে ম্যাচ
     if (!key) {
       const clean = ph.replace(/[\p{Emoji}\s]+/gu, '').trim();
       key = BN_REVERSE_MAP[clean];
