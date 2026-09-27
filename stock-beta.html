@@ -1115,71 +1115,121 @@ window.changeBusinessType = function() {
 // ADD PRODUCT ROW — Phase 3A
 // Rating Type + Simple/Details + Allowance + Live Calculation
 // ============================================================
-window.addProductRow = function() {
-  productCount++;
-  const id = productCount;
-  const isMarble = currentBizType === 'marble';  // মার্বেল/গ্রানাইট হলে Allowance দেখাবে
+// ============================================================
+// PRODUCT ROW TEMPLATES — প্রতিটি Business Type-এর জন্য আলাদা
+// ============================================================
+
+function getProductRowHTML(bizType, id) {
+  const tpl = {
+    marble: getMarbleTemplate,
+    hardware: getHardwareTemplate,
+    paints: getHardwareTemplate,
+    medicine: getMedicineTemplate,
+    grocery: getGroceryTemplate,
+    fruits: getGroceryTemplate,
+    clothing: getClothingTemplate,
+    restaurant: getRestaurantTemplate,
+    electronics: getElectronicsTemplate,
+    auto: getHardwareTemplate,
+    jewellery: getClothingTemplate,
+    cosmetics: getClothingTemplate
+  };
   
-  const rowHtml = `
-    <div class="product-row" id="product-row-${id}" data-rating="sqft" data-mode="simple">
-      <div class="product-row-header">
-        <span class="num">📦 পণ্য ${id}</span>
-        <span class="remove" onclick="removeProductRow(${id})">🗑️ মুছুন</span>
-      </div>
-      
-      <label>পণ্যের নাম <span class="required">*</span></label>
-      <input type="text" class="p-name" placeholder="যেমন: Vitrified Tile 4x2" oninput="recalcProduct(${id})">
-      
-           <div class="row-2">
-        <div>
-          <label>ক্যাটাগরি <span class="required">*</span></label>
-          <div class="category-picker" style="position: relative;">
-            <input type="text" class="p-category-input" placeholder="টাইপ করুন বা ক্লিক করুন..." 
-              readonly onclick="openCategoryPicker(${id})" style="cursor: pointer; background: white;">
-            <input type="hidden" class="p-category" value="">
-          </div>
-        </div>
-        <div>
-          <label>ব্র্যান্ড</label>
-          <input type="text" class="p-brand" placeholder="যেমন: Kohinoor">
-        </div>
-      </div>
-      
-      <div class="row-2">
-        <div>
-          <label>HSN Code <span class="required">*</span></label>
-          <input type="text" class="p-hsn" placeholder="যেমন: 6907" maxlength="8">
-        </div>
-                <div>
-          <label>GST %</label>
-          <select class="p-gst" onchange="recalcProduct(${id})">
-            <option value="0">0%</option>
-            <option value="5">5%</option>
-            <option value="12">12%</option>
-            <option value="18" selected>18%</option>
-            <option value="28">28%</option>
-            <option value="custom">✏️ Custom</option>
-          </select>
-          <input type="number" class="p-gst-custom" placeholder="GST %" style="margin-top:6px; display:none;"
-            oninput="recalcProduct(${id})">
+  const templateFn = tpl[bizType] || getHardwareTemplate;
+  return templateFn(id);
+}
+
+// ============================================================
+// COMMON HEADER
+// ============================================================
+function getRowHeader(id) {
+  return `
+    <div class="product-row-header">
+      <span class="num">📦 পণ্য ${id}</span>
+      <span class="remove" onclick="removeProductRow(${id})">🗑️ মুছুন</span>
+    </div>
+  `;
+}
+
+function getRowCommonFields(id) {
+  return `
+    <label>পণ্যের নাম <span class="required">*</span></label>
+    <input type="text" class="p-name" placeholder="পণ্যের নাম" oninput="recalcProduct(${id})">
+    
+    <div class="row-2">
+      <div>
+        <label>ক্যাটাগরি <span class="required">*</span></label>
+        <div class="category-picker" style="position: relative;">
+          <input type="text" class="p-category-input" placeholder="টাইপ করুন বা ক্লিক করুন..." 
+            readonly onclick="openCategoryPicker(${id})" style="cursor: pointer; background: white;">
+          <input type="hidden" class="p-category" value="">
         </div>
       </div>
+      <div>
+        <label>ব্র্যান্ড</label>
+        <input type="text" class="p-brand" placeholder="ব্র্যান্ড">
+      </div>
+    </div>
+    
+    <div class="row-2">
+      <div>
+        <label>HSN Code <span class="required">*</span></label>
+        <input type="text" class="p-hsn" placeholder="HSN" maxlength="8">
+      </div>
+      <div>
+        <label>GST %</label>
+        <select class="p-gst" onchange="recalcProduct(${id})">
+          <option value="0">0%</option>
+          <option value="5">5%</option>
+          <option value="12">12%</option>
+          <option value="18" selected>18%</option>
+          <option value="28">28%</option>
+          <option value="custom">✏️ Custom</option>
+        </select>
+        <input type="number" class="p-gst-custom" placeholder="GST %" style="margin-top:6px; display:none;"
+          oninput="recalcProduct(${id})">
+      </div>
+    </div>
+  `;
+}
+
+function getRowImageUpload() {
+  return `
+    <label>📸 ছবি ও ভিডিও</label>
+    <div class="image-upload-section">
+      <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+        <div class="icon">📷</div>
+        <div class="label">মেইন ছবি <span class="required">*</span></div>
+      </div>
+      <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+        <div class="icon">🖼️</div>
+        <div class="label">গ্যালারি (৫টি)</div>
+      </div>
+      <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+        <div class="icon">🎥</div>
+        <div class="label">ভিডিও (YouTube)</div>
+      </div>
+    </div>
+    <div class="helper">📷 ক্যামেরা বা গ্যালারি থেকে (সরাসরি URL নয়)</div>
+  `;
+}
+
+// ============================================================
+// TEMPLATE 1: MARBLE & TILES
+// ============================================================
+function getMarbleTemplate(id) {
+  return `
+    <div class="product-row" id="product-row-${id}" data-type="marble" data-rating="sqft" data-mode="simple">
+      ${getRowHeader(id)}
+      ${getRowCommonFields(id)}
       
-      <!-- Rating Type -->
       <label>মূল্য নির্ধারণের ধরন <span class="required">*</span></label>
       <div class="radio-group">
-        <div class="radio-option selected" onclick="selectRating(${id}, 'sqft', this)">
-          📐 স্কয়ার ফিট
-        </div>
-        <div class="radio-option" onclick="selectRating(${id}, 'box', this)">
-          📦 বক্স
-        </div>
-        <div class="radio-option" onclick="selectRating(${id}, 'piece', this)">
-          🔢 পিস
-        </div>
+        <div class="radio-option selected" onclick="selectRating(${id}, 'sqft', this)">📐 স্কয়ার ফিট</div>
+        <div class="radio-option" onclick="selectRating(${id}, 'box', this)">📦 বক্স</div>
+        <div class="radio-option" onclick="selectRating(${id}, 'piece', this)">🔢 পিস</div>
       </div>
       
-      <!-- Size + Pcs/Box + Sqft/Box -->
       <div class="row-3">
         <div>
           <label>সাইজ</label>
@@ -1195,7 +1245,6 @@ window.addProductRow = function() {
         </div>
       </div>
       
-      <!-- Weight + Boxes + Pakka Rate -->
       <div class="row-3">
         <div>
           <label>ওজন/বক্স (kg)</label>
@@ -1206,25 +1255,17 @@ window.addProductRow = function() {
           <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
-          <label>🟢 পাকা রেট (₹/<span class="unit-label">sqft</span>)</label>
+          <label>🟢 পাকা রেট</label>
           <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
         </div>
       </div>
       
-      <!-- ===== Simple/Details Mode (শুধু মার্বেল/গ্রানাইটে) ===== -->
-      ${isMarble ? `
       <div style="margin-top: 10px; padding: 12px; background: #fff8e1; border-radius: 8px; border-left: 3px solid #f9a825;">
         <label style="color: #b06000;">📐 হিসাবের ধরন (মার্বেল/গ্রানাইট)</label>
         <div class="radio-group">
-          <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">
-            📋 Simple
-          </div>
-          <div class="radio-option" onclick="selectMode(${id}, 'details', this)">
-            📐 Details
-          </div>
+          <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">📋 Simple</div>
+          <div class="radio-option" onclick="selectMode(${id}, 'details', this)">📐 Details</div>
         </div>
-        
-        <!-- Allowance Fields (শুধু Details Mode-এ) -->
         <div class="allowance-section" id="allowance-${id}" style="display: none; margin-top: 12px;">
           <label style="color: #b06000;">✂️ কোম্পানির ছাড় (Allowance)</label>
           <div class="row-2">
@@ -1245,16 +1286,13 @@ window.addProductRow = function() {
           </div>
         </div>
       </div>
-      ` : ''}
       
-      <!-- Cash Rate -->
       <label>🟡 Cash (Optional) রেট (₹/<span class="unit-label">sqft</span>)</label>
       <div class="optional-wrap">
         <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})" style="background: #fef7e0;">
         <span class="optional-icon" onclick="toggleOptional()">👁️</span>
       </div>
       
-      <!-- Live Calculation Box -->
       <div class="calc-box" id="calc-box-${id}">
         <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0 sqft</b></div>
         <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
@@ -1270,7 +1308,6 @@ window.addProductRow = function() {
         <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
           <span>📦 প্রতি বক্সে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
         </div>
-        
         <div class="benefit-box" style="display: none;">
           <div class="calc-divider"></div>
           <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
@@ -1282,33 +1319,441 @@ window.addProductRow = function() {
         </div>
       </div>
       
-      <!-- Image Upload -->
-      <label>📸 ছবি ও ভিডিও</label>
-      <div class="image-upload-section">
-        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
-          <div class="icon">📷</div>
-          <div class="label">মেইন ছবি <span class="required">*</span></div>
-        </div>
-        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
-          <div class="icon">🖼️</div>
-          <div class="label">গ্যালারি (৫টি)</div>
-        </div>
-        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
-          <div class="icon">🎥</div>
-          <div class="label">ভিডিও (YouTube)</div>
-        </div>
-      </div>
-      <div class="helper">📷 ক্যামেরা বা গ্যালারি থেকে (সরাসরি URL নয়)</div>
+      ${getRowImageUpload()}
     </div>
   `;
+}
+
+// ============================================================
+// TEMPLATE 2: MEDICINE
+// ============================================================
+function getMedicineTemplate(id) {
+  return `
+    <div class="product-row" id="product-row-${id}" data-type="medicine">
+      ${getRowHeader(id)}
+      ${getRowCommonFields(id)}
+      
+      <label>ফর্ম (Medicine Type)</label>
+      <select class="p-med-type" onchange="recalcProduct(${id})">
+        <option value="tablet">💊 Tablet</option>
+        <option value="capsule">💊 Capsule</option>
+        <option value="syrup">🧴 Syrup</option>
+        <option value="injection">💉 Injection</option>
+        <option value="ointment">🧴 Ointment</option>
+        <option value="drops">💧 Drops</option>
+      </select>
+      
+      <div class="row-2">
+        <div>
+          <label>প্যাকিং সাইজ</label>
+          <input type="text" class="p-med-packing" placeholder="যেমন: 10x10" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>ব্যাচ নাম্বার</label>
+          <input type="text" class="p-med-batch" placeholder="BATCH-2026-001">
+        </div>
+      </div>
+      
+      <div class="row-2">
+        <div>
+          <label>Expiry তারিখ</label>
+          <input type="date" class="p-med-expiry" onchange="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>ওজন/বক্স (kg)</label>
+          <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <div class="row-3">
+        <div>
+          <label>বক্স সংখ্যা</label>
+          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟢 পাকা রেট/বক্স</label>
+          <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+        </div>
+        <div>
+          <label>MRP/বক্স</label>
+          <input type="number" class="p-med-mrp" placeholder="200" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <label>🟡 Cash (Optional) রেট/বক্স</label>
+      <div class="optional-wrap">
+        <input type="number" class="p-optional" placeholder="20" step="0.01" oninput="recalcProduct(${id})" style="background: #fef7e0;">
+        <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+      </div>
+      
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-row"><span>📊 মোট বক্স:</span><b class="calc-qty">0 box</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+        </div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
+          <span>📦 প্রতি বক্সে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
+        </div>
+      </div>
+      
+      ${getRowImageUpload()}
+    </div>
+  `;
+}
+
+// ============================================================
+// TEMPLATE 3: GROCERY / FRUITS
+// ============================================================
+function getGroceryTemplate(id) {
+  return `
+    <div class="product-row" id="product-row-${id}" data-type="grocery">
+      ${getRowHeader(id)}
+      ${getRowCommonFields(id)}
+      
+      <label>একক (Unit) <span class="required">*</span></label>
+      <div class="radio-group">
+        <div class="radio-option selected" onclick="selectUnit(${id}, 'kg', this)">⚖️ kg</div>
+        <div class="radio-option" onclick="selectUnit(${id}, 'gm', this)">⚖️ gm</div>
+        <div class="radio-option" onclick="selectUnit(${id}, 'ltr', this)">🧴 ltr</div>
+        <div class="radio-option" onclick="selectUnit(${id}, 'pcs', this)">🔢 pcs</div>
+      </div>
+      
+      <div class="row-3">
+        <div>
+          <label>ওজন/পরিমাণ</label>
+          <input type="number" class="p-qty" placeholder="10" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>প্যাক সাইজ</label>
+          <input type="text" class="p-pack" placeholder="1 kg / 500 gm">
+        </div>
+        <div>
+          <label>মোট প্যাক</label>
+          <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <div class="row-2">
+        <div>
+          <label>🟢 পাকা রেট/একক</label>
+          <input type="number" class="p-pakka" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+        </div>
+        <div>
+          <label>ওজন/প্যাক (kg)</label>
+          <input type="number" class="p-weight" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <label>🟡 Cash (Optional) রেট/একক</label>
+      <div class="optional-wrap">
+        <input type="number" class="p-optional" placeholder="5" step="0.01" oninput="recalcProduct(${id})" style="background: #fef7e0;">
+        <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+      </div>
+      
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0 kg</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+        </div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+      </div>
+      
+      ${getRowImageUpload()}
+    </div>
+  `;
+}
+
+// ============================================================
+// TEMPLATE 4: CLOTHING / JEWELLERY / COSMETICS
+// ============================================================
+function getClothingTemplate(id) {
+  return `
+    <div class="product-row" id="product-row-${id}" data-type="clothing">
+      ${getRowHeader(id)}
+      ${getRowCommonFields(id)}
+      
+      <div class="row-3">
+        <div>
+          <label>সাইজ</label>
+          <input type="text" class="p-cloth-size" placeholder="S / M / L / XL" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>রঙ</label>
+          <input type="text" class="p-cloth-color" placeholder="লাল / কালো">
+        </div>
+        <div>
+          <label>ফেব্রিক/মেটেরিয়াল</label>
+          <input type="text" class="p-cloth-fabric" placeholder="কটন / সিল্ক">
+        </div>
+      </div>
+      
+      <div class="row-3">
+        <div>
+          <label>পিস সংখ্যা</label>
+          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>ওজন/পিস (kg)</label>
+          <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟢 পাকা রেট/পিস</label>
+          <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+        </div>
+      </div>
+      
+      <div class="row-2">
+        <div>
+          <label>MRP/পিস</label>
+          <input type="number" class="p-mrp" placeholder="800" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟡 Cash (Optional) রেট/পিস</label>
+          <div class="optional-wrap">
+            <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #fef7e0;">
+            <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-row"><span>📊 মোট পিস:</span><b class="calc-qty">0 pcs</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+        </div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
+          <span>👕 প্রতি পিসে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
+        </div>
+      </div>
+      
+      ${getRowImageUpload()}
+    </div>
+  `;
+}
+
+// ============================================================
+// TEMPLATE 5: RESTAURANT
+// ============================================================
+function getRestaurantTemplate(id) {
+  return `
+    <div class="product-row" id="product-row-${id}" data-type="restaurant">
+      ${getRowHeader(id)}
+      ${getRowCommonFields(id)}
+      
+      <div class="row-3">
+        <div>
+          <label>পোর্শন সাইজ</label>
+          <input type="text" class="p-portion" placeholder="Full / Half" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>পরিমাণ (পোর্শন)</label>
+          <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟢 পাকা রেট/পোর্শন</label>
+          <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+        </div>
+      </div>
+      
+      <div class="row-2">
+        <div>
+          <label>ওজন/পোর্শন (kg)</label>
+          <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟡 Cash (Optional)</label>
+          <div class="optional-wrap">
+            <input type="number" class="p-optional" placeholder="10" step="0.01" oninput="recalcProduct(${id})" style="background: #fef7e0;">
+            <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-row"><span>📊 মোট পোর্শন:</span><b class="calc-qty">0 pcs</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
+          <span>🍽️ প্রতি পোর্শনে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
+        </div>
+      </div>
+      
+      ${getRowImageUpload()}
+    </div>
+  `;
+}
+
+// ============================================================
+// TEMPLATE 6: ELECTRONICS
+// ============================================================
+function getElectronicsTemplate(id) {
+  return `
+    <div class="product-row" id="product-row-${id}" data-type="electronics">
+      ${getRowHeader(id)}
+      ${getRowCommonFields(id)}
+      
+      <div class="row-2">
+        <div>
+          <label>মডেল নাম্বার</label>
+          <input type="text" class="p-model" placeholder="Model-X100">
+        </div>
+        <div>
+          <label>ওয়ারেন্টি</label>
+          <input type="text" class="p-warranty" placeholder="1 Year">
+        </div>
+      </div>
+      
+      <div class="row-3">
+        <div>
+          <label>সিরিয়াল নাম্বার</label>
+          <input type="text" class="p-serial" placeholder="SN-001">
+        </div>
+        <div>
+          <label>পিস সংখ্যা</label>
+          <input type="number" class="p-boxes" placeholder="10" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>ওজন/পিস (kg)</label>
+          <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <div class="row-3">
+        <div>
+          <label>🟢 পাকা রেট/পিস</label>
+          <input type="number" class="p-pakka" placeholder="15000" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+        </div>
+        <div>
+          <label>MRP/পিস</label>
+          <input type="number" class="p-mrp" placeholder="20000" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟡 Cash রেট</label>
+          <div class="optional-wrap">
+            <input type="number" class="p-optional" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #fef7e0;">
+            <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-row"><span>📊 মোট পিস:</span><b class="calc-qty">0 pcs</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+        </div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
+          <span>📱 প্রতি পিসে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
+        </div>
+      </div>
+      
+      ${getRowImageUpload()}
+    </div>
+  `;
+}
+
+// ============================================================
+// TEMPLATE 7: HARDWARE / PAINTS / AUTO (Generic)
+// ============================================================
+function getHardwareTemplate(id) {
+  return `
+    <div class="product-row" id="product-row-${id}" data-type="hardware" data-rating="box">
+      ${getRowHeader(id)}
+      ${getRowCommonFields(id)}
+      
+      <div class="row-3">
+        <div>
+          <label>সাইজ / মাপ</label>
+          <input type="text" class="p-size" placeholder="৪ ইঞ্চি / 1kg" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>ওজন/বক্স (kg)</label>
+          <input type="number" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>বক্স সংখ্যা</label>
+          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <div class="row-2">
+        <div>
+          <label>🟢 পাকা রেট/বক্স</label>
+          <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+        </div>
+        <div>
+          <label>🟡 Cash রেট/বক্স</label>
+          <div class="optional-wrap">
+            <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #fef7e0;">
+            <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-row"><span>📊 মোট বক্স:</span><b class="calc-qty">0 box</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+        </div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
+          <span>📦 প্রতি বক্সে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
+        </div>
+      </div>
+      
+      ${getRowImageUpload()}
+    </div>
+  `;
+}
+
+// ============================================================
+// MAIN addProductRow FUNCTION
+// ============================================================
+window.addProductRow = function() {
+  productCount++;
+  const id = productCount;
+  const bizType = currentBizType || 'hardware';
   
-  document.getElementById('productsList').insertAdjacentHTML('beforeend', rowHtml);
+  const html = getProductRowHTML(bizType, id);
+  document.getElementById('productsList').insertAdjacentHTML('beforeend', html);
   
-   // Category picker-এ আগের মান থাকলে সেট করা
-  setTimeout(() => {
-    const input = document.querySelector(`#product-row-${id} .p-category-input`);
-    if (input) input.placeholder = 'টাইপ করুন বা ক্লিক করুন...';
-  }, 100);
+  console.log(`✅ Added ${bizType} product row #${id}`);
 };
 
 // ============================================================
@@ -1328,6 +1773,18 @@ window.selectRating = function(id, type, el) {
   // Unit label আপডেট
   const unitText = type === 'sqft' ? 'sqft' : (type === 'box' ? 'box' : 'piece');
   row.querySelectorAll('.unit-label').forEach(lbl => lbl.innerText = unitText);
+  
+  recalcProduct(id);
+};
+
+  window.selectUnit = function(id, unit, el) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return;
+  row.dataset.unit = unit;
+  
+  const group = el.parentElement;
+  group.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
   
   recalcProduct(id);
 };
@@ -1376,147 +1833,128 @@ window.recalcProduct = function(id) {
   const row = document.getElementById('product-row-' + id);
   if (!row) return;
   
-  const rating = row.dataset.rating || 'sqft';
+  const bizType = row.dataset.type || 'hardware';
+  const rating = row.dataset.rating || 'box';
   const mode = row.dataset.mode || 'simple';
   
-  // ===== ইনপুট পড়া =====
-  const size = row.querySelector('.p-size')?.value || '';
+  // Common inputs
   const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
   const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
   const weight = parseFloat(row.querySelector('.p-weight')?.value) || 0;
   const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
   const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
   const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-  
+  const size = row.querySelector('.p-size')?.value || '';
   const allowL = parseFloat(row.querySelector('.p-allow-l')?.value) || 0;
   const allowW = parseFloat(row.querySelector('.p-allow-w')?.value) || 0;
   
-  // ===== GST পড়া =====
+  // GST
   let gstPct = 0;
   const gstSelectEl = row.querySelector('.p-gst');
   const gstCustomEl = row.querySelector('.p-gst-custom');
-  
   if (gstSelectEl) {
     if (gstSelectEl.value === 'custom') {
-      if (gstCustomEl) {
-        gstCustomEl.style.display = 'block';
-        gstPct = parseFloat(gstCustomEl.value) || 0;
-      }
+      if (gstCustomEl) { gstCustomEl.style.display = 'block'; gstPct = parseFloat(gstCustomEl.value) || 0; }
     } else {
       if (gstCustomEl) gstCustomEl.style.display = 'none';
       gstPct = parseFloat(gstSelectEl.value) || 0;
     }
   }
   
-  // ===== Total Quantity =====
+  // === Total Quantity ===
   let totalQty = 0;
-  let qtyUnit = 'sqft';
+  let qtyUnit = 'box';
   
-  if (rating === 'sqft') {
-    if (sqftPerBox > 0 && boxes > 0) totalQty = sqftPerBox * boxes;
-    qtyUnit = 'sqft';
-  } else if (rating === 'box') {
+  if (bizType === 'marble') {
+    if (rating === 'sqft') { totalQty = sqftPerBox * boxes; qtyUnit = 'sqft'; }
+    else if (rating === 'box') { totalQty = boxes; qtyUnit = 'box'; }
+    else { totalQty = pieces * boxes; qtyUnit = 'piece'; }
+  } else if (bizType === 'grocery' || bizType === 'fruits') {
+    const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
+    totalQty = qty * boxes;  // প্রতি প্যাকের পরিমাণ × মোট প্যাক
+    qtyUnit = row.dataset.unit || 'kg';
+  } else if (bizType === 'clothing' || bizType === 'jewellery' || bizType === 'cosmetics' || bizType === 'electronics') {
+    totalQty = boxes;  // পিস সংখ্যা
+    qtyUnit = 'pcs';
+  } else if (bizType === 'restaurant') {
+    totalQty = boxes;
+    qtyUnit = 'portion';
+  } else {
+    // hardware, paints, auto, medicine
     totalQty = boxes;
     qtyUnit = 'box';
-  } else if (rating === 'piece') {
-    if (pieces > 0 && boxes > 0) totalQty = pieces * boxes;
-    qtyUnit = 'piece';
   }
   
-  // ===== পাকা, Cash, GST হিসাব =====
+  // === পাকা, Cash, GST ===
   const pakkaAmount = totalQty * pakkaRate;
   const cashAmount = totalQty * cashRate;
   const gstAmount = pakkaAmount * (gstPct / 100);
   const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
   
-  // ===== এই পণ্যের মোট ওজন =====
+  // === ওজন ভাগ ===
   const thisProductWeight = weight * boxes;
-  
-  // ===== সব পণ্যের মোট ওজন (গ্লোবাল ভাগের জন্য) =====
   let totalAllWeight = 0;
   document.querySelectorAll('.product-row').forEach(r => {
     const w = parseFloat(r.querySelector('.p-weight')?.value) || 0;
     const b = parseFloat(r.querySelector('.p-boxes')?.value) || 0;
     totalAllWeight += w * b;
   });
-  
-  // ===== ওজন অনুপাত (শতাংশ) =====
   const weightShare = totalAllWeight > 0 ? (thisProductWeight / totalAllWeight) : 0;
   
-  // ===== গ্লোবাল খরচ পড়া =====
+  // === Global extras ===
   const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
   const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
   const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
   const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
-  const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
   const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
   
-  // ===== এই পণ্যের ভাগ =====
-  const thisLoading = loading * weightShare;
-  const thisUnloading = unloading * weightShare;
-  const thisInsurance = insurance * weightShare;
-  const thisOther = otherPakka * weightShare;
-  const thisOptional = optionalCost * weightShare;
-  
-  // পরিবহন: প্রতি পণ্যের ওজন × রেট (₹/টন)
+  const thisExtra = (loading + unloading + insurance + otherPakka) * weightShare;
   const thisTransport = (transportRate * thisProductWeight) / 1000;
+  const totalLanding = pakkaCashGst + thisExtra + thisTransport;
   
-  // ===== এই পণ্যের মোট খরচ =====
-  const totalExtraForThis = thisLoading + thisUnloading + thisInsurance + thisOther;
-  const totalLanding = pakkaCashGst + totalExtraForThis + thisTransport;
+  // === Marble Benefit ===
+  let paperSize = 0, actualSize = 0, extra = 0, extraPct = 0, savingsPct = 0, realRate = 0, showBenefit = false;
   
-  // ===== Simple/Details Mode Benefit =====
-  let paperSize = 0;
-  let actualSize = 0;
-  let extra = 0;
-  let extraPct = 0;
-  let savingsPct = 0;
-  let realRate = 0;
-  let showBenefit = false;
-  
-  if (mode === 'details' && size) {
+  if (bizType === 'marble' && mode === 'details' && size) {
     const parsed = parseSize(size);
     if (parsed && parsed.l > 0 && parsed.w > 0) {
       const paperL = Math.max(0, parsed.l - (allowL / 12));
       const paperW = Math.max(0, parsed.w - (allowW / 12));
-      const paperPerPiece = paperL * paperW;
-      paperSize = paperPerPiece * boxes * pieces;
-      
-      const actualPerPiece = parsed.l * parsed.w;
-      actualSize = actualPerPiece * boxes * pieces;
-      
+      paperSize = paperL * paperW * boxes * pieces;
+      actualSize = parsed.l * parsed.w * boxes * pieces;
       extra = actualSize - paperSize;
       if (paperSize > 0) extraPct = (extra / paperSize) * 100;
       if (actualSize > 0) savingsPct = (extra / actualSize) * 100;
       if (actualSize > 0) realRate = totalLanding / actualSize;
-      
       showBenefit = true;
     }
   }
   
-  // ===== Display Update =====
+  // === Display ===
   const box = document.getElementById('calc-box-' + id);
   if (!box) return;
   
-  box.querySelector('.calc-qty').innerText = `${totalQty.toFixed(2)} ${qtyUnit}`;
+  const qtyEl = box.querySelector('.calc-qty');
+  if (qtyEl) qtyEl.innerText = `${totalQty.toFixed(2)} ${qtyUnit}`;
   box.querySelector('.calc-pakka').innerText = '₹' + pakkaAmount.toFixed(2);
   box.querySelector('.calc-cash').innerText = '₹' + cashAmount.toFixed(2);
   box.querySelector('.calc-gst').innerText = '₹' + gstAmount.toFixed(2);
   
-  // Extra খরচ আলাদা দেখাই
+  const transportEl = box.querySelector('.calc-transport-share');
+  if (transportEl) transportEl.innerText = '₹' + thisTransport.toFixed(2);
+  
   const extraEl = box.querySelector('.calc-extra-share');
-  if (extraEl) {
-    extraEl.innerText = '₹' + (totalExtraForThis + thisTransport).toFixed(2);
-  }
+  if (extraEl) extraEl.innerText = '₹' + thisExtra.toFixed(2);
+  
+  const shareEl = box.querySelector('.calc-weight-share');
+  if (shareEl) shareEl.innerText = (weightShare * 100).toFixed(2) + '% (' + thisProductWeight.toFixed(0) + ' kg)';
   
   box.querySelector('.calc-total').innerText = '₹' + totalLanding.toFixed(2);
   
-  // প্রতি বক্সে Landing
-  const perBox = boxes > 0 ? (totalLanding / boxes) : 0;
   const perBoxEl = box.querySelector('.calc-per-box');
-  if (perBoxEl) perBoxEl.innerText = '₹' + perBox.toFixed(2);
+  if (perBoxEl) perBoxEl.innerText = '₹' + (boxes > 0 ? totalLanding / boxes : 0).toFixed(2);
   
-  // ===== Benefit Box =====
+  // Benefit
   const benefitBox = box.querySelector('.benefit-box');
   if (benefitBox) {
     if (showBenefit) {
@@ -1530,12 +1968,6 @@ window.recalcProduct = function(id) {
     } else {
       benefitBox.style.display = 'none';
     }
-  }
-  
-  // ===== ওজন ভাগের তথ্য =====
-  const shareEl = box.querySelector('.calc-weight-share');
-  if (shareEl) {
-    shareEl.innerText = (weightShare * 100).toFixed(2) + '% (' + thisProductWeight.toFixed(0) + ' kg)';
   }
   
   updateSummary();
