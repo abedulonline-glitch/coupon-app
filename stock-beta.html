@@ -1274,7 +1274,1059 @@
     if (typeof startMutationObserver === 'function') startMutationObserver();
   }, 500);
   
-  // PART C এখানে আসবে
+    // ============================================================
+  // PART C: CATEGORY SYSTEM + TEMPLATES + PRODUCT ROW
+  // ============================================================
+  
+  console.log('🚀 Part C loading...');
+  
+  // ==================== ROLE CONFIG ====================
+  const ROLE_CONFIG = [
+    { id: 'stocker',    label: '🟢 Stocker',    color: '#0f9d58' },
+    { id: 'wholesaler', label: '🟡 Wholesaler', color: '#b06000' },
+    { id: 'retailer',   label: '🔵 Retailer',   color: '#1a73e8' },
+    { id: 'consumer',   label: '🟣 Consumer',   color: '#7b1fa2' },
+    { id: 'mistri',     label: '🔴 Mistri',     color: '#d93025' }
+  ];
+  
+  // ==================== CATEGORY SYSTEM ====================
+  async function loadCategories(bizType) {
+    if (!adminId || !bizType) return;
+    
+    try {
+      const q = query(
+        collection(db, "categories"),
+        where("adminId", "==", adminId),
+        where("businessType", "==", bizType)
+      );
+      
+      const snap = await getDocs(q);
+      console.log(`📦 Found ${snap.size} categories for ${bizType}`);
+      
+      if (snap.empty) {
+        const lockKey = `_creating_cats_${adminId}_${bizType}`;
+        if (window[lockKey]) {
+          await new Promise(r => setTimeout(r, 1000));
+          return loadCategories(bizType);
+        }
+        
+        window[lockKey] = true;
+        await createDefaultCategories(bizType);
+        window[lockKey] = false;
+        
+        return loadCategories(bizType);
+      }
+      
+      // Duplicate check
+      const seen = new Set();
+      const duplicates = [];
+      const uniqueCats = [];
+      
+      snap.docs.forEach(d => {
+        const cat = { id: d.id, ...d.data() };
+        const nameLower = (cat.name || '').toLowerCase();
+        if (seen.has(nameLower)) {
+          duplicates.push(cat.id);
+        } else {
+          seen.add(nameLower);
+          uniqueCats.push(cat);
+        }
+      });
+      
+      if (duplicates.length > 0) {
+        console.log(`🗑️ Deleting ${duplicates.length} duplicate categories...`);
+        for (const dupId of duplicates) {
+          try { await deleteDoc(doc(db, "categories", dupId)); } catch (e) {}
+        }
+      }
+      
+      currentCategories = uniqueCats;
+      currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      
+      renderCategories();
+      console.log(`✅ Loaded ${currentCategories.length} unique categories`);
+    } catch (e) {
+      console.error('❌ Load categories error:', e);
+    }
+  }
+  
+  async function createDefaultCategories(bizType) {
+    const defaults = DEFAULT_CATEGORIES[bizType] || ['Others'];
+    console.log(`📝 Creating ${defaults.length} default categories...`);
+    
+    for (const name of defaults) {
+      const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const catId = `${adminId}_${bizType}_${safeName}`;
+      const catRef = doc(db, "categories", catId);
+      
+      try {
+        const existing = await getDoc(catRef);
+        if (existing.exists()) continue;
+        
+        await setDoc(catRef, {
+          adminId: adminId,
+          businessType: bizType,
+          name: name,
+          isDefault: true,
+          createdAt: serverTimestamp()
+        });
+      } catch (e) {
+        console.error(`Error creating ${name}:`, e);
+      }
+    }
+    console.log(`✅ Default categories ready`);
+  }
+  
+  function renderCategories(catsList) {
+    try {
+      const cats = catsList || currentCategories || [];
+      const listEl = document.getElementById('categoryList');
+      if (!listEl) return;
+      
+      if (cats.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-size:13px;">কোনো ক্যাটাগরি নেই</div>';
+        return;
+      }
+      
+      let html = '';
+      cats.forEach(cat => {
+        html += `
+          <div class="category-item ${cat.isDefault ? 'default-cat' : ''}">
+            <div>
+              <span class="name">${cat.name || '-'}</span>
+              ${cat.isDefault ? '<span class="default-tag">Default</span>' : ''}
+            </div>
+            <button class="delete-btn" onclick="deleteCategory('${cat.id}')">🗑️</button>
+          </div>
+        `;
+      });
+      
+      listEl.innerHTML = html;
+    } catch (e) { console.error('renderCategories error:', e); }
+  }
+  
+  window.filterManagerCategories = function(query) {
+    if (!query.trim()) {
+      renderCategories(currentCategories);
+      return;
+    }
+    const q = query.toLowerCase();
+    const filtered = currentCategories.filter(c => c.name.toLowerCase().includes(q));
+    renderCategories(filtered);
+  };
+  
+  window.deleteCategory = async function(catId) {
+    const cat = currentCategories.find(c => c.id === catId);
+    if (!cat) return;
+    
+    if (cat.name === 'Others') {
+      alert('"Others" ক্যাটাগরি মুছে ফেলা যাবে না');
+      return;
+    }
+    
+    if (!confirm(`"${cat.name}" মুছে ফেলবেন?`)) return;
+    
+    try {
+      await deleteDoc(doc(db, "categories", catId));
+      await loadCategories(currentBizType);
+    } catch (e) { alert('❌ ' + e.message); }
+  };
+  
+  window.addNewCategory = async function() {
+    const input = document.getElementById('newCategoryName');
+    const name = input.value.trim();
+    const statusEl = document.getElementById('categoryStatus');
+    
+    if (!name) {
+      statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">⚠️ নাম দিন</div>';
+      return;
+    }
+    
+    if (currentCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+      statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">⚠️ আগেই আছে</div>';
+      return;
+    }
+    
+    try {
+      const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const catId = `${adminId}_${currentBizType}_${safeName}_${Date.now()}`;
+      
+      await setDoc(doc(db, "categories", catId), {
+        adminId: adminId,
+        businessType: currentBizType,
+        name: name,
+        isDefault: false,
+        createdAt: serverTimestamp()
+      });
+      
+      input.value = '';
+      statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ যোগ হয়েছে</div>';
+      
+      await loadCategories(currentBizType);
+      setTimeout(() => statusEl.innerHTML = '', 2500);
+    } catch (e) {
+      statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">❌ ' + e.message + '</div>';
+    }
+  };
+  
+  window.openCategoryModal = async function() {
+    document.getElementById('categoryModal').style.display = 'block';
+    updateBizTypeBadge();
+    await loadCategories(currentBizType);
+  };
+  
+  window.closeCategoryModal = function() {
+    document.getElementById('categoryModal').style.display = 'none';
+    const statusEl = document.getElementById('categoryStatus');
+    if (statusEl) statusEl.innerHTML = '';
+  };
+  
+  // ==================== CATEGORY PICKER ====================
+  let currentPickerProductId = null;
+  
+  window.openCategoryPicker = function(productId) {
+    currentPickerProductId = productId;
+    const modal = document.getElementById('categoryPickerModal');
+    if (!modal) return;
+    
+    modal.style.display = 'block';
+    modal.classList.add('open');
+    
+    document.getElementById('catSearchInput').value = '';
+    document.getElementById('pickerNewCat').value = '';
+    renderCategoryPicker(currentCategories);
+    
+    setTimeout(() => document.getElementById('catSearchInput')?.focus(), 200);
+  };
+  
+  window.closeCategoryPicker = function() {
+    const modal = document.getElementById('categoryPickerModal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('open');
+    }
+    currentPickerProductId = null;
+  };
+  
+  function renderCategoryPicker(cats) {
+    const list = document.getElementById('catPickerList');
+    if (!list) return;
+    
+    if (!cats || cats.length === 0) {
+      list.innerHTML = '<div class="cat-picker-item empty">কোনো ক্যাটাগরি নেই</div>';
+      return;
+    }
+    
+    const currentVal = currentPickerProductId 
+      ? document.querySelector(`#product-row-${currentPickerProductId} .p-category`)?.value 
+      : '';
+    
+    let html = '';
+    cats.forEach(cat => {
+      const val = cat.name.toLowerCase().replace(/\s+/g, '_');
+      const selected = val === currentVal ? 'selected' : '';
+      html += `
+        <div class="cat-picker-item ${selected}" onclick="pickCategory('${cat.name.replace(/'/g, "\\'")}', '${val}')">
+          <span>${cat.name}</span>
+          ${cat.isDefault ? '<span class="default-tag">Default</span>' : ''}
+        </div>
+      `;
+    });
+    list.innerHTML = html;
+  }
+  
+  window.filterCategoryPicker = function(query) {
+    if (!query.trim()) {
+      renderCategoryPicker(currentCategories);
+      return;
+    }
+    const q = query.toLowerCase();
+    const filtered = currentCategories.filter(c => c.name.toLowerCase().includes(q));
+    renderCategoryPicker(filtered);
+  };
+  
+  window.pickCategory = function(name, value) {
+    const productId = currentPickerProductId;
+    if (!productId) { closeCategoryPicker(); return; }
+    
+    const row = document.getElementById('product-row-' + productId);
+    if (row) {
+      const hiddenInput = row.querySelector('.p-category');
+      const textInput = row.querySelector('.p-category-input');
+      if (hiddenInput) hiddenInput.value = value;
+      if (textInput) {
+        textInput.value = name;
+        textInput.style.color = '#202124';
+      }
+    }
+    
+    closeCategoryPicker();
+    setTimeout(() => {
+      if (typeof recalcProduct === 'function') recalcProduct(productId);
+    }, 50);
+  };
+  
+  window.addCategoryFromPicker = async function() {
+    const input = document.getElementById('pickerNewCat');
+    const name = input.value.trim();
+    if (!name) return;
+    
+    if (currentCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+      alert('এই ক্যাটাগরি আগেই আছে');
+      return;
+    }
+    
+    try {
+      const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const catId = `${adminId}_${currentBizType}_${safeName}_${Date.now()}`;
+      
+      await setDoc(doc(db, "categories", catId), {
+        adminId: adminId,
+        businessType: currentBizType,
+        name: name,
+        isDefault: false,
+        createdAt: serverTimestamp()
+      });
+      
+      const q = query(
+        collection(db, "categories"),
+        where("adminId", "==", adminId),
+        where("businessType", "==", currentBizType)
+      );
+      const snap = await getDocs(q);
+      currentCategories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      
+      input.value = '';
+      renderCategoryPicker(currentCategories);
+      
+      const newVal = name.toLowerCase().replace(/\s+/g, '_');
+      pickCategory(name, newVal);
+    } catch (e) { alert('❌ ' + e.message); }
+  };
+  
+  // ==================== SIZE PARSER ====================
+  function parseSize(sizeStr) {
+    if (!sizeStr) return null;
+    const clean = sizeStr.replace(/['"`×xX*]/g, ' ').replace(/\s+/g, ' ').trim();
+    const parts = clean.split(' ').filter(p => p && !isNaN(parseFloat(p)));
+    
+    if (parts.length >= 2) {
+      return { l: parseFloat(parts[0]), w: parseFloat(parts[1]) };
+    }
+    return null;
+  }
+  
+  // ==================== TEMPLATE HELPERS ====================
+  function getRowHeader(id) {
+    return `
+      <div class="product-row-header">
+        <span class="num">📦 পণ্য ${id}</span>
+        <span class="remove" onclick="removeProductRow(${id})">🗑️ মুছুন</span>
+      </div>
+    `;
+  }
+  
+  function getRowCommonFields(id) {
+    return `
+      <label>পণ্যের নাম <span class="required">*</span></label>
+      <input type="text" class="p-name" placeholder="পণ্যের নাম" oninput="recalcProduct(${id})">
+      
+      <div class="row-2">
+        <div>
+          <label>ক্যাটাগরি <span class="required">*</span></label>
+          <div class="category-picker" style="position: relative;">
+            <input type="text" class="p-category-input" placeholder="ক্লিক করুন..." 
+              readonly onclick="openCategoryPicker(${id})" style="cursor: pointer; background: white;">
+            <input type="hidden" class="p-category" value="">
+          </div>
+        </div>
+        <div>
+          <label>ব্র্যান্ড</label>
+          <input type="text" class="p-brand" placeholder="ব্র্যান্ড">
+        </div>
+      </div>
+      
+      <div class="row-2">
+        <div>
+          <label>HSN Code <span class="required">*</span></label>
+          <input type="text" class="p-hsn" placeholder="HSN" maxlength="8">
+        </div>
+        <div>
+          <label>GST %</label>
+          <select class="p-gst" onchange="recalcProduct(${id})">
+            <option value="0">0%</option>
+            <option value="5">5%</option>
+            <option value="12">12%</option>
+            <option value="18" selected>18%</option>
+            <option value="28">28%</option>
+            <option value="custom">✏️ Custom</option>
+          </select>
+          <input type="number" class="p-gst-custom" placeholder="GST %" style="margin-top:6px; display:none;"
+            oninput="recalcProduct(${id})">
+        </div>
+      </div>
+    `;
+  }
+  
+  function getRowImageUpload() {
+    return `
+      <label>📸 ছবি ও ভিডিও</label>
+      <div class="image-upload-section">
+        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+          <div class="icon">📷</div>
+          <div class="label">মেইন ছবি <span class="required">*</span></div>
+        </div>
+        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+          <div class="icon">🖼️</div>
+          <div class="label">গ্যালারি (৫টি)</div>
+        </div>
+        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+          <div class="icon">🎥</div>
+          <div class="label">ভিডিও (YouTube)</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  function getCalcBox(id) {
+    return `
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+        </div>
+        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
+          <span>📦 প্রতি বক্সে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
+        </div>
+        <div class="calc-row" style="background:#fef7e0; padding:6px 10px; border-radius:6px; margin-top:4px;">
+          <span>💵 Per Box (Without Tax):</span><b class="calc-per-box-no-tax" style="color:#b06000;">₹0</b>
+        </div>
+        <div class="benefit-box" style="display: none;">
+          <div class="calc-divider"></div>
+          <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
+          <div class="calc-row"><span>📦 আসল মাপ:</span><b class="calc-actual">0</b></div>
+          <div class="calc-row highlight-green"><span>🎁 Extra:</span><b class="calc-extra">0</b></div>
+          <div class="calc-row highlight-green"><span>📈 Extra %:</span><b class="calc-extra-pct">0%</b></div>
+          <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
+          <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // ==================== TEMPLATES ====================
+  function getProductRowHTML(bizType, id) {
+    switch(bizType) {
+      case 'marble': return getMarbleTemplate(id);
+      case 'medicine': return getMedicineTemplate(id);
+      case 'grocery':
+      case 'fruits': return getGroceryTemplate(id);
+      case 'clothing':
+      case 'jewellery':
+      case 'cosmetics': return getClothingTemplate(id);
+      case 'restaurant': return getRestaurantTemplate(id);
+      case 'electronics': return getElectronicsTemplate(id);
+      default: return getHardwareTemplate(id);
+    }
+  }
+  
+  function getMarbleTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="marble" data-rating="sqft" data-mode="simple">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <label>মূল্য নির্ধারণের ধরন</label>
+        <div class="radio-group">
+          <div class="radio-option selected" onclick="selectRating(${id}, 'sqft', this)">📐 sqft</div>
+          <div class="radio-option" onclick="selectRating(${id}, 'box', this)">📦 বক্স</div>
+          <div class="radio-option" onclick="selectRating(${id}, 'piece', this)">🔢 পিস</div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>সাইজ</label>
+            <input type="text" class="p-size" placeholder="4' × 2'" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>পিস/বক্স</label>
+            <input type="number" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>sqft/বক্স</label>
+            <input type="number" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>ওজন/বক্স (kg)</label>
+            <input type="number" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>বক্স</label>
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+        </div>
+        
+        <div style="margin-top: 10px; padding: 12px; background: #fff8e1; border-radius: 8px; border-left: 3px solid #f9a825;">
+          <label style="color: #b06000;">📐 হিসাবের ধরন</label>
+          <div class="radio-group">
+            <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">📋 Simple</div>
+            <div class="radio-option" onclick="selectMode(${id}, 'details', this)">📐 Details</div>
+          </div>
+          <div class="allowance-section" id="allowance-${id}" style="display: none; margin-top: 12px;">
+            <label style="color: #b06000;">✂️ ছাড় (Allowance)</label>
+            <div class="row-2">
+              <div>
+                <label>দৈর্ঘ্যে</label>
+                <input type="number" class="p-allow-l" placeholder="0" step="0.01" oninput="recalcProduct(${id})">
+              </div>
+              <div>
+                <label>প্রস্থে</label>
+                <input type="number" class="p-allow-w" placeholder="0" step="0.01" oninput="recalcProduct(${id})">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <label>🟡 Cash রেট</label>
+        <div class="optional-wrap">
+          <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})">
+          <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
+  
+  function getMedicineTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="medicine">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <label>ফর্ম</label>
+        <select class="p-med-type">
+          <option value="tablet">💊 Tablet</option>
+          <option value="capsule">💊 Capsule</option>
+          <option value="syrup">🧴 Syrup</option>
+          <option value="injection">💉 Injection</option>
+        </select>
+        
+        <div class="row-2">
+          <div>
+            <label>প্যাকিং</label>
+            <input type="text" class="p-med-packing" placeholder="10x10">
+          </div>
+          <div>
+            <label>ব্যাচ</label>
+            <input type="text" class="p-med-batch" placeholder="BATCH-001">
+          </div>
+        </div>
+        
+        <div class="row-2">
+          <div>
+            <label>Expiry</label>
+            <input type="date" class="p-med-expiry">
+          </div>
+          <div>
+            <label>ওজন/বক্স (kg)</label>
+            <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>বক্স</label>
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+          <div>
+            <label>MRP</label>
+            <input type="number" class="p-mrp" placeholder="200" step="0.01">
+          </div>
+        </div>
+        
+        <label>🟡 Cash রেট</label>
+        <div class="optional-wrap">
+          <input type="number" class="p-optional" placeholder="20" step="0.01" oninput="recalcProduct(${id})">
+          <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
+  
+  function getGroceryTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="grocery">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <label>একক</label>
+        <div class="radio-group">
+          <div class="radio-option selected" onclick="selectUnit(${id}, 'kg', this)">⚖️ kg</div>
+          <div class="radio-option" onclick="selectUnit(${id}, 'gm', this)">gm</div>
+          <div class="radio-option" onclick="selectUnit(${id}, 'ltr', this)">ltr</div>
+          <div class="radio-option" onclick="selectUnit(${id}, 'pcs', this)">pcs</div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>পরিমাণ/প্যাক</label>
+            <input type="number" class="p-qty" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>মোট প্যাক</label>
+            <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>ওজন/প্যাক (kg)</label>
+            <input type="number" class="p-weight" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+        </div>
+        
+        <div class="row-2">
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+          <div>
+            <label>🟡 Cash রেট</label>
+            <div class="optional-wrap">
+              <input type="number" class="p-optional" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+              <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+            </div>
+          </div>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
+  
+  function getClothingTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="clothing">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <div class="row-3">
+          <div>
+            <label>সাইজ</label>
+            <input type="text" class="p-size" placeholder="S/M/L/XL">
+          </div>
+          <div>
+            <label>রঙ</label>
+            <input type="text" class="p-color" placeholder="লাল">
+          </div>
+          <div>
+            <label>ফেব্রিক</label>
+            <input type="text" class="p-fabric" placeholder="কটন">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>পিস</label>
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>ওজন/পিস (kg)</label>
+            <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+        </div>
+        
+        <div class="row-2">
+          <div>
+            <label>MRP</label>
+            <input type="number" class="p-mrp" placeholder="800" step="0.01">
+          </div>
+          <div>
+            <label>🟡 Cash রেট</label>
+            <div class="optional-wrap">
+              <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
+              <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+            </div>
+          </div>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
+  
+  function getRestaurantTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="restaurant">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <div class="row-3">
+          <div>
+            <label>পোর্শন</label>
+            <input type="text" class="p-portion" placeholder="Full/Half">
+          </div>
+          <div>
+            <label>পরিমাণ</label>
+            <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+        </div>
+        
+        <div class="row-2">
+          <div>
+            <label>ওজন/পোর্শন (kg)</label>
+            <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>🟡 Cash রেট</label>
+            <div class="optional-wrap">
+              <input type="number" class="p-optional" placeholder="10" step="0.01" oninput="recalcProduct(${id})">
+              <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+            </div>
+          </div>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
+  
+  function getElectronicsTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="electronics">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <div class="row-2">
+          <div>
+            <label>মডেল</label>
+            <input type="text" class="p-model" placeholder="Model-X">
+          </div>
+          <div>
+            <label>ওয়ারেন্টি</label>
+            <input type="text" class="p-warranty" placeholder="1 Year">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>সিরিয়াল</label>
+            <input type="text" class="p-serial" placeholder="SN-001">
+          </div>
+          <div>
+            <label>পিস</label>
+            <input type="number" class="p-boxes" placeholder="10" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>ওজন/পিস (kg)</label>
+            <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="15000" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+          <div>
+            <label>MRP</label>
+            <input type="number" class="p-mrp" placeholder="20000" step="0.01">
+          </div>
+          <div>
+            <label>🟡 Cash</label>
+            <div class="optional-wrap">
+              <input type="number" class="p-optional" placeholder="500" step="0.01" oninput="recalcProduct(${id})">
+              <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+            </div>
+          </div>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
+  
+  function getHardwareTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="hardware" data-rating="box">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <div class="row-3">
+          <div>
+            <label>সাইজ</label>
+            <input type="text" class="p-size" placeholder="৪ ইঞ্চি / 1kg">
+          </div>
+          <div>
+            <label>ওজন/বক্স (kg)</label>
+            <input type="number" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>বক্স</label>
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          </div>
+        </div>
+        
+        <div class="row-2">
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+          <div>
+            <label>🟡 Cash রেট</label>
+            <div class="optional-wrap">
+              <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
+              <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+            </div>
+          </div>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
+  
+  // ==================== ADD PRODUCT ROW ====================
+  window.addProductRow = function() {
+    productCount++;
+    const id = productCount;
+    const bizType = currentBizType || 'hardware';
+    
+    const html = getProductRowHTML(bizType, id);
+    document.getElementById('productsList').insertAdjacentHTML('beforeend', html);
+    
+    console.log(`✅ Added ${bizType} product row #${id}`);
+    
+    setTimeout(() => {
+      const row = document.getElementById('product-row-' + id);
+      if (row && productCount > 1) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  };
+  
+  window.removeProductRow = function(id) {
+    if (productCount <= 1) {
+      alert('কমপক্ষে একটি পণ্য থাকতে হবে');
+      return;
+    }
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    const name = row.querySelector('.p-name')?.value || 'পণ্য';
+    if (!confirm(`"${name}" মুছে ফেলবেন?`)) return;
+    row.remove();
+    productCount--;
+    if (typeof updateSummary === 'function') updateSummary();
+  };
+  
+  window.selectRating = function(id, type, el) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    row.dataset.rating = type;
+    
+    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    
+    const unitText = type === 'sqft' ? 'sqft' : (type === 'box' ? 'box' : 'piece');
+    row.querySelectorAll('.unit-label').forEach(lbl => lbl.innerText = unitText);
+    
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+  };
+  
+  window.selectMode = function(id, mode, el) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    row.dataset.mode = mode;
+    
+    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    
+    const allowance = document.getElementById('allowance-' + id);
+    if (allowance) {
+      allowance.style.display = mode === 'details' ? 'block' : 'none';
+    }
+    
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+  };
+  
+  window.selectUnit = function(id, unit, el) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    row.dataset.unit = unit;
+    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+  };
+  
+  // ==================== SAME LOT / NEW LOT / FINISH ====================
+  let sameLotTemplateRowId = null;
+  let sameLotAddedCount = 0;
+  
+  window.addSameLot = function() {
+    const allRows = document.querySelectorAll('.product-row');
+    if (allRows.length === 0) {
+      alert('⚠️ আগে একটি পণ্য এন্ট্রি করুন');
+      return;
+    }
+    
+    const lastRow = allRows[allRows.length - 1];
+    sameLotTemplateRowId = lastRow.id.replace('product-row-', '');
+    
+    const templateName = lastRow.querySelector('.p-name')?.value?.trim() 
+      || ('পণ্য #' + sameLotTemplateRowId);
+    document.getElementById('sameLotTemplateInfo').innerText = 'Template: ' + templateName;
+    
+    document.getElementById('sameLotName').value = '';
+    document.getElementById('sameLotBoxes').value = '';
+    sameLotAddedCount = 0;
+    document.getElementById('sameLotCounter').innerText = 'এ পর্যন্ত যোগ হয়েছে: 0';
+    
+    document.getElementById('sameLotModal').style.display = 'block';
+    setTimeout(() => document.getElementById('sameLotName')?.focus(), 300);
+  };
+  
+  window.closeSameLotModal = function(e) {
+    if (e && e.target !== document.getElementById('sameLotModal')) return;
+    document.getElementById('sameLotModal').style.display = 'none';
+    sameLotTemplateRowId = null;
+    sameLotAddedCount = 0;
+  };
+  
+  window.addSameLotItem = function() {
+    if (!sameLotTemplateRowId) return;
+    
+    const name = document.getElementById('sameLotName').value.trim();
+    const boxes = parseFloat(document.getElementById('sameLotBoxes').value) || 0;
+    
+    if (!name) { alert('⚠️ নাম দিন'); return; }
+    if (boxes <= 0) { alert('⚠️ বক্স সংখ্যা দিন'); return; }
+    
+    const templateRow = document.getElementById('product-row-' + sameLotTemplateRowId);
+    if (!templateRow) { alert('⚠️ Template পাওয়া যায়নি'); return; }
+    
+    const newRow = templateRow.cloneNode(true);
+    productCount++;
+    const newId = productCount;
+    
+    newRow.id = 'product-row-' + newId;
+    
+    newRow.querySelectorAll('[onclick*="removeProductRow"]').forEach(el => {
+      el.setAttribute('onclick', `removeProductRow(${newId})`);
+    });
+    newRow.querySelectorAll('[oninput]').forEach(el => {
+      const v = el.getAttribute('oninput');
+      if (v) el.setAttribute('oninput', v.replace(/\d+/g, newId));
+    });
+    newRow.querySelectorAll('[onchange]').forEach(el => {
+      const v = el.getAttribute('onchange');
+      if (v) el.setAttribute('onchange', v.replace(/\d+/g, newId));
+    });
+    
+    const oldCalc = newRow.querySelector('.calc-box');
+    if (oldCalc) oldCalc.id = 'calc-box-' + newId;
+    const oldAllow = newRow.querySelector('.allowance-section');
+    if (oldAllow) oldAllow.id = 'allowance-' + newId;
+    
+    const nameEl = newRow.querySelector('.p-name');
+    if (nameEl) nameEl.value = name;
+    const boxesEl = newRow.querySelector('.p-boxes');
+    if (boxesEl) boxesEl.value = boxes;
+    const numEl = newRow.querySelector('.num');
+    if (numEl) numEl.innerText = '📦 পণ্য ' + newId;
+    
+    document.getElementById('productsList').appendChild(newRow);
+    
+    setTimeout(() => {
+      if (typeof recalcProduct === 'function') recalcProduct(newId);
+      if (typeof updateSummary === 'function') updateSummary();
+    }, 100);
+    
+    sameLotAddedCount++;
+    document.getElementById('sameLotCounter').innerText = `এ পর্যন্ত যোগ হয়েছে: ${sameLotAddedCount}টি ✅`;
+    document.getElementById('sameLotCounter').style.background = '#c8e6c9';
+    
+    document.getElementById('sameLotName').value = '';
+    document.getElementById('sameLotBoxes').value = '';
+    document.getElementById('sameLotName').focus();
+  };
+  
+  window.addNewLot = function() {
+    closeSameLotModal();
+    addProductRow();
+  };
+  
+  window.finishStockEntry = function() {
+    const allRows = document.querySelectorAll('.product-row');
+    if (allRows.length === 0) { alert('⚠️ কমপক্ষে একটি পণ্য এন্ট্রি করুন'); return; }
+    
+    let missingFields = [];
+    allRows.forEach((row, idx) => {
+      const name = row.querySelector('.p-name')?.value?.trim();
+      const category = row.querySelector('.p-category')?.value;
+      const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+      const weight = parseFloat(row.querySelector('.p-weight')?.value) || 0;
+      const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
+      
+      const num = idx + 1;
+      if (!name) missingFields.push(`পণ্য ${num}: নাম নেই`);
+      if (!category) missingFields.push(`পণ্য ${num}: ক্যাটাগরি নেই`);
+      if (boxes <= 0) missingFields.push(`পণ্য ${num}: বক্স নেই`);
+      if (weight <= 0) missingFields.push(`পণ্য ${num}: ওজন নেই`);
+      if (pakkaRate <= 0) missingFields.push(`পণ্য ${num}: পাকা রেট নেই`);
+    });
+    
+    if (missingFields.length > 0) {
+      alert('⚠️ পূরণ করুন:\n\n' + missingFields.slice(0, 10).join('\n'));
+      return;
+    }
+    
+    const totalBoxes = Array.from(allRows).reduce((sum, row) => {
+      return sum + (parseFloat(row.querySelector('.p-boxes')?.value) || 0);
+    }, 0);
+    
+    if (!confirm(`✅ নিশ্চিত করবেন?\n\n📦 মোট পণ্য: ${allRows.length}টি\n📊 মোট বক্স: ${totalBoxes}`)) return;
+    
+    alert('🎯 Phase 3C-তে সেভ কার্যক্রম যুক্ত হবে\n\nআপনার সব ডেটা প্রস্তুত।');
+    console.log('✅ Finished:', { products: allRows.length, boxes: totalBoxes });
+  };
+  
+  console.log('✅ Part C loaded');
+  
+  // PART D এখানে আসবেে
   // PART D এখানে আসবে
   // PART E এখানে আসবে
   
