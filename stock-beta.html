@@ -2969,12 +2969,6 @@ window.saveRoleDefaults = async function() {
   }
 };
 
-// Init
-async function initRoleDefaults() {
-  await loadSuperRoleDefaults();
-  await loadAdminRoleDefaults();
-  console.log('✅ Role defaults ready');
-}
   
  // ============================================================
 // VAULT PASSWORD FUNCTIONS
@@ -3213,7 +3207,7 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById('productsList').innerHTML = '';
       addProductRow();
       updateSummary();
-      await initRoleDefaults();
+     // await initRoleDefaults();
     } else {
       // ❌ Business Type সেট করা নেই — Selector দেখাও
       console.log('🏢 Showing business selector');
@@ -3276,7 +3270,7 @@ window.openStockSettings = async function() {
   
   // ⬇️ Role Defaults আগে লোড করুন
   if (typeof initRoleDefaults === 'function') {
-    await initRoleDefaults();
+   // await initRoleDefaults();
   }
   
   // তারপর UI আপডেট
