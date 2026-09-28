@@ -259,6 +259,17 @@
 .settings-section {
   padding: 8px 0;
 }
+
+#categoryPickerModal.open {
+  display: block !important;
+  visibility: visible !important;
+}
+  
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
 </style>
 </head>
 <body>
@@ -577,7 +588,7 @@
 </div>
 
 <!-- ============ CATEGORY PICKER MODAL ============ -->
-<div id="categoryPickerModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10000; padding:20px;">
+<div id="categoryPickerModal" class="modal-overlay" style="display:none; visibility:hidden; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10000; padding:20px;">
   <div style="background:white; border-radius:14px; max-width:480px; margin:30px auto; padding:16px; max-height: 85vh; display: flex; flex-direction: column;">
     
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -602,6 +613,83 @@
           style="flex:1; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
         <button onclick="addCategoryFromPicker()" style="padding:11px 16px; background:#0f9d58; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">➕</button>
       </div>
+    </div>
+    
+  </div>
+</div>
+  
+ <!-- ============ SAME LOT QUICK ADD MODAL ============ -->
+<div id="sameLotModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10001;" onclick="closeSameLotModal(event)">
+  <div id="sameLotSheet" style="position:absolute; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; padding:16px 18px 20px; max-height:85vh; overflow-y:auto; animation:slideUpSheet 0.25s ease-out;" onclick="event.stopPropagation()">
+    
+    <!-- Drag Handle -->
+    <div style="width:44px; height:4px; background:#ddd; border-radius:4px; margin:0 auto 14px;"></div>
+    
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:17px; color:#0f9d58; font-weight:700;">🔄 Same Lot — Quick Add</h3>
+        <p id="sameLotTemplateInfo" style="font-size:11px; color:#666; margin-top:3px;">Template: -</p>
+      </div>
+      <span onclick="closeSameLotModal()" style="font-size:26px; color:#999; cursor:pointer; padding:0 4px;">&times;</span>
+    </div>
+    
+    <!-- Counter -->
+    <div id="sameLotCounter" style="background:#e6f4ea; color:#0f9d58; padding:8px; border-radius:8px; font-size:12px; font-weight:600; text-align:center; margin-bottom:14px;">
+      এ পর্যন্ত যোগ হয়েছে: 0
+    </div>
+    
+    <!-- Info Panel -->
+    <div style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:11px; color:#666; margin-bottom:12px; line-height:1.6;">
+      ℹ️ <b>যা কপি হবে:</b> ক্যাটাগরি, সাইজ, ওজন, পাকা/Cash রেট, GST, HSN
+      <br>
+      📝 <b>শুধু আপনি দেবেন:</b> নাম, বক্স সংখ্যা, ছবি
+    </div>
+    
+    <!-- Form -->
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      পণ্যের নাম / ডিজাইন <span style="color:#d93025;">*</span>
+    </label>
+    <input type="text" id="sameLotName" placeholder="যেমন: Vitrified Green 4x2" 
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+    
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      বক্স সংখ্যা <span style="color:#d93025;">*</span>
+    </label>
+    <input type="number" id="sameLotBoxes" placeholder="100" 
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+    
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      📸 ছবি ও ভিডিও
+    </label>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:14px;">
+      <div onclick="alert('Phase 3C-এ কাজ করবে')" 
+        style="padding:10px 6px; border:2px dashed #dadce0; border-radius:8px; text-align:center; cursor:pointer;">
+        <div style="font-size:20px;">📷</div>
+        <div style="font-size:10px; color:#666; margin-top:2px;">ক্যামেরা</div>
+      </div>
+      <div onclick="alert('Phase 3C-এ কাজ করবে')" 
+        style="padding:10px 6px; border:2px dashed #dadce0; border-radius:8px; text-align:center; cursor:pointer;">
+        <div style="font-size:20px;">🖼️</div>
+        <div style="font-size:10px; color:#666; margin-top:2px;">গ্যালারি</div>
+      </div>
+      <div onclick="alert('Phase 3C-এ কাজ করবে')" 
+        style="padding:10px 6px; border:2px dashed #dadce0; border-radius:8px; text-align:center; cursor:pointer;">
+        <div style="font-size:20px;">🎥</div>
+        <div style="font-size:10px; color:#666; margin-top:2px;">ভিডিও</div>
+      </div>
+    </div>
+    
+    <!-- Buttons -->
+    <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px;">
+      <button onclick="closeSameLotModal()" 
+        style="padding:12px; background:#f0f2f5; color:#666; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;">
+        ❌ বন্ধ
+      </button>
+      <button onclick="addSameLotItem()" 
+        style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer;">
+        ✅ যোগ করুন
+      </button>
     </div>
     
   </div>
@@ -959,15 +1047,76 @@ let currentPickerProductId = null;
 
 window.openCategoryPicker = function(productId) {
   currentPickerProductId = productId;
-  document.getElementById('categoryPickerModal').style.display = 'block';
+  
+  const modal = document.getElementById('categoryPickerModal');
+  if (!modal) {
+    console.error('❌ Modal not found');
+    return;
+  }
+  
+  // খোলার জন্য
+  modal.style.display = 'block';
+  modal.style.visibility = 'visible';
+  modal.classList.add('open');
+  
   document.getElementById('catSearchInput').value = '';
   document.getElementById('pickerNewCat').value = '';
   renderCategoryPicker(currentCategories);
+  
+  // Search input-এ focus
+  setTimeout(() => {
+    document.getElementById('catSearchInput')?.focus();
+  }, 200);
+};
+
+// ============================================================
+// CATEGORY PICKER — Robust Close
+// ============================================================
+window.pickCategory = function(name, value) {
+  const productId = currentPickerProductId;  // Save before null
+  if (!productId) {
+    closeCategoryPicker();
+    return;
+  }
+  
+  const row = document.getElementById('product-row-' + productId);
+  if (row) {
+    const hiddenInput = row.querySelector('.p-category');
+    const textInput = row.querySelector('.p-category-input');
+    
+    if (hiddenInput) hiddenInput.value = value;
+    if (textInput) {
+      textInput.value = name;
+      textInput.style.color = '#202124';
+    }
+  }
+  
+  // Modal বন্ধ করি (সব পদ্ধতিতে)
+  closeCategoryPicker();
+  
+  // তারপর হিসাব
+  setTimeout(() => {
+    recalcProduct(productId);
+  }, 50);
 };
 
 window.closeCategoryPicker = function() {
-  document.getElementById('categoryPickerModal').style.display = 'none';
+  // ৩টি পদ্ধতিতে modal বন্ধ করি (নিশ্চিত হওয়ার জন্য)
+  const modal = document.getElementById('categoryPickerModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.style.visibility = 'hidden';
+    modal.classList.remove('open');
+  }
+  
+  // Query selector দিয়েও চেক
+  document.querySelectorAll('#categoryPickerModal').forEach(m => {
+    m.style.display = 'none';
+  });
+  
   currentPickerProductId = null;
+  
+  console.log('✅ Category picker closed');
 };
 
 function renderCategoryPicker(cats) {
@@ -1011,18 +1160,7 @@ window.filterCategoryPicker = function(query) {
   renderCategoryPicker(filtered);
 };
 
-window.pickCategory = function(name, value) {
-  if (!currentPickerProductId) return;
-  const row = document.getElementById('product-row-' + currentPickerProductId);
-  if (!row) return;
-  
-  row.querySelector('.p-category').value = value;
-  row.querySelector('.p-category-input').value = name;
-  row.querySelector('.p-category-input').style.color = '#202124';
-  
-  recalcProduct(currentPickerProductId);
-  closeCategoryPicker();
-};
+
 
 window.addCategoryFromPicker = async function() {
   const input = document.getElementById('pickerNewCat');
@@ -2037,19 +2175,148 @@ window.addSameLot = function() {
 // NEW LOT — সম্পূর্ণ নতুন পণ্য (শুধু কমন তথ্য থাকবে)
 // ============================================================
 window.addNewLot = function() {
+  // Same Lot Modal বন্ধ
+  closeSameLotModal();
+  
+  // নতুন ফাঁকা রো
   addProductRow();
   
   setTimeout(() => {
-    const newRow = document.querySelector(`#product-row-${productCount}`);
+    const newRow = document.getElementById('product-row-' + productCount);
     if (newRow) {
       newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, 100);
+  }, 200);
   
-  console.log(`✅ Added New Lot product #${productCount}`);
+  console.log(`✅ New Lot #${productCount}`);
 };
 
 // ============================================================
+// SAME LOT — Mini Form System
+// ============================================================
+let sameLotTemplateRowId = null;
+let sameLotAddedCount = 0;
+
+window.addSameLot = function() {
+  const allRows = document.querySelectorAll('.product-row');
+  if (allRows.length === 0) {
+    alert('⚠️ আগে একটি পণ্য এন্ট্রি করুন');
+    return;
+  }
+  
+  // শেষ পণ্য রো-কে template হিসাবে ধরব
+  const lastRow = allRows[allRows.length - 1];
+  sameLotTemplateRowId = lastRow.id.replace('product-row-', '');
+  
+  // Template name দেখাও
+  const templateName = lastRow.querySelector('.p-name')?.value?.trim() 
+    || ('পণ্য #' + sameLotTemplateRowId);
+  document.getElementById('sameLotTemplateInfo').innerText = 'Template: ' + templateName;
+  
+  // Reset
+  document.getElementById('sameLotName').value = '';
+  document.getElementById('sameLotBoxes').value = '';
+  sameLotAddedCount = 0;
+  document.getElementById('sameLotCounter').innerText = 'এ পর্যন্ত যোগ হয়েছে: 0';
+  
+  document.getElementById('sameLotModal').style.display = 'block';
+  
+  setTimeout(() => {
+    document.getElementById('sameLotName')?.focus();
+  }, 300);
+};
+
+window.closeSameLotModal = function(e) {
+  if (e && e.target !== document.getElementById('sameLotModal')) return;
+  document.getElementById('sameLotModal').style.display = 'none';
+  sameLotTemplateRowId = null;
+  sameLotAddedCount = 0;
+};
+
+window.addSameLotItem = function() {
+  if (!sameLotTemplateRowId) return;
+  
+  const name = document.getElementById('sameLotName').value.trim();
+  const boxes = parseFloat(document.getElementById('sameLotBoxes').value) || 0;
+  
+  if (!name) {
+    alert('⚠️ পণ্যের নাম দিন');
+    document.getElementById('sameLotName').focus();
+    return;
+  }
+  if (boxes <= 0) {
+    alert('⚠️ বক্স সংখ্যা দিন');
+    document.getElementById('sameLotBoxes').focus();
+    return;
+  }
+  
+  const templateRow = document.getElementById('product-row-' + sameLotTemplateRowId);
+  if (!templateRow) {
+    alert('⚠️ Template পণ্য পাওয়া যায়নি');
+    return;
+  }
+  
+  // Clone করি
+  const newRow = templateRow.cloneNode(true);
+  productCount++;
+  const newId = productCount;
+  
+  // Update ID
+  newRow.id = 'product-row-' + newId;
+  
+  // সব onclick/oninput/onchange-এ নতুন ID সেট
+  newRow.querySelectorAll('[onclick*="removeProductRow"]').forEach(el => {
+    el.setAttribute('onclick', `removeProductRow(${newId})`);
+  });
+  newRow.querySelectorAll('[oninput]').forEach(el => {
+    const v = el.getAttribute('oninput');
+    if (v) el.setAttribute('oninput', v.replace(/\d+/g, newId));
+  });
+  newRow.querySelectorAll('[onchange]').forEach(el => {
+    const v = el.getAttribute('onchange');
+    if (v) el.setAttribute('onchange', v.replace(/\d+/g, newId));
+  });
+  
+  // Calc box ID
+  const oldCalc = newRow.querySelector('.calc-box');
+  if (oldCalc) oldCalc.id = 'calc-box-' + newId;
+  
+  const oldAllow = newRow.querySelector('.allowance-section');
+  if (oldAllow) oldAllow.id = 'allowance-' + newId;
+  
+  // নতুন তথ্য সেট করি
+  const nameEl = newRow.querySelector('.p-name');
+  if (nameEl) nameEl.value = name;
+  
+  const boxesEl = newRow.querySelector('.p-boxes');
+  if (boxesEl) boxesEl.value = boxes;
+  
+  const numEl = newRow.querySelector('.num');
+  if (numEl) numEl.innerText = '📦 পণ্য ' + newId;
+  
+  // DOM-এ যোগ
+  document.getElementById('productsList').appendChild(newRow);
+  
+  // Calculate
+  setTimeout(() => {
+    recalcProduct(newId);
+    updateSummary();
+  }, 100);
+  
+  // Counter update
+  sameLotAddedCount++;
+  document.getElementById('sameLotCounter').innerText = `এ পর্যন্ত যোগ হয়েছে: ${sameLotAddedCount}টি ✅`;
+  document.getElementById('sameLotCounter').style.background = '#c8e6c9';
+  
+  // Clear inputs
+  document.getElementById('sameLotName').value = '';
+  document.getElementById('sameLotBoxes').value = '';
+  document.getElementById('sameLotName').focus();
+  
+  console.log(`✅ Same Lot #${newId}: ${name} (${boxes} box)`);
+};
+  
+  // ============================================================
 // FINISH — সব এন্ট্রি শেষ করে সেভ
 // ============================================================
 window.finishStockEntry = function() {
