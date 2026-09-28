@@ -1204,13 +1204,6 @@ window.addCategoryFromPicker = async function() {
   }
 };
 
-// পুরনো updateCategoryDropdowns ফাংশন — এখন শুধু select-এর জন্য
-// এটি আর ব্যবহার হবে না, তবে রাখলাম যাতে অন্য কোথাও কাজ করে
-function updateCategoryDropdowns_Old() {
-  document.querySelectorAll('.p-category').forEach(input => {
-    // Hidden input — কিছু করার নেই
-  });
-}
   
   // নতুন ক্যাটাগরি যোগ
 window.addNewCategory = async function() {
@@ -2088,87 +2081,6 @@ window.addProductRow = function() {
   row.remove();
   productCount--;
   updateSummary();
-};
-
-  // ============================================================
-// SAME LOT — একই ক্যাটাগরি/সাইজ/ওজন, শুধু নাম+ছবি+পরিমাণ আলাদা
-// ============================================================
-window.addSameLot = function() {
-  const allRows = document.querySelectorAll('.product-row');
-  if (allRows.length === 0) {
-    alert('⚠️ আগে একটি পণ্য এন্ট্রি করুন');
-    return;
-  }
-  
-  // শেষ পণ্য রো থেকে কপি করব
-  const lastRow = allRows[allRows.length - 1];
-  const templateRow = lastRow.cloneNode(true);
-  
-  productCount++;
-  const newId = productCount;
-  
-  // নতুন ID সেট করা
-  templateRow.id = 'product-row-' + newId;
-  templateRow.querySelectorAll('[onclick*="removeProductRow"]').forEach(el => {
-    el.setAttribute('onclick', `removeProductRow(${newId})`);
-  });
-  
-  // সব oninput/onchange-এ নতুন ID সেট করা
-  templateRow.querySelectorAll('[oninput]').forEach(el => {
-    const oninput = el.getAttribute('oninput');
-    if (oninput) {
-      el.setAttribute('oninput', oninput.replace(/\d+/g, newId));
-    }
-  });
-  templateRow.querySelectorAll('[onchange]').forEach(el => {
-    const onchange = el.getAttribute('onchange');
-    if (onchange) {
-      el.setAttribute('onchange', onchange.replace(/\d+/g, newId));
-    }
-  });
-  
-  // Calc Box ID update
-  const oldCalcBox = templateRow.querySelector('.calc-box');
-  if (oldCalcBox) oldCalcBox.id = 'calc-box-' + newId;
-  
-  // Allowance section ID update (marble এর জন্য)
-  const oldAllowance = templateRow.querySelector('.allowance-section');
-  if (oldAllowance) oldAllowance.id = 'allowance-' + newId;
-  
-  // ===== যেসব ফিল্ড রিসেট হবে =====
-  // ১. পণ্যের নাম
-  const nameEl = templateRow.querySelector('.p-name');
-  if (nameEl) nameEl.value = '';
-  
-  // ২. বক্স সংখ্যা (Quantity)
-  const boxesEl = templateRow.querySelector('.p-boxes');
-  if (boxesEl) boxesEl.value = '';
-  
-  // ৩. ছবি ও ভিডিও (UI reset)
-  // (Phase 3C-এ কাজ করবে, এখনো কিছু নেই)
-  
-  // ৪. রোল নাম্বার
-  const numEl = templateRow.querySelector('.num');
-  if (numEl) numEl.innerText = '📦 পণ্য ' + newId;
-  
-  // ৫. Category input (দেখতে আগেরটাই থাকবে, কিন্তু user চাইলে বদলাতে পারবে)
-  // (Same Lot মানে একই ক্যাটাগরি, তাই কিছু করার নেই)
-  
-  // DOM-এ যোগ করো
-  document.getElementById('productsList').appendChild(templateRow);
-  
-  // হিসাব আপডেট
-  setTimeout(() => {
-    recalcProduct(newId);
-    updateSummary();
-    // Smooth scroll
-    document.getElementById('product-row-' + newId).scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'center' 
-    });
-  }, 100);
-  
-  console.log(`✅ Added Same Lot product #${newId}`);
 };
 
 // ============================================================
