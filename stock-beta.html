@@ -3463,16 +3463,6 @@ window.saveVaultPassword = async function() {
   }, 1500);
 };
 
-// Simple hash function
-function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return 'vault_' + Math.abs(hash).toString(36);
-}
 
 // ============================================================
 // CLEAR CATEGORIES
