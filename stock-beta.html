@@ -507,7 +507,7 @@
         <input type="number" id="transportRate" placeholder="4800">
         
         <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
-       <select id="truckWeight" onchange="handleTruckWeightChange()">
+        <select id="truckWeight" onchange="updateSummary(); recalcAllProducts();">
           <option value="">-- সিলেক্ট করুন --</option>
           <optgroup label="🚛 লরি">
             <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
@@ -2871,7 +2871,7 @@
   initRoleDefaults();
   
   console.log('✅ Part D loaded');
-  
+
    // ============================================================
   // PART E: ROLE RATES SECTION + SETTINGS + VAULT
   // ============================================================
@@ -3132,8 +3132,8 @@
   window.updateSummary = updateSummary;
   
   console.log('✅ Part E loaded');
-  console.log('🎉 Stock system fully ready!');ে
-  
+  console.log('🎉 Stock system fully ready!'); 
+
 </script>
 
 </body>
