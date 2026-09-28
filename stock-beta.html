@@ -3459,7 +3459,7 @@ window.clearAllCategories = async function() {
 };
 
 // ============================================================
-// PHASE 3A — ROLE RATES SECTION
+// PHASE 3A — ROLE DEFAULTS (5 Levels)
 // ============================================================
 const ROLE_CONFIG = [
   { id: 'stocker',    label: '🟢 Stocker',    color: '#0f9d58' },
@@ -3469,44 +3469,120 @@ const ROLE_CONFIG = [
   { id: 'mistri',     label: '🔴 Mistri',     color: '#d93025' }
 ];
 
-// Global Defaults (localStorage + Firestore থেকে লোড হবে)
 let superRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
 let adminRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
 let adminUseSuperDefaults = true;
 
-function getRoleRatesSection(id) {
-  let rowsHtml = '';
-  ROLE_CONFIG.forEach(role => {
-    rowsHtml += `
-      <div class="role-row">
-        <span class="role-label" style="color:${role.color};">${role.label}</span>
-        <input type="number" class="p-role-input" data-role="${role.id}" 
-          placeholder="₹" step="0.01" 
-          oninput="recalcRoleRate(${id})">
-        <span class="role-preview" data-preview="${role.id}">—</span>
-      </div>
-    `;
-  });
+async function loadSuperRoleDefaults() {
+  try {
+    const snap = await getDoc(doc(db, "super_settings", "role_defaults"));
+    if (snap.exists()) {
+      const data = snap.data();
+      superRoleDefaults = {
+        stocker: data.stocker ?? 5,
+        wholesaler: data.wholesaler ?? 10,
+        retailer: data.retailer ?? 15,
+        consumer: data.consumer ?? 20,
+        mistri: data.mistri ?? 25
+      };
+    }
+    updateSuperDefaultsDisplay();
+  } catch (e) {
+    console.log('Super defaults load error:', e);
+    updateSuperDefaultsDisplay();
+  }
+}
+
+function updateSuperDefaultsDisplay() {
+  const el = document.getElementById('superDefaultsDisplay');
+  if (el) {
+    el.innerText = `Stocker ${superRoleDefaults.stocker}% · Whole ${superRoleDefaults.wholesaler}% · Retail ${superRoleDefaults.retailer}% · Consumer ${superRoleDefaults.consumer}% · Mistri ${superRoleDefaults.mistri}%`;
+  }
+}
+
+async function loadAdminRoleDefaults() {
+  if (!adminId) return;
+  try {
+    const snap = await getDoc(doc(db, "admins", adminId));
+    if (snap.exists()) {
+      const data = snap.data();
+      const rd = data.roleDefaults;
+      if (rd) {
+        adminUseSuperDefaults = rd.useSuperAdmin !== false;
+        adminRoleDefaults = {
+          stocker: rd.stocker ?? 5,
+          wholesaler: rd.wholesaler ?? 10,
+          retailer: rd.retailer ?? 15,
+          consumer: rd.consumer ?? 20,
+          mistri: rd.mistri ?? 25
+        };
+      } else {
+        adminUseSuperDefaults = true;
+      }
+    }
+  } catch (e) {
+    console.log('Admin role defaults load error:', e);
+  }
+}
+
+window.onToggleSuperDefaults = function() {
+  const chk = document.getElementById('useSuperAdminRolePct');
+  const inputs = document.getElementById('adminRolePctInputs');
+  if (!chk || !inputs) return;
+  inputs.style.display = chk.checked ? 'none' : 'block';
+};
+
+window.saveRoleDefaults = async function() {
+  if (!adminId) return;
   
-  return `
-    <div class="role-rates-section" data-row-id="${id}">
-      <div class="role-rates-header" onclick="toggleRoleRates(${id})">
-        <span>🎯 Role Rates (গ্রাহকের রেট)</span>
-        <span class="role-arrow" id="role-arrow-${id}">▼</span>
-      </div>
-      <div class="role-rates-body" id="role-body-${id}" style="display:none;">
-        <div class="role-landing-info">
-          💡 Landing Cost: <b class="role-landing-amount">₹0</b> 
-          <br>
-          <span style="font-size:10px;">খালি রাখলে Global % ব্যবহার হবে</span>
-        </div>
-        ${rowsHtml}
-        <button type="button" onclick="autoFillRoleRates(${id})" class="role-autofill-btn">
-          ⚡ Global % থেকে Auto-fill
-        </button>
-      </div>
-    </div>
-  `;
+  const statusEl = document.getElementById('roleDefaultsStatus');
+  const chk = document.getElementById('useSuperAdminRolePct');
+  const useSuper = chk ? chk.checked : true;
+  
+  const roleDefaults = {
+    useSuperAdmin: useSuper,
+    stocker: parseFloat(document.getElementById('adminPctStocker')?.value) || 5,
+    wholesaler: parseFloat(document.getElementById('adminPctWholesaler')?.value) || 10,
+    retailer: parseFloat(document.getElementById('adminPctRetailer')?.value) || 15,
+    consumer: parseFloat(document.getElementById('adminPctConsumer')?.value) || 20,
+    mistri: parseFloat(document.getElementById('adminPctMistri')?.value) || 25
+  };
+  
+  statusEl.innerHTML = '<div style="color:#666; font-size:12px;">⏳ সেভ হচ্ছে...</div>';
+  
+  try {
+    await updateDoc(doc(db, "admins", adminId), {
+      roleDefaults: roleDefaults,
+      roleDefaultsUpdatedAt: serverTimestamp()
+    });
+    
+    adminUseSuperDefaults = useSuper;
+    adminRoleDefaults = {
+      stocker: roleDefaults.stocker,
+      wholesaler: roleDefaults.wholesaler,
+      retailer: roleDefaults.retailer,
+      consumer: roleDefaults.consumer,
+      mistri: roleDefaults.mistri
+    };
+    
+    statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ সেভ হয়েছে!</div>';
+    
+    document.querySelectorAll('.product-row').forEach(row => {
+      const id = row.id.replace('product-row-', '');
+      if (typeof recalcRoleRate === 'function') recalcRoleRate(parseInt(id));
+    });
+    
+    setTimeout(() => statusEl.innerHTML = '', 2500);
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">❌ ' + e.message + '</div>';
+  }
+};
+
+async function initRoleDefaults() {
+  await loadSuperRoleDefaults();
+  await loadAdminRoleDefaults();
+  console.log('✅ Role defaults ready');
 }
   
 // ============================================================
