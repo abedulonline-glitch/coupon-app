@@ -2880,42 +2880,7 @@ document.addEventListener('change', (e) => {
     productCount--;
   };
 
- // ============================================================
-// ROLE DEFAULTS — 5 Levels
-// ============================================================
-const ROLE_CONFIG = [
-  { id: 'stocker',    label: '🟢 Stocker',    color: '#0f9d58' },
-  { id: 'wholesaler', label: '🟡 Wholesaler', color: '#b06000' },
-  { id: 'retailer',   label: '🔵 Retailer',   color: '#1a73e8' },
-  { id: 'consumer',   label: '🟣 Consumer',   color: '#7b1fa2' },
-  { id: 'mistri',     label: '🔴 Mistri',     color: '#d93025' }
-];
-
-let superRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
-let adminRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
-let adminUseSuperDefaults = true;
-
-// Super Admin Defaults লোড
-async function loadSuperRoleDefaults() {
-  try {
-    const snap = await getDoc(doc(db, "super_settings", "role_defaults"));
-    if (snap.exists()) {
-      const data = snap.data();
-      superRoleDefaults = {
-        stocker: data.stocker ?? 5,
-        wholesaler: data.wholesaler ?? 10,
-        retailer: data.retailer ?? 15,
-        consumer: data.consumer ?? 20,
-        mistri: data.mistri ?? 25
-      };
-    }
-    updateSuperDefaultsDisplay();
-  } catch (e) {
-    console.log('Super defaults load error:', e);
-    updateSuperDefaultsDisplay();
-  }
-}
-
+ 
 function updateSuperDefaultsDisplay() {
   const el = document.getElementById('superDefaultsDisplay');
   if (el) {
