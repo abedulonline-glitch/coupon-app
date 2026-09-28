@@ -495,54 +495,23 @@
       <div class="card">
         <h3>📦 পণ্যের তালিকা</h3>
         <div id="productsList"></div>
-        <button class="add-product-btn" onclick="addProductRow()">
-          ➕ আরেকটি পণ্য যোগ করুন
-        </button>
-      </div>
-
-      <!-- Summary -->
-      <div class="card">
-        <h3>📊 সারসংক্ষেপ (Auto)</h3>
-        <div class="summary-box">
-          <div class="summary-row">
-            <span>মোট বক্স</span>
-            <span id="sumBoxes">0</span>
-          </div>
-          <div class="summary-row">
-            <span>মোট ওজন</span>
-            <span id="sumWeight">0 kg</span>
-          </div>
-          <div class="summary-row">
-            <span>🟢 মোট পাকা</span>
-            <span id="sumPakka">₹0</span>
-          </div>
-          <div class="summary-row">
-           <span>🟡 Cash (Optional) মোট</span>
-            <span id="sumOptional">₹•••</span>
-          </div>
-          <div class="summary-row">
-            <span>পরিবহন</span>
-            <span id="sumTransport">₹0</span>
-          </div>
-          <div class="summary-row">
-            <span>অতিরিক্ত খরচ</span>
-            <span id="sumExtra">₹0</span>
-          </div>
-          <div class="summary-row">
-            <span>🎯 Landing Cost</span>
-            <span id="sumLanding">₹0</span>
-          </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
+          <button onclick="addSameLot()" 
+            style="padding: 12px 6px; background:#e6f4ea; color:#0f9d58; border:2px solid #0f9d58; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
+            🔄<br>Same Lot
+          </button>
+          <button onclick="addNewLot()" 
+            style="padding: 12px 6px; background:#e8f0fe; color:#1a73e8; border:2px solid #1a73e8; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
+            ➕<br>New Lot
+          </button>
+          <button onclick="finishStockEntry()" 
+            style="padding: 12px 6px; background:#0f9d58; color:white; border:2px solid #0f9d58; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
+            ✅<br>Finish
+          </button>
         </div>
-        
-        <button class="btn-primary" style="margin-top: 14px;" onclick="saveStock()">
-          💾 সেভ করুন
-        </button>
-        <button class="btn-secondary" style="width: 100%; margin-top: 8px;" onclick="resetForm()">
-          ❌ বাতিল করুন
-        </button>
       </div>
 
-    </div>
+ 
 
     <!-- ============ STOCK LIST TAB ============ -->
     <div id="tab-list" class="tab-content page">
@@ -1511,6 +1480,9 @@ function getMarbleTemplate(id) {
         <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
           <span>📦 প্রতি বক্সে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
         </div>
+                <div class="calc-row" style="background:#fef7e0; padding:6px 10px; border-radius:6px; margin-top:4px;">
+          <span>💵 Per Box (Without Tax):</span><b class="calc-per-box-no-tax" style="color:#b06000;">₹0</b>
+        </div>
         <div class="benefit-box" style="display: none;">
           <div class="calc-divider"></div>
           <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
@@ -1956,7 +1928,180 @@ window.addProductRow = function() {
   const html = getProductRowHTML(bizType, id);
   document.getElementById('productsList').insertAdjacentHTML('beforeend', html);
   
-  console.log(`✅ Added ${bizType} product row #${id}`);
+   console.log(`✅ Added ${bizType} product row #${id}`);
+  
+  // Scroll to new row
+  setTimeout(() => {
+    const newRow = document.getElementById('product-row-' + id);
+    if (newRow && productCount > 1) {
+      newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
+};
+
+  window.removeProductRow = function(id) {
+  if (productCount <= 1) {
+    alert('কমপক্ষে একটি পণ্য থাকতে হবে');
+    return;
+  }
+  const row = document.getElementById('product-row-' + id);
+  const name = row.querySelector('.p-name')?.value || 'পণ্য';
+  if (!confirm(`"${name}" মুছে ফেলবেন?`)) return;
+  row.remove();
+  productCount--;
+  updateSummary();
+};
+
+  // ============================================================
+// SAME LOT — একই ক্যাটাগরি/সাইজ/ওজন, শুধু নাম+ছবি+পরিমাণ আলাদা
+// ============================================================
+window.addSameLot = function() {
+  const allRows = document.querySelectorAll('.product-row');
+  if (allRows.length === 0) {
+    alert('⚠️ আগে একটি পণ্য এন্ট্রি করুন');
+    return;
+  }
+  
+  // শেষ পণ্য রো থেকে কপি করব
+  const lastRow = allRows[allRows.length - 1];
+  const templateRow = lastRow.cloneNode(true);
+  
+  productCount++;
+  const newId = productCount;
+  
+  // নতুন ID সেট করা
+  templateRow.id = 'product-row-' + newId;
+  templateRow.querySelectorAll('[onclick*="removeProductRow"]').forEach(el => {
+    el.setAttribute('onclick', `removeProductRow(${newId})`);
+  });
+  
+  // সব oninput/onchange-এ নতুন ID সেট করা
+  templateRow.querySelectorAll('[oninput]').forEach(el => {
+    const oninput = el.getAttribute('oninput');
+    if (oninput) {
+      el.setAttribute('oninput', oninput.replace(/\d+/g, newId));
+    }
+  });
+  templateRow.querySelectorAll('[onchange]').forEach(el => {
+    const onchange = el.getAttribute('onchange');
+    if (onchange) {
+      el.setAttribute('onchange', onchange.replace(/\d+/g, newId));
+    }
+  });
+  
+  // Calc Box ID update
+  const oldCalcBox = templateRow.querySelector('.calc-box');
+  if (oldCalcBox) oldCalcBox.id = 'calc-box-' + newId;
+  
+  // Allowance section ID update (marble এর জন্য)
+  const oldAllowance = templateRow.querySelector('.allowance-section');
+  if (oldAllowance) oldAllowance.id = 'allowance-' + newId;
+  
+  // ===== যেসব ফিল্ড রিসেট হবে =====
+  // ১. পণ্যের নাম
+  const nameEl = templateRow.querySelector('.p-name');
+  if (nameEl) nameEl.value = '';
+  
+  // ২. বক্স সংখ্যা (Quantity)
+  const boxesEl = templateRow.querySelector('.p-boxes');
+  if (boxesEl) boxesEl.value = '';
+  
+  // ৩. ছবি ও ভিডিও (UI reset)
+  // (Phase 3C-এ কাজ করবে, এখনো কিছু নেই)
+  
+  // ৪. রোল নাম্বার
+  const numEl = templateRow.querySelector('.num');
+  if (numEl) numEl.innerText = '📦 পণ্য ' + newId;
+  
+  // ৫. Category input (দেখতে আগেরটাই থাকবে, কিন্তু user চাইলে বদলাতে পারবে)
+  // (Same Lot মানে একই ক্যাটাগরি, তাই কিছু করার নেই)
+  
+  // DOM-এ যোগ করো
+  document.getElementById('productsList').appendChild(templateRow);
+  
+  // হিসাব আপডেট
+  setTimeout(() => {
+    recalcProduct(newId);
+    updateSummary();
+    // Smooth scroll
+    document.getElementById('product-row-' + newId).scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center' 
+    });
+  }, 100);
+  
+  console.log(`✅ Added Same Lot product #${newId}`);
+};
+
+// ============================================================
+// NEW LOT — সম্পূর্ণ নতুন পণ্য (শুধু কমন তথ্য থাকবে)
+// ============================================================
+window.addNewLot = function() {
+  addProductRow();
+  
+  setTimeout(() => {
+    const newRow = document.querySelector(`#product-row-${productCount}`);
+    if (newRow) {
+      newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
+  
+  console.log(`✅ Added New Lot product #${productCount}`);
+};
+
+// ============================================================
+// FINISH — সব এন্ট্রি শেষ করে সেভ
+// ============================================================
+window.finishStockEntry = function() {
+  // Validation
+  const allRows = document.querySelectorAll('.product-row');
+  if (allRows.length === 0) {
+    alert('⚠️ কমপক্ষে একটি পণ্য এন্ট্রি করুন');
+    return;
+  }
+  
+  // চেক করুন সব পণ্যে নাম, ক্যাটাগরি, বক্স, ওজন দেওয়া আছে কি না
+  let missingFields = [];
+  allRows.forEach((row, idx) => {
+    const name = row.querySelector('.p-name')?.value?.trim();
+    const category = row.querySelector('.p-category')?.value;
+    const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+    const weight = parseFloat(row.querySelector('.p-weight')?.value) || 0;
+    const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
+    
+    const num = idx + 1;
+    if (!name) missingFields.push(`পণ্য ${num}: নাম নেই`);
+    if (!category) missingFields.push(`পণ্য ${num}: ক্যাটাগরি নেই`);
+    if (boxes <= 0) missingFields.push(`পণ্য ${num}: বক্স সংখ্যা নেই`);
+    if (weight <= 0) missingFields.push(`পণ্য ${num}: ওজন নেই`);
+    if (pakkaRate <= 0) missingFields.push(`পণ্য ${num}: পাকা রেট নেই`);
+  });
+  
+  if (missingFields.length > 0) {
+    alert('⚠️ নিচের তথ্যগুলো পূরণ করুন:\n\n' + missingFields.slice(0, 10).join('\n'));
+    return;
+  }
+  
+  // কনফার্মেশন
+  const totalProducts = allRows.length;
+  const totalBoxes = Array.from(allRows).reduce((sum, row) => {
+    return sum + (parseFloat(row.querySelector('.p-boxes')?.value) || 0);
+  }, 0);
+  
+  const confirmMsg = `✅ এন্ট্রি নিশ্চিত করবেন?\n\n` +
+                     `📦 মোট পণ্য: ${totalProducts}টি\n` +
+                     `📊 মোট বক্স: ${totalBoxes}\n\n` +
+                     `⚠️ Save করার পর পরিবর্তন করা যাবে না।`;
+  
+  if (!confirm(confirmMsg)) return;
+  
+  // Phase 3C-তে এখানে actual save হবে
+  alert('🎯 Phase 3C-তে সেভ কার্যক্রম যুক্ত হবে\n\nআপনার সব ডেটা প্রস্তুত।');
+  
+  console.log('✅ Finished. Ready to save:', {
+    products: totalProducts,
+    boxes: totalBoxes
+  });
 };
 
 // ============================================================
@@ -2184,6 +2329,13 @@ window.recalcProduct = function(id) {
   
   const perBoxEl = box.querySelector('.calc-per-box');
   if (perBoxEl) perBoxEl.innerText = '₹' + (boxes > 0 ? totalLanding / boxes : 0).toFixed(2);
+    // Per Box without Tax (GST বাদ দিয়ে)
+  const perBoxNoTaxEl = box.querySelector('.calc-per-box-no-tax');
+  if (perBoxNoTaxEl) {
+    const landingNoTax = totalLanding - gstAmount;
+    const perBoxNoTax = boxes > 0 ? landingNoTax / boxes : 0;
+    perBoxNoTaxEl.innerText = '₹' + perBoxNoTax.toFixed(2);
+  }
   
   // Benefit
   const benefitBox = box.querySelector('.benefit-box');
