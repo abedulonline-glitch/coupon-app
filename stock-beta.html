@@ -2996,6 +2996,13 @@ window.clearAllCategories = async function() {
   }
 };
 
+// ============================================================
+// FAILSAFE — Missing Function Handler
+// ============================================================
+window.addEventListener('error', (e) => {
+  console.error('🚨 Runtime Error:', e.message, 'at', e.filename, ':', e.lineno);
+});
+
 </script>
 
 </body>
