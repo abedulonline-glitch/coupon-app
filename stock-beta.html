@@ -270,6 +270,104 @@
   to   { transform: translateY(0); }
 }
 
+/* Role Rates Section */
+.role-rates-section {
+  margin-top: 12px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 3px solid #1a73e8;
+  overflow: hidden;
+}
+
+.role-rates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+  background: #e8f0fe;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a73e8;
+}
+
+.role-arrow {
+  font-size: 11px;
+  transition: transform 0.2s;
+}
+
+.role-arrow.open {
+  transform: rotate(180deg);
+}
+
+.role-rates-body {
+  padding: 12px;
+}
+
+.role-landing-info {
+  background: white;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.role-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 80px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.role-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-row input {
+  padding: 8px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.role-preview {
+  font-size: 11px;
+  text-align: right;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.role-preview.custom {
+  color: #0f9d58;
+}
+
+.role-preview.global {
+  color: #1a73e8;
+}
+
+.role-preview.missing {
+  color: #d93025;
+  font-size: 10px;
+}
+
+.role-autofill-btn {
+  width: 100%;
+  padding: 9px;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
 </style>
 </head>
 <body>
@@ -694,6 +792,131 @@
     
   </div>
 </div>
+  
+  <!-- ============ STOCK SETTINGS MODAL ============ -->
+<div id="stockSettingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:14px; max-width:520px; margin:20px auto; padding:20px; position:relative;">
+    
+    <span onclick="closeStockSettings()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+    
+    <h3 style="color:#1a73e8; margin-bottom:16px; font-size:18px;">⚙️ Stock Settings</h3>
+
+    <!-- Section 1: Business Type -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin-bottom:8px;">🏢 ব্যবসার ধরন</h4>
+      <div style="background:#e8f0fe; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div id="settingsBizType" style="font-size:14px; font-weight:700; color:#1a73e8;">-</div>
+          <div style="font-size:11px; color:#666; margin-top:2px;">বর্তমান Business Type</div>
+        </div>
+        <button onclick="closeStockSettings(); changeBusinessType();" style="padding:6px 12px; background:#1a73e8; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer;">
+          🔄 পরিবর্তন
+        </button>
+      </div>
+    </div>
+
+    <!-- Section 2: Role Defaults -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">💰 Role Default Markup</h4>
+      <p style="font-size:11px; color:#666; margin-bottom:8px;">
+        যদি প্রোডাক্টে আলাদা রেট না দেন, এই % থেকে হিসাব হবে
+      </p>
+      
+      <div style="background:#e8f0fe; padding:10px; border-radius:8px; margin-bottom:10px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer; margin:0;">
+          <input type="checkbox" id="useSuperAdminRolePct" 
+            onchange="onToggleSuperDefaults()"
+            style="width:auto; margin:0;">
+          <span>👑 Super Admin-এর % ব্যবহার করি</span>
+        </label>
+      </div>
+      
+      <div id="adminRolePctInputs" style="display:none;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>
+            <label style="font-size:11px; color:#555;">🟢 Stocker %</label>
+            <input type="number" id="adminPctStocker" placeholder="5" step="0.1" 
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#555;">🟡 Wholesaler %</label>
+            <input type="number" id="adminPctWholesaler" placeholder="10" step="0.1" 
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#555;">🔵 Retailer %</label>
+            <input type="number" id="adminPctRetailer" placeholder="15" step="0.1" 
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#555;">🟣 Consumer %</label>
+            <input type="number" id="adminPctConsumer" placeholder="20" step="0.1" 
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label style="font-size:11px; color:#555;">🔴 Mistri %</label>
+            <input type="number" id="adminPctMistri" placeholder="25" step="0.1" 
+              style="padding:8px; font-size:13px;">
+          </div>
+        </div>
+      </div>
+      
+      <div id="superDefaultsPreview" style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:11px; color:#666; margin-top:10px; line-height:1.6;">
+        👑 <b>Super Admin ডিফল্ট:</b> <span id="superDefaultsDisplay">লোড হচ্ছে...</span>
+      </div>
+      
+      <button onclick="saveRoleDefaults()" 
+        style="width:100%; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; margin-top:10px;">
+        💾 Role Defaults সেভ করুন
+      </button>
+      <div id="roleDefaultsStatus" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- Section 3: Vault Password -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🔐 Vault Password</h4>
+      <p style="font-size:11px; color:#666; margin-bottom:8px;">
+        Cash / Optional খরচ দেখতে এই পাসওয়ার্ড লাগবে
+      </p>
+      <div id="vaultStatus" style="background:#fef7e0; padding:10px; border-radius:8px; font-size:12px; color:#b06000; margin-bottom:10px;">
+        ⚠️ এখনো Vault Password সেট করা হয়নি
+      </div>
+      <button onclick="openVaultPasswordSetup()" style="width:100%; padding:11px; background:#7b1fa2; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+        🔐 Vault Password সেট করুন
+      </button>
+    </div>
+
+    <!-- Section 4: Language -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🌐 ভাষা</h4>
+      <p style="font-size:11px; color:#666; margin-bottom:8px;">
+        উপরে Topbar-এ Dropdown থেকে পরিবর্তন করুন
+      </p>
+    </div>
+
+    <!-- Section 5: Company Info -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🏢 কোম্পানির তথ্য</h4>
+      <div style="background:#f8f9fa; padding:12px; border-radius:8px; font-size:13px;">
+        <div style="margin-bottom:6px;"><b>Company:</b> <span id="settingsCompanyName">-</span></div>
+        <div><b>Admin:</b> <span id="settingsAdminName">-</span></div>
+      </div>
+    </div>
+
+    <!-- Section 6: Danger Zone -->
+    <div class="settings-section" style="margin-top:20px; padding-top:16px; border-top:1px solid #eee;">
+      <h4 style="font-size:14px; color:#d93025; margin-bottom:8px;">⚠️ বিপদজনক</h4>
+      <button onclick="clearAllCategories()" style="width:100%; padding:11px; background:#fce8e6; color:#d93025; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; margin-bottom:8px;">
+        🗑️ এই Business Type-এর সব ক্যাটাগরি মুছুন
+      </button>
+      <button onclick="window.location.href='beta.html'" style="width:100%; padding:11px; background:#f0f2f5; color:#666; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+        ← Coupon App-এ ফিরে যান
+      </button>
+    </div>
+
+  </div>
+</div>
+
   
   <!-- ============ BOTTOM NAV ============ -->
 <div class="bottom-nav" id="bottomNav" style="display: none;">
@@ -2059,17 +2282,20 @@ window.addProductRow = function() {
   const html = getProductRowHTML(bizType, id);
   document.getElementById('productsList').insertAdjacentHTML('beforeend', html);
   
-   console.log(`✅ Added ${bizType} product row #${id}`);
-  
-  // Scroll to new row
-  setTimeout(() => {
-    const newRow = document.getElementById('product-row-' + id);
-    if (newRow && productCount > 1) {
-      newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // ✅ Role Rates Section ইনজেক্ট করুন
+  const row = document.getElementById('product-row-' + id);
+  if (row) {
+    const imageSection = row.querySelector('.image-upload-section');
+    if (imageSection) {
+      imageSection.insertAdjacentHTML('beforebegin', getRoleRatesSection(id));
+    } else {
+      // Fallback: শেষে যোগ করুন
+      row.insertAdjacentHTML('beforeend', getRoleRatesSection(id));
     }
-  }, 100);
+  }
+  
+  console.log(`✅ Added ${bizType} product row #${id}`);
 };
-
   window.removeProductRow = function(id) {
   if (productCount <= 1) {
     alert('কমপক্ষে একটি পণ্য থাকতে হবে');
@@ -2203,11 +2429,21 @@ window.addSameLotItem = function() {
   const boxesEl = newRow.querySelector('.p-boxes');
   if (boxesEl) boxesEl.value = boxes;
   
-  const numEl = newRow.querySelector('.num');
+    const numEl = newRow.querySelector('.num');
   if (numEl) numEl.innerText = '📦 পণ্য ' + newId;
+  
+  // পুরনো Role Section সরিয়ে নতুন ID দিয়ে যোগ করুন
+  const oldRoleSection = newRow.querySelector('.role-rates-section');
+  if (oldRoleSection) oldRoleSection.remove();
   
   // DOM-এ যোগ
   document.getElementById('productsList').appendChild(newRow);
+  
+  // নতুন Role Section যোগ
+  const imageSection = newRow.querySelector('.image-upload-section');
+  if (imageSection) {
+    imageSection.insertAdjacentHTML('beforebegin', getRoleRatesSection(newId));
+  }
   
   // Calculate
   setTimeout(() => {
@@ -2644,6 +2880,250 @@ document.addEventListener('change', (e) => {
     productCount--;
   };
 
+ // ============================================================
+// ROLE DEFAULTS — 5 Levels
+// ============================================================
+const ROLE_CONFIG = [
+  { id: 'stocker',    label: '🟢 Stocker',    color: '#0f9d58' },
+  { id: 'wholesaler', label: '🟡 Wholesaler', color: '#b06000' },
+  { id: 'retailer',   label: '🔵 Retailer',   color: '#1a73e8' },
+  { id: 'consumer',   label: '🟣 Consumer',   color: '#7b1fa2' },
+  { id: 'mistri',     label: '🔴 Mistri',     color: '#d93025' }
+];
+
+let superRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
+let adminRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
+let adminUseSuperDefaults = true;
+
+// Super Admin Defaults লোড
+async function loadSuperRoleDefaults() {
+  try {
+    const snap = await getDoc(doc(db, "super_settings", "role_defaults"));
+    if (snap.exists()) {
+      const data = snap.data();
+      superRoleDefaults = {
+        stocker: data.stocker ?? 5,
+        wholesaler: data.wholesaler ?? 10,
+        retailer: data.retailer ?? 15,
+        consumer: data.consumer ?? 20,
+        mistri: data.mistri ?? 25
+      };
+    }
+    updateSuperDefaultsDisplay();
+  } catch (e) {
+    console.log('Super defaults load error:', e);
+    updateSuperDefaultsDisplay();
+  }
+}
+
+function updateSuperDefaultsDisplay() {
+  const el = document.getElementById('superDefaultsDisplay');
+  if (el) {
+    el.innerText = `Stocker ${superRoleDefaults.stocker}% · Whole ${superRoleDefaults.wholesaler}% · Retail ${superRoleDefaults.retailer}% · Consumer ${superRoleDefaults.consumer}% · Mistri ${superRoleDefaults.mistri}%`;
+  }
+}
+
+// Admin Defaults লোড
+async function loadAdminRoleDefaults() {
+  if (!adminId) return;
+  try {
+    const snap = await getDoc(doc(db, "admins", adminId));
+    if (snap.exists()) {
+      const data = snap.data();
+      const rd = data.roleDefaults;
+      if (rd) {
+        adminUseSuperDefaults = rd.useSuperAdmin !== false;
+        adminRoleDefaults = {
+          stocker: rd.stocker ?? 5,
+          wholesaler: rd.wholesaler ?? 10,
+          retailer: rd.retailer ?? 15,
+          consumer: rd.consumer ?? 20,
+          mistri: rd.mistri ?? 25
+        };
+      } else {
+        adminUseSuperDefaults = true;
+      }
+    }
+  } catch (e) {
+    console.log('Admin role defaults load error:', e);
+  }
+}
+
+window.onToggleSuperDefaults = function() {
+  const chk = document.getElementById('useSuperAdminRolePct');
+  const inputs = document.getElementById('adminRolePctInputs');
+  if (!chk || !inputs) return;
+  inputs.style.display = chk.checked ? 'none' : 'block';
+};
+
+window.saveRoleDefaults = async function() {
+  if (!adminId) return;
+  
+  const statusEl = document.getElementById('roleDefaultsStatus');
+  const chk = document.getElementById('useSuperAdminRolePct');
+  const useSuper = chk ? chk.checked : true;
+  
+  const roleDefaults = {
+    useSuperAdmin: useSuper,
+    stocker: parseFloat(document.getElementById('adminPctStocker')?.value) || 5,
+    wholesaler: parseFloat(document.getElementById('adminPctWholesaler')?.value) || 10,
+    retailer: parseFloat(document.getElementById('adminPctRetailer')?.value) || 15,
+    consumer: parseFloat(document.getElementById('adminPctConsumer')?.value) || 20,
+    mistri: parseFloat(document.getElementById('adminPctMistri')?.value) || 25
+  };
+  
+  statusEl.innerHTML = '<div style="color:#666; font-size:12px;">⏳ সেভ হচ্ছে...</div>';
+  
+  try {
+    await updateDoc(doc(db, "admins", adminId), {
+      roleDefaults: roleDefaults,
+      roleDefaultsUpdatedAt: serverTimestamp()
+    });
+    
+    adminUseSuperDefaults = useSuper;
+    adminRoleDefaults = {
+      stocker: roleDefaults.stocker,
+      wholesaler: roleDefaults.wholesaler,
+      retailer: roleDefaults.retailer,
+      consumer: roleDefaults.consumer,
+      mistri: roleDefaults.mistri
+    };
+    
+    statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ সেভ হয়েছে!</div>';
+    
+    // সব Role Rate recalc
+    document.querySelectorAll('.product-row').forEach(row => {
+      const id = row.id.replace('product-row-', '');
+      if (typeof recalcRoleRate === 'function') recalcRoleRate(parseInt(id));
+    });
+    
+    setTimeout(() => statusEl.innerHTML = '', 2500);
+  } catch (e) {
+    console.error(e);
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">❌ ' + e.message + '</div>';
+  }
+};
+
+// Init
+async function initRoleDefaults() {
+  await loadSuperRoleDefaults();
+  await loadAdminRoleDefaults();
+  console.log('✅ Role defaults ready');
+}
+  
+ // ============================================================
+// VAULT PASSWORD FUNCTIONS
+// ============================================================
+window.openVaultPasswordSetup = function() {
+  document.getElementById('vaultSetupModal').style.display = 'block';
+  document.getElementById('vaultSaveStatus').innerHTML = '';
+  const savedPhone = localStorage.getItem('stock_vault_phone') || '';
+  document.getElementById('vaultPhone').value = savedPhone;
+  previewVaultPassword();
+};
+
+window.closeVaultSetup = function() {
+  document.getElementById('vaultSetupModal').style.display = 'none';
+};
+
+window.previewVaultPassword = function() {
+  const method = document.getElementById('vaultMethod').value;
+  const phone = document.getElementById('vaultPhone').value.trim();
+  const customWrap = document.getElementById('vaultCustomWrap');
+  const preview = document.getElementById('vaultPreview');
+  
+  if (method === 'custom') {
+    customWrap.style.display = 'block';
+    preview.innerText = '🔒 কাস্টম পাসওয়ার্ড ব্যবহার করুন';
+    return;
+  }
+  customWrap.style.display = 'none';
+  
+  if (!phone || phone.length < 4) {
+    preview.innerText = '🔒 ফোন নাম্বার দিন';
+    return;
+  }
+  
+  let password = '';
+  if (method === 'last4') password = phone.slice(-4);
+  else if (method === 'last6') password = phone.slice(-6);
+  else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+  else if (method === 'first4') password = phone.slice(0, 4);
+  
+  preview.innerHTML = `🔒 পাসওয়ার্ড: <b>${password}</b>`;
+};
+
+window.saveVaultPassword = async function() {
+  const phone = document.getElementById('vaultPhone').value.trim();
+  const method = document.getElementById('vaultMethod').value;
+  const status = document.getElementById('vaultSaveStatus');
+  
+  if (!phone || phone.length < 10) {
+    status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ সঠিক ১০ ডিজিটের নাম্বার দিন</div>';
+    return;
+  }
+  
+  let password = '';
+  if (method === 'last4') password = phone.slice(-4);
+  else if (method === 'last6') password = phone.slice(-6);
+  else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+  else if (method === 'first4') password = phone.slice(0, 4);
+  else if (method === 'custom') {
+    password = document.getElementById('vaultCustomPwd').value.trim();
+    if (!password || password.length < 4) {
+      status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ কমপক্ষে ৪ অক্ষর</div>';
+      return;
+    }
+  }
+  
+  const hashed = simpleHash(password);
+  localStorage.setItem('stock_vault_password', hashed);
+  localStorage.setItem('stock_vault_phone', phone);
+  localStorage.setItem('stock_vault_method', method);
+  
+  if (adminId) {
+    try {
+      await updateDoc(doc(db, "admins", adminId), {
+        vaultPhone: phone,
+        vaultMethod: method,
+        vaultUpdatedAt: serverTimestamp()
+      });
+    } catch (e) { console.log('Vault backup error:', e); }
+  }
+  
+  status.innerHTML = '<div style="color:#0f9d58; font-size:13px;">✅ পাসওয়ার্ড সেভ হয়েছে!</div>';
+  setTimeout(() => { closeVaultSetup(); updateStockSettings(); }, 1500);
+};
+
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return 'vault_' + Math.abs(hash).toString(36);
+}
+
+window.clearAllCategories = async function() {
+  if (!confirm(`"${currentBizTypeName}"-এর সব ক্যাটাগরি মুছে ফেলবেন?`)) return;
+  if (!confirm('⚠️ নিশ্চিত?')) return;
+  try {
+    const q = query(
+      collection(db, "categories"),
+      where("adminId", "==", adminId),
+      where("businessType", "==", currentBizType)
+    );
+    const snap = await getDocs(q);
+    for (const d of snap.docs) {
+      await deleteDoc(doc(db, "categories", d.id));
+    }
+    alert(`✅ ${snap.size}টি ক্যাটাগরি মুছে ফেলা হয়েছে`);
+    closeStockSettings();
+    await loadCategories(currentBizType);
+  } catch (e) { alert('❌ ' + e.message); }
+};
+  
   // ==================== Optional Toggle ====================
   window.toggleOptional = function() {
     optionalVisible = !optionalVisible;
@@ -2764,11 +3244,11 @@ onAuthStateChanged(auth, async (user) => {
       updateBizTypeBadge();
       
       await loadCategories(currentBizType);
-      
       productCount = 0;
       document.getElementById('productsList').innerHTML = '';
       addProductRow();
       updateSummary();
+      await initRoleDefaults();
     } else {
       // ❌ Business Type সেট করা নেই — Selector দেখাও
       console.log('🏢 Showing business selector');
@@ -2826,8 +3306,15 @@ window.validateGstin = function(input) {
 // ============================================================
 // STOCK SETTINGS MODAL
 // ============================================================
-window.openStockSettings = function() {
+window.openStockSettings = async function() {
   document.getElementById('stockSettingsModal').style.display = 'block';
+  
+  // ⬇️ Role Defaults আগে লোড করুন
+  if (typeof initRoleDefaults === 'function') {
+    await initRoleDefaults();
+  }
+  
+  // তারপর UI আপডেট
   updateStockSettings();
 };
 
@@ -2835,6 +3322,9 @@ window.closeStockSettings = function() {
   document.getElementById('stockSettingsModal').style.display = 'none';
 };
 
+  // ============================================================
+// UPDATE SETTINGS UI
+// ============================================================
 function updateStockSettings() {
   const bizEl = document.getElementById('settingsBizType');
   if (bizEl) bizEl.innerText = currentBizTypeName || '-';
@@ -2848,16 +3338,33 @@ function updateStockSettings() {
   // Vault Status
   const vaultStatus = document.getElementById('vaultStatus');
   const hasVault = localStorage.getItem('stock_vault_password');
-  if (hasVault) {
-    vaultStatus.style.background = '#e6f4ea';
-    vaultStatus.style.color = '#0f9d58';
-    vaultStatus.innerText = '✅ Vault Password সেট করা আছে';
-  } else {
-    vaultStatus.style.background = '#fef7e0';
-    vaultStatus.style.color = '#b06000';
-    vaultStatus.innerText = '⚠️ এখনো Vault Password সেট করা হয়নি';
+  if (vaultStatus) {
+    if (hasVault) {
+      vaultStatus.style.background = '#e6f4ea';
+      vaultStatus.style.color = '#0f9d58';
+      vaultStatus.innerText = '✅ Vault Password সেট করা আছে';
+    } else {
+      vaultStatus.style.background = '#fef7e0';
+      vaultStatus.style.color = '#b06000';
+      vaultStatus.innerText = '⚠️ এখনো Vault Password সেট করা হয়নি';
+    }
   }
+  
+  // Role Defaults UI
+  const chk = document.getElementById('useSuperAdminRolePct');
+  if (chk) {
+    chk.checked = adminUseSuperDefaults;
+    onToggleSuperDefaults();
+  }
+  
+  ['stocker', 'wholesaler', 'retailer', 'consumer', 'mistri'].forEach(role => {
+    const el = document.getElementById('adminPct' + role.charAt(0).toUpperCase() + role.slice(1));
+    if (el) el.value = adminRoleDefaults[role];
+  });
+  
+  updateSuperDefaultsDisplay();
 }
+
 
 // ============================================================
 // VAULT PASSWORD SETUP
@@ -2997,6 +3504,228 @@ window.clearAllCategories = async function() {
 };
 
 // ============================================================
+// PHASE 3A — ROLE RATES SECTION
+// ============================================================
+const ROLE_CONFIG = [
+  { id: 'stocker',    label: '🟢 Stocker',    color: '#0f9d58' },
+  { id: 'wholesaler', label: '🟡 Wholesaler', color: '#b06000' },
+  { id: 'retailer',   label: '🔵 Retailer',   color: '#1a73e8' },
+  { id: 'consumer',   label: '🟣 Consumer',   color: '#7b1fa2' },
+  { id: 'mistri',     label: '🔴 Mistri',     color: '#d93025' }
+];
+
+// Global Defaults (localStorage + Firestore থেকে লোড হবে)
+let superRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
+let adminRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
+let adminUseSuperDefaults = true;
+
+function getRoleRatesSection(id) {
+  let rowsHtml = '';
+  ROLE_CONFIG.forEach(role => {
+    rowsHtml += `
+      <div class="role-row">
+        <span class="role-label" style="color:${role.color};">${role.label}</span>
+        <input type="number" class="p-role-input" data-role="${role.id}" 
+          placeholder="₹" step="0.01" 
+          oninput="recalcRoleRate(${id})">
+        <span class="role-preview" data-preview="${role.id}">—</span>
+      </div>
+    `;
+  });
+  
+  return `
+    <div class="role-rates-section" data-row-id="${id}">
+      <div class="role-rates-header" onclick="toggleRoleRates(${id})">
+        <span>🎯 Role Rates (গ্রাহকের রেট)</span>
+        <span class="role-arrow" id="role-arrow-${id}">▼</span>
+      </div>
+      <div class="role-rates-body" id="role-body-${id}" style="display:none;">
+        <div class="role-landing-info">
+          💡 Landing Cost: <b class="role-landing-amount">₹0</b> 
+          <br>
+          <span style="font-size:10px;">খালি রাখলে Global % ব্যবহার হবে</span>
+        </div>
+        ${rowsHtml}
+        <button type="button" onclick="autoFillRoleRates(${id})" class="role-autofill-btn">
+          ⚡ Global % থেকে Auto-fill
+        </button>
+      </div>
+    </div>
+  `;
+}
+  
+// ============================================================
+// TOGGLE ROLE RATES SECTION
+// ============================================================
+window.toggleRoleRates = function(id) {
+  const body = document.getElementById('role-body-' + id);
+  const arrow = document.getElementById('role-arrow-' + id);
+  if (!body || !arrow) return;
+  
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    arrow.classList.add('open');
+  } else {
+    body.style.display = 'none';
+    arrow.classList.remove('open');
+  }
+};
+
+// ============================================================
+// GET LANDING COST FOR THIS PRODUCT (Per Unit)
+// ============================================================
+function getLandingCostPerUnit(id) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return 0;
+  
+  const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+  if (boxes <= 0) return 0;
+  
+  // পাকা + Cash + GST (per unit base)
+  const rating = row.dataset.rating || 'box';
+  const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
+  const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
+  const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
+  const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
+  
+  let gstPct = 0;
+  const gstSel = row.querySelector('.p-gst');
+  if (gstSel) {
+    if (gstSel.value === 'custom') {
+      gstPct = parseFloat(row.querySelector('.p-gst-custom')?.value) || 0;
+    } else {
+      gstPct = parseFloat(gstSel.value) || 0;
+    }
+  }
+  
+  let qty = 0;
+  if (rating === 'sqft') qty = sqftPerBox * boxes;
+  else if (rating === 'box') qty = boxes;
+  else qty = pieces * boxes;
+  
+  // Per unit landing (just pakka+cash+gst per unit)
+  const totalBase = (pakkaRate + cashRate) * (1 + gstPct / 100);
+  
+  return totalBase;
+}
+
+// ============================================================
+// RECALC ROLE RATES — 5-Level Fallback
+// ============================================================
+window.recalcRoleRate = function(id) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return;
+  
+  const landingCost = getLandingCostPerUnit(id);
+  
+  // Landing amount দেখাও
+  const landingEl = row.querySelector('.role-landing-amount');
+  if (landingEl) landingEl.innerText = '₹' + landingCost.toFixed(2);
+  
+  // Category rate (currently just checking, will add later)
+  const category = row.querySelector('.p-category')?.value;
+  const categoryRates = getCategoryRoleRates(category);
+  
+  ROLE_CONFIG.forEach(role => {
+    const input = row.querySelector(`.p-role-input[data-role="${role.id}"]`);
+    const preview = row.querySelector(`.role-preview[data-preview="${role.id}"]`);
+    if (!input || !preview) return;
+    
+    const customVal = parseFloat(input.value) || 0;
+    
+    let finalRate = 0;
+    let source = '';
+    let sourceClass = '';
+    
+    if (customVal > 0) {
+      // Priority 1: Item Custom
+      finalRate = customVal;
+      source = '✏️';
+      sourceClass = 'custom';
+    } else if (categoryRates && categoryRates[role.id] > 0) {
+      // Priority 2: Category Default
+      finalRate = landingCost * (1 + categoryRates[role.id] / 100);
+      source = `${categoryRates[role.id]}%`;
+      sourceClass = 'global';
+    } else {
+      // Priority 3/4: Admin Global % (or Super Admin)
+      const adminPct = adminUseSuperDefaults 
+        ? superRoleDefaults[role.id] 
+        : adminRoleDefaults[role.id];
+      
+      if (adminPct > 0) {
+        finalRate = landingCost * (1 + adminPct / 100);
+        source = `${adminPct}%`;
+        sourceClass = 'global';
+      } else {
+        // Priority 5: Contact Admin
+        finalRate = 0;
+        source = '⚠️';
+        sourceClass = 'missing';
+      }
+    }
+    
+    if (finalRate > 0) {
+      preview.innerHTML = `₹${finalRate.toFixed(2)}<br><span style="font-size:9px; opacity:0.8;">${source}</span>`;
+      preview.className = 'role-preview ' + sourceClass;
+    } else {
+      preview.innerHTML = `⚠️ Contact<br>Admin`;
+      preview.className = 'role-preview missing';
+    }
+  });
+};
+
+// ============================================================
+// AUTO-FILL ROLE RATES (Global % থেকে)
+// ============================================================
+window.autoFillRoleRates = function(id) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return;
+  
+  const landingCost = getLandingCostPerUnit(id);
+  if (landingCost <= 0) {
+    alert('⚠️ আগে পাকা রেট ও Cash রেট দিন');
+    return;
+  }
+  
+  const confirmed = confirm(
+    '⚡ Global % থেকে সব রোলের রেট বসাবেন?\n\n' +
+    'Stocker: ' + (adminUseSuperDefaults ? superRoleDefaults.stocker : adminRoleDefaults.stocker) + '%\n' +
+    'Wholesaler: ' + (adminUseSuperDefaults ? superRoleDefaults.wholesaler : adminRoleDefaults.wholesaler) + '%\n' +
+    'Retailer: ' + (adminUseSuperDefaults ? superRoleDefaults.retailer : adminRoleDefaults.retailer) + '%\n' +
+    'Consumer: ' + (adminUseSuperDefaults ? superRoleDefaults.consumer : adminRoleDefaults.consumer) + '%\n' +
+    'Mistri: ' + (adminUseSuperDefaults ? superRoleDefaults.mistri : adminRoleDefaults.mistri) + '%'
+  );
+  
+  if (!confirmed) return;
+  
+  ROLE_CONFIG.forEach(role => {
+    const input = row.querySelector(`.p-role-input[data-role="${role.id}"]`);
+    if (!input) return;
+    
+    const pct = adminUseSuperDefaults 
+      ? superRoleDefaults[role.id] 
+      : adminRoleDefaults[role.id];
+    
+    if (pct > 0) {
+      const rate = landingCost * (1 + pct / 100);
+      input.value = rate.toFixed(2);
+    }
+  });
+  
+  recalcRoleRate(id);
+  console.log('✅ Auto-filled role rates');
+};
+
+// ============================================================
+// CATEGORY ROLE RATES (placeholder — পরে যোগ হবে)
+// ============================================================
+function getCategoryRoleRates(categoryValue) {
+  // Phase 3A-3-এ বাস্তবায়িত হবে
+  return null;
+}
+  
+  // ============================================================
 // FAILSAFE — Missing Function Handler
 // ============================================================
 window.addEventListener('error', (e) => {
@@ -3004,6 +3733,58 @@ window.addEventListener('error', (e) => {
 });
 
 </script>
+
+<!-- ============ VAULT PASSWORD SETUP MODAL ============ -->
+<div id="vaultSetupModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:10000; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:14px; max-width:480px; margin:40px auto; padding:20px; position:relative;">
+    
+    <span onclick="closeVaultSetup()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+    
+    <h3 style="color:#7b1fa2; margin-bottom:8px; font-size:18px;">🔐 Vault Password সেটআপ</h3>
+    <p style="font-size:12px; color:#666; margin-bottom:16px;">
+      Cash / Optional খরচ দেখতে এই পাসওয়ার্ড লাগবে
+    </p>
+
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      📱 আপনার অন্য ফোন নাম্বার
+    </label>
+    <input type="tel" id="vaultPhone" placeholder="9876543210" maxlength="10"
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      🔑 পাসওয়ার্ড পদ্ধতি
+    </label>
+    <select id="vaultMethod" onchange="previewVaultPassword()"
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+      <option value="last4">শেষ ৪ ডিজিট</option>
+      <option value="last6" selected>শেষ ৬ ডিজিট</option>
+      <option value="mid4">মাঝের ৪ ডিজিট</option>
+      <option value="first4">প্রথম ৪ ডিজিট</option>
+      <option value="custom">কাস্টম পাসওয়ার্ড</option>
+    </select>
+
+    <div id="vaultPreview" style="background:#f3e8fd; padding:10px; border-radius:8px; font-size:13px; color:#7b1fa2; margin-bottom:12px; text-align:center; font-weight:600;">
+      🔒 পাসওয়ার্ড: **--**
+    </div>
+
+    <div id="vaultCustomWrap" style="display:none; margin-bottom:12px;">
+      <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+        🔑 কাস্টম পাসওয়ার্ড
+      </label>
+      <input type="text" id="vaultCustomPwd" placeholder="আপনার পাসওয়ার্ড"
+        style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+    </div>
+
+    <button onclick="saveVaultPassword()" 
+      style="width:100%; padding:13px; background:#7b1fa2; color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer;">
+      💾 পাসওয়ার্ড সেভ করুন
+    </button>
+    <div id="vaultSaveStatus" style="margin-top:10px;"></div>
+
+  </div>
+</div>
+
+</body>
 
 </body>
 </html>
