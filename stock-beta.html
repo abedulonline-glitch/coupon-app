@@ -427,9 +427,27 @@
           <div class="radio-option" onclick="selectRadio('transport', 'container', this)">📦 কনটেইনার</div>
         </div>
         
-        <label>পরিবহন রেট (₹/টন)</label>
+               <label>পরিবহন রেট (₹/টন)</label>
         <input type="number" id="transportRate" placeholder="4800">
-        <div class="helper">মোট ওজন অনুপাতে প্রতিটি পণ্যে ভাগ হবে</div>
+        
+        <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
+        <select id="truckWeight" onchange="updateSummary(); recalcAllProducts();">
+          <option value="">-- সিলেক্ট করুন --</option>
+          <optgroup label="🚛 লরি">
+            <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
+            <option value="45">৪৫ টন (৪৫,০০০ কেজি)</option>
+          </optgroup>
+          <optgroup label="📦 কনটেইনার">
+            <option value="30">৩০ টন (৩০,০০০ কেজি)</option>
+            <option value="31">৩১ টন (৩১,০০০ কেজি)</option>
+            <option value="32">৩২ টন (৩২,০০০ কেজি)</option>
+          </optgroup>
+          <option value="custom">✏️ Custom (নিজে লিখুন)</option>
+        </select>
+        <input type="number" id="truckWeightCustom" placeholder="টন" step="0.01" 
+          style="margin-top:6px; display:none; background:#e8f0fe;"
+          oninput="updateSummary(); recalcAllProducts();">
+        <div class="helper">💡 এই ওজনের অনুপাতে Loading/Unloading/Insurance ভাগ হবে</div>
       </div>
 
       <!-- Additional Costs (Whole Bill) -->
@@ -1207,16 +1225,93 @@ window.changeBusinessType = function() {
   };
 
   // ==================== Radio ====================
-  window.selectRadio = function(groupName, value, el) {
-    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
-    el.classList.add('selected');
-  };
+ window.selectRadio = function(groupName, value, el) {
+  el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  
+  // Transport পরিবর্তন হলে Truck weight dropdown আপডেট
+  if (groupName === 'transport') {
+    updateTruckWeightOptions(value);
+  }
+  
+  updateSummary();
+};
 
-  // ==================== Product Row ====================
+// Transport অনুযায়ী Truck weight option আপডেট
+function updateTruckWeightOptions(transportType) {
+  const sel = document.getElementById('truckWeight');
+  if (!sel) return;
+  
+  const currentValue = sel.value;
+  
+  if (transportType === 'lorry') {
+    sel.innerHTML = `
+      <option value="">-- সিলেক্ট করুন --</option>
+      <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
+      <option value="45">৪৫ টন (৪৫,০০০ কেজি)</option>
+      <option value="custom">✏️ Custom (নিজে লিখুন)</option>
+    `;
+  } else {
+    sel.innerHTML = `
+      <option value="">-- সিলেক্ট করুন --</option>
+      <option value="30">৩০ টন (৩০,০০০ কেজি)</option>
+      <option value="31">৩১ টন (৩১,০০০ কেজি)</option>
+      <option value="32">৩২ টন (৩২,০০০ কেজি)</option>
+      <option value="custom">✏️ Custom (নিজে লিখুন)</option>
+    `;
+  }
+  
+  // Custom থাকলে input দেখাও
+  const custom = document.getElementById('truckWeightCustom');
+  if (custom && currentValue === 'custom') {
+    custom.style.display = 'block';
+  } else if (custom) {
+    custom.style.display = 'none';
+  }
+}
+
+  // ============================================================
+// TRUCK WEIGHT HANDLER
 // ============================================================
-// ADD PRODUCT ROW — Phase 3A
-// Rating Type + Simple/Details + Allowance + Live Calculation
-// ============================================================
+window.handleTruckWeightChange = function() {
+  const sel = document.getElementById('truckWeight');
+  const custom = document.getElementById('truckWeightCustom');
+  
+  if (!sel || !custom) return;
+  
+  if (sel.value === 'custom') {
+    custom.style.display = 'block';
+  } else {
+    custom.style.display = 'none';
+  }
+  
+  updateSummary();
+  recalcAllProducts();
+};
+
+// সব পণ্য আবার হিসাব
+window.recalcAllProducts = function() {
+  document.querySelectorAll('.product-row').forEach(row => {
+    const id = row.id.replace('product-row-', '');
+    recalcProduct(parseInt(id));
+  });
+};
+
+// Truck weight টন-এ পড়া
+function getTruckWeightKg() {
+  const sel = document.getElementById('truckWeight');
+  if (!sel) return 0;
+  
+  if (sel.value === 'custom') {
+    const custom = document.getElementById('truckWeightCustom');
+    const tons = parseFloat(custom?.value) || 0;
+    return tons * 1000;
+  }
+  
+  const tons = parseFloat(sel.value) || 0;
+  return tons * 1000;
+}
+
 // ============================================================
 // PRODUCT ROW TEMPLATES — প্রতিটি Business Type-এর জন্য আলাদা
 // ============================================================
@@ -1402,7 +1497,13 @@ function getMarbleTemplate(id) {
         <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
         <div class="calc-divider"></div>
         <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
-        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+                <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>📊 প্রতি কেজিতে:</span><b class="calc-per-kg" style="font-size:11px;">₹0/kg</b>
+        </div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>📦 প্রতি বক্সে Extra:</span><b class="calc-extra-per-box" style="font-size:11px;">₹0</b>
+        </div>
         <div class="calc-row" style="font-size:11px; color:#666;">
           <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
         </div>
@@ -1973,16 +2074,15 @@ window.recalcProduct = function(id) {
     else { totalQty = pieces * boxes; qtyUnit = 'piece'; }
   } else if (bizType === 'grocery' || bizType === 'fruits') {
     const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
-    totalQty = qty * boxes;  // প্রতি প্যাকের পরিমাণ × মোট প্যাক
+    totalQty = qty * boxes;
     qtyUnit = row.dataset.unit || 'kg';
   } else if (bizType === 'clothing' || bizType === 'jewellery' || bizType === 'cosmetics' || bizType === 'electronics') {
-    totalQty = boxes;  // পিস সংখ্যা
+    totalQty = boxes;
     qtyUnit = 'pcs';
   } else if (bizType === 'restaurant') {
     totalQty = boxes;
     qtyUnit = 'portion';
   } else {
-    // hardware, paints, auto, medicine
     totalQty = boxes;
     qtyUnit = 'box';
   }
@@ -1993,25 +2093,35 @@ window.recalcProduct = function(id) {
   const gstAmount = pakkaAmount * (gstPct / 100);
   const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
   
-  // === ওজন ভাগ ===
+  // === এই পণ্যের মোট ওজন ===
   const thisProductWeight = weight * boxes;
-  let totalAllWeight = 0;
-  document.querySelectorAll('.product-row').forEach(r => {
-    const w = parseFloat(r.querySelector('.p-weight')?.value) || 0;
-    const b = parseFloat(r.querySelector('.p-boxes')?.value) || 0;
-    totalAllWeight += w * b;
-  });
-  const weightShare = totalAllWeight > 0 ? (thisProductWeight / totalAllWeight) : 0;
+  
+  // === Truck Weight পড়া ===
+  const truckWeightKg = getTruckWeightKg();
   
   // === Global extras ===
   const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
   const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
   const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
   const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
+  const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
   const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
   
-  const thisExtra = (loading + unloading + insurance + otherPakka) * weightShare;
+  const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
+  
+  // === Extra খরচ প্রতি কেজি (Truck Weight দিয়ে) ===
+  let perKgExtra = 0;
+  let thisExtra = 0;
+  
+  if (truckWeightKg > 0) {
+    perKgExtra = totalExtraLump / truckWeightKg;
+    thisExtra = perKgExtra * thisProductWeight;
+  }
+  
+  // === পরিবহন (per product weight) ===
   const thisTransport = (transportRate * thisProductWeight) / 1000;
+  
+  // === মোট ল্যান্ডিং ===
   const totalLanding = pakkaCashGst + thisExtra + thisTransport;
   
   // === Marble Benefit ===
@@ -2048,8 +2158,27 @@ window.recalcProduct = function(id) {
   const extraEl = box.querySelector('.calc-extra-share');
   if (extraEl) extraEl.innerText = '₹' + thisExtra.toFixed(2);
   
+  // Per kg display
+  const perKgEl = box.querySelector('.calc-per-kg');
+  if (perKgEl) {
+    perKgEl.innerText = '₹' + perKgExtra.toFixed(4) + '/kg';
+  }
+  
+  // Per box extra display
+  const extraPerBoxEl = box.querySelector('.calc-extra-per-box');
+  if (extraPerBoxEl) {
+    const extraPerBox = boxes > 0 ? thisExtra / boxes : 0;
+    extraPerBoxEl.innerText = '₹' + extraPerBox.toFixed(2);
+  }
+  
   const shareEl = box.querySelector('.calc-weight-share');
-  if (shareEl) shareEl.innerText = (weightShare * 100).toFixed(2) + '% (' + thisProductWeight.toFixed(0) + ' kg)';
+  if (shareEl) {
+    if (truckWeightKg > 0) {
+      shareEl.innerText = `${((thisProductWeight / truckWeightKg) * 100).toFixed(2)}% (${thisProductWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
+    } else {
+      shareEl.innerText = '⚠️ Truck weight দিন';
+    }
+  }
   
   box.querySelector('.calc-total').innerText = '₹' + totalLanding.toFixed(2);
   
@@ -2097,7 +2226,6 @@ function updateSummary() {
     let gstPct = 0;
     const gstSelectEl = row.querySelector('.p-gst');
     const gstCustomEl = row.querySelector('.p-gst-custom');
-    
     if (gstSelectEl) {
       if (gstSelectEl.value === 'custom') {
         gstPct = parseFloat(gstCustomEl?.value) || 0;
@@ -2126,10 +2254,10 @@ function updateSummary() {
   const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
   const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
   
+  const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
   const transportCost = (transportRate * totalWeight) / 1000;
-  const extraCost = loading + unloading + insurance + otherPakka;
   
-  const totalLanding = totalPakka + totalGST + totalCash + transportCost + extraCost + optionalCost;
+  const totalLanding = totalPakka + totalGST + totalCash + transportCost + totalExtraLump;
   
   // Display
   document.getElementById('sumBoxes').innerText = totalBoxes.toFixed(0);
@@ -2137,15 +2265,22 @@ function updateSummary() {
   document.getElementById('sumPakka').innerText = '₹' + totalPakka.toFixed(2);
   document.getElementById('sumOptional').innerText = '₹' + (totalCash + optionalCost).toFixed(2);
   document.getElementById('sumTransport').innerText = '₹' + transportCost.toFixed(2);
-  document.getElementById('sumExtra').innerText = '₹' + extraCost.toFixed(2);
+  document.getElementById('sumExtra').innerText = '₹' + totalExtraLump.toFixed(2);
   document.getElementById('sumLanding').innerText = '₹' + totalLanding.toFixed(2);
 }
 // ============================================================
 // LIVE LISTENERS — Common Info Fields
 // ============================================================
 document.addEventListener('input', (e) => {
-  if (e.target.matches('#loadingCost, #unloadingCost, #insuranceCost, #otherPakka, #transportRate, #optionalCost')) {
+  if (e.target.matches('#loadingCost, #unloadingCost, #insuranceCost, #otherPakka, #transportRate, #optionalCost, #truckWeightCustom')) {
+    recalcAllProducts();
     updateSummary();
+  }
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target.matches('#truckWeight')) {
+    handleTruckWeightChange();
   }
 });
   
