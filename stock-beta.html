@@ -2880,14 +2880,6 @@ document.addEventListener('change', (e) => {
     productCount--;
   };
 
- 
-function updateSuperDefaultsDisplay() {
-  const el = document.getElementById('superDefaultsDisplay');
-  if (el) {
-    el.innerText = `Stocker ${superRoleDefaults.stocker}% · Whole ${superRoleDefaults.wholesaler}% · Retail ${superRoleDefaults.retailer}% · Consumer ${superRoleDefaults.consumer}% · Mistri ${superRoleDefaults.mistri}%`;
-  }
-}
-
 // Admin Defaults লোড
 async function loadAdminRoleDefaults() {
   if (!adminId) return;
@@ -2921,60 +2913,8 @@ window.onToggleSuperDefaults = function() {
   inputs.style.display = chk.checked ? 'none' : 'block';
 };
 
-window.saveRoleDefaults = async function() {
-  if (!adminId) return;
-  
-  const statusEl = document.getElementById('roleDefaultsStatus');
-  const chk = document.getElementById('useSuperAdminRolePct');
-  const useSuper = chk ? chk.checked : true;
-  
-  const roleDefaults = {
-    useSuperAdmin: useSuper,
-    stocker: parseFloat(document.getElementById('adminPctStocker')?.value) || 5,
-    wholesaler: parseFloat(document.getElementById('adminPctWholesaler')?.value) || 10,
-    retailer: parseFloat(document.getElementById('adminPctRetailer')?.value) || 15,
-    consumer: parseFloat(document.getElementById('adminPctConsumer')?.value) || 20,
-    mistri: parseFloat(document.getElementById('adminPctMistri')?.value) || 25
-  };
-  
-  statusEl.innerHTML = '<div style="color:#666; font-size:12px;">⏳ সেভ হচ্ছে...</div>';
-  
-  try {
-    await updateDoc(doc(db, "admins", adminId), {
-      roleDefaults: roleDefaults,
-      roleDefaultsUpdatedAt: serverTimestamp()
-    });
-    
-    adminUseSuperDefaults = useSuper;
-    adminRoleDefaults = {
-      stocker: roleDefaults.stocker,
-      wholesaler: roleDefaults.wholesaler,
-      retailer: roleDefaults.retailer,
-      consumer: roleDefaults.consumer,
-      mistri: roleDefaults.mistri
-    };
-    
-    statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ সেভ হয়েছে!</div>';
-    
-    // সব Role Rate recalc
-    document.querySelectorAll('.product-row').forEach(row => {
-      const id = row.id.replace('product-row-', '');
-      if (typeof recalcRoleRate === 'function') recalcRoleRate(parseInt(id));
-    });
-    
-    setTimeout(() => statusEl.innerHTML = '', 2500);
-  } catch (e) {
-    console.error(e);
-    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">❌ ' + e.message + '</div>';
-  }
-};
 
-// Init
-async function initRoleDefaults() {
-  await loadSuperRoleDefaults();
-  await loadAdminRoleDefaults();
-  console.log('✅ Role defaults ready');
-}
+
   
  // ============================================================
 // VAULT PASSWORD FUNCTIONS
