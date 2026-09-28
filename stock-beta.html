@@ -190,6 +190,58 @@
   margin-top: 12px;
   font-size: 13px;
 }
+  /* Calc Box — Per Box Display */
+.calc-perbox-display {
+  margin-bottom: 12px;
+}
+
+/* Shutter Toggle */
+.calc-shutter-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f0f2f5;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-top: 10px;
+  transition: all 0.2s;
+  user-select: none;
+}
+.calc-shutter-toggle:hover {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+.calc-shutter-toggle:active {
+  transform: scale(0.98);
+}
+
+.calc-shutter-arrow {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 11px;
+  color: #666;
+}
+.calc-shutter-arrow.open {
+  transform: rotate(180deg);
+  color: #1a73e8;
+}
+
+/* Shutter Body */
+.calc-details-shutter {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out, margin 0.3s;
+  opacity: 0;
+  margin-top: 0;
+}
+.calc-details-shutter.open {
+  max-height: 800px;
+  opacity: 1;
+  margin-top: 10px;
+}
 .calc-row {
   display: flex;
   justify-content: space-between;
@@ -301,6 +353,15 @@
 }
 
 .role-rates-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out, padding 0.3s;
+  opacity: 0;
+  padding: 0 12px;
+}
+.role-rates-body.open {
+  max-height: 600px;
+  opacity: 1;
   padding: 12px;
 }
 
@@ -314,6 +375,14 @@
   line-height: 1.5;
 }
 
+.role-arrow {
+  font-size: 11px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.role-arrow.open {
+  transform: rotate(180deg);
+}
+  
 .role-row {
   display: grid;
   grid-template-columns: 100px 1fr 80px;
@@ -1690,8 +1759,29 @@
   }
   
   function getCalcBox(id) {
-    return `
-      <div class="calc-box" id="calc-box-${id}">
+  return `
+    <div class="calc-box" id="calc-box-${id}">
+      
+      <!-- Per Box (সবসময় দেখা যাবে) -->
+      <div class="calc-perbox-display">
+        <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+          <span style="font-size:13px;">📦 প্রতি বক্সে (ল্যান্ডিং):</span>
+          <b class="calc-per-box" style="color:#1a73e8; font-size:18px;">₹0</b>
+        </div>
+        <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
+          <span style="font-size:13px;">💵 প্রতি বক্সে (Tax ছাড়া):</span>
+          <b class="calc-per-box-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
+        </div>
+      </div>
+      
+      <!-- Shutter Toggle -->
+      <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
+        <span>📊 বিস্তারিত হিসাব দেখুন</span>
+        <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
+      </div>
+      
+      <!-- Detail Section (লুকানো) -->
+      <div class="calc-details-shutter" id="calc-details-${id}">
         <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
         <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
         <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
@@ -1702,13 +1792,7 @@
         <div class="calc-row" style="font-size:11px; color:#666;">
           <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
         </div>
-        <div class="calc-row total"><span>মোট (Landing):</span><b class="calc-total">₹0</b></div>
-        <div class="calc-row" style="background:#e8f0fe; padding:6px 10px; border-radius:6px; margin-top:6px;">
-          <span>📦 প্রতি বক্সে:</span><b class="calc-per-box" style="color:#1a73e8;">₹0</b>
-        </div>
-        <div class="calc-row" style="background:#fef7e0; padding:6px 10px; border-radius:6px; margin-top:4px;">
-          <span>💵 Per Box (Without Tax):</span><b class="calc-per-box-no-tax" style="color:#b06000;">₹0</b>
-        </div>
+        <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
         <div class="benefit-box" style="display: none;">
           <div class="calc-divider"></div>
           <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
@@ -1719,8 +1803,9 @@
           <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
         </div>
       </div>
-    `;
-  }
+    </div>
+  `;
+}
   
   // ==================== TEMPLATES ====================
   function getProductRowHTML(bizType, id) {
@@ -2784,6 +2869,20 @@
     recalcRoleRate(id);
   };
   
+ window.toggleCalcDetails = function(id) {
+  const details = document.getElementById('calc-details-' + id);
+  const arrow = document.getElementById('calc-arrow-' + id);
+  if (!details || !arrow) return;
+  
+  if (details.classList.contains('open')) {
+    details.classList.remove('open');
+    arrow.classList.remove('open');
+  } else {
+    details.classList.add('open');
+    arrow.classList.add('open');
+  }
+}; 
+  
   // ==================== UPDATE SUMMARY ====================
   function updateSummary() {
     let totalBoxes = 0;
@@ -2899,7 +2998,7 @@
           <span>🎯 Role Rates (গ্রাহকের রেট)</span>
           <span class="role-arrow" id="role-arrow-${id}">▼</span>
         </div>
-        <div class="role-rates-body" id="role-body-${id}" style="display:none;">
+       <div class="role-rates-body" id="role-body-${id}">
           <div class="role-landing-info">
             💡 Landing Cost: <b class="role-landing-amount">₹0</b> 
             <br>
@@ -2916,18 +3015,18 @@
   
   // ==================== TOGGLE ROLE RATES ====================
   window.toggleRoleRates = function(id) {
-    const body = document.getElementById('role-body-' + id);
-    const arrow = document.getElementById('role-arrow-' + id);
-    if (!body || !arrow) return;
-    
-    if (body.style.display === 'none') {
-      body.style.display = 'block';
-      arrow.classList.add('open');
-    } else {
-      body.style.display = 'none';
-      arrow.classList.remove('open');
-    }
-  };
+  const body = document.getElementById('role-body-' + id);
+  const arrow = document.getElementById('role-arrow-' + id);
+  if (!body || !arrow) return;
+  
+  if (body.classList.contains('open')) {
+    body.classList.remove('open');
+    arrow.classList.remove('open');
+  } else {
+    body.classList.add('open');
+    arrow.classList.add('open');
+  }
+};
   
   // ==================== OVERRIDE addProductRow ====================
   const _originalAddProductRow = window.addProductRow;
