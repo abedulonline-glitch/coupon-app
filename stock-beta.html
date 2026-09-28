@@ -507,7 +507,7 @@
         <input type="number" id="transportRate" placeholder="4800">
         
         <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
-        <select id="truckWeight" onchange="updateSummary(); recalcAllProducts();">
+       <select id="truckWeight" onchange="handleTruckWeightChange()">
           <option value="">-- সিলেক্ট করুন --</option>
           <optgroup label="🚛 লরি">
             <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
@@ -2872,8 +2872,267 @@
   
   console.log('✅ Part D loaded');
   
-  // PART E এখানে আসবেে
-  // PART E এখানে আসবে
+   // ============================================================
+  // PART E: ROLE RATES SECTION + SETTINGS + VAULT
+  // ============================================================
+  
+  console.log('🚀 Part E loading...');
+  
+  // ==================== ROLE RATES SECTION HTML ====================
+  function getRoleRatesSection(id) {
+    let rowsHtml = '';
+    ROLE_CONFIG.forEach(role => {
+      rowsHtml += `
+        <div class="role-row">
+          <span class="role-label" style="color:${role.color};">${role.label}</span>
+          <input type="number" class="p-role-input" data-role="${role.id}" 
+            placeholder="₹" step="0.01" 
+            oninput="recalcRoleRate(${id})">
+          <span class="role-preview" data-preview="${role.id}">—</span>
+        </div>
+      `;
+    });
+    
+    return `
+      <div class="role-rates-section" data-row-id="${id}">
+        <div class="role-rates-header" onclick="toggleRoleRates(${id})">
+          <span>🎯 Role Rates (গ্রাহকের রেট)</span>
+          <span class="role-arrow" id="role-arrow-${id}">▼</span>
+        </div>
+        <div class="role-rates-body" id="role-body-${id}" style="display:none;">
+          <div class="role-landing-info">
+            💡 Landing Cost: <b class="role-landing-amount">₹0</b> 
+            <br>
+            <span style="font-size:10px;">খালি রাখলে Global % ব্যবহার হবে</span>
+          </div>
+          ${rowsHtml}
+          <button type="button" onclick="autoFillRoleRates(${id})" class="role-autofill-btn">
+            ⚡ Global % থেকে Auto-fill
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  // ==================== TOGGLE ROLE RATES ====================
+  window.toggleRoleRates = function(id) {
+    const body = document.getElementById('role-body-' + id);
+    const arrow = document.getElementById('role-arrow-' + id);
+    if (!body || !arrow) return;
+    
+    if (body.style.display === 'none') {
+      body.style.display = 'block';
+      arrow.classList.add('open');
+    } else {
+      body.style.display = 'none';
+      arrow.classList.remove('open');
+    }
+  };
+  
+  // ==================== OVERRIDE addProductRow ====================
+  const _originalAddProductRow = window.addProductRow;
+  window.addProductRow = function() {
+    _originalAddProductRow();
+    
+    // Inject Role Section
+    const row = document.getElementById('product-row-' + productCount);
+    if (row) {
+      const imageSection = row.querySelector('.image-upload-section');
+      if (imageSection) {
+        imageSection.insertAdjacentHTML('beforebegin', getRoleRatesSection(productCount));
+      }
+    }
+  };
+  
+  // ==================== OVERRIDE addSameLotItem ====================
+  const _originalAddSameLotItem = window.addSameLotItem;
+  window.addSameLotItem = function() {
+    _originalAddSameLotItem();
+    
+    // Inject Role Section (নতুন row-এ)
+    const newId = productCount;
+    const row = document.getElementById('product-row-' + newId);
+    if (row && !row.querySelector('.role-rates-section')) {
+      const imageSection = row.querySelector('.image-upload-section');
+      if (imageSection) {
+        imageSection.insertAdjacentHTML('beforebegin', getRoleRatesSection(newId));
+      }
+    }
+  };
+  
+  // ==================== SETTINGS MODAL ====================
+  window.openStockSettings = async function() {
+    document.getElementById('stockSettingsModal').style.display = 'block';
+    
+    if (typeof initRoleDefaults === 'function') {
+      await initRoleDefaults();
+    }
+    
+    updateStockSettings();
+  };
+  
+  window.closeStockSettings = function() {
+    document.getElementById('stockSettingsModal').style.display = 'none';
+  };
+  
+  function updateStockSettings() {
+    const bizEl = document.getElementById('settingsBizType');
+    if (bizEl) bizEl.innerText = currentBizTypeName || '-';
+    
+    const companyEl = document.getElementById('settingsCompanyName');
+    if (companyEl) companyEl.innerText = adminData?.companyName || '-';
+    
+    const adminEl = document.getElementById('settingsAdminName');
+    if (adminEl) adminEl.innerText = adminData?.name || '-';
+    
+    const vaultStatus = document.getElementById('vaultStatus');
+    const hasVault = localStorage.getItem('stock_vault_password');
+    if (vaultStatus) {
+      if (hasVault) {
+        vaultStatus.style.background = '#e6f4ea';
+        vaultStatus.style.color = '#0f9d58';
+        vaultStatus.innerText = '✅ Vault Password সেট করা আছে';
+      } else {
+        vaultStatus.style.background = '#fef7e0';
+        vaultStatus.style.color = '#b06000';
+        vaultStatus.innerText = '⚠️ এখনো Vault Password সেট করা হয়নি';
+      }
+    }
+    
+    const chk = document.getElementById('useSuperAdminRolePct');
+    if (chk) {
+      chk.checked = adminUseSuperDefaults;
+      if (typeof onToggleSuperDefaults === 'function') onToggleSuperDefaults();
+    }
+    
+    ['stocker', 'wholesaler', 'retailer', 'consumer', 'mistri'].forEach(role => {
+      const el = document.getElementById('adminPct' + role.charAt(0).toUpperCase() + role.slice(1));
+      if (el) el.value = adminRoleDefaults[role];
+    });
+    
+    if (typeof updateSuperDefaultsDisplay === 'function') updateSuperDefaultsDisplay();
+  }
+  
+  // ==================== VAULT PASSWORD ====================
+  window.openVaultPasswordSetup = function() {
+    document.getElementById('vaultSetupModal').style.display = 'block';
+    document.getElementById('vaultSaveStatus').innerHTML = '';
+    const savedPhone = localStorage.getItem('stock_vault_phone') || '';
+    document.getElementById('vaultPhone').value = savedPhone;
+    previewVaultPassword();
+  };
+  
+  window.closeVaultSetup = function() {
+    document.getElementById('vaultSetupModal').style.display = 'none';
+  };
+  
+  window.previewVaultPassword = function() {
+    const method = document.getElementById('vaultMethod').value;
+    const phone = document.getElementById('vaultPhone').value.trim();
+    const customWrap = document.getElementById('vaultCustomWrap');
+    const preview = document.getElementById('vaultPreview');
+    
+    if (method === 'custom') {
+      customWrap.style.display = 'block';
+      preview.innerText = '🔒 কাস্টম পাসওয়ার্ড ব্যবহার করুন';
+      return;
+    }
+    customWrap.style.display = 'none';
+    
+    if (!phone || phone.length < 4) {
+      preview.innerText = '🔒 ফোন নাম্বার দিন';
+      return;
+    }
+    
+    let password = '';
+    if (method === 'last4') password = phone.slice(-4);
+    else if (method === 'last6') password = phone.slice(-6);
+    else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+    else if (method === 'first4') password = phone.slice(0, 4);
+    
+    preview.innerHTML = `🔒 পাসওয়ার্ড: <b>${password}</b>`;
+  };
+  
+  window.saveVaultPassword = async function() {
+    const phone = document.getElementById('vaultPhone').value.trim();
+    const method = document.getElementById('vaultMethod').value;
+    const status = document.getElementById('vaultSaveStatus');
+    
+    if (!phone || phone.length < 10) {
+      status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ সঠিক ১০ ডিজিটের নাম্বার দিন</div>';
+      return;
+    }
+    
+    let password = '';
+    if (method === 'last4') password = phone.slice(-4);
+    else if (method === 'last6') password = phone.slice(-6);
+    else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+    else if (method === 'first4') password = phone.slice(0, 4);
+    else if (method === 'custom') {
+      password = document.getElementById('vaultCustomPwd').value.trim();
+      if (!password || password.length < 4) {
+        status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ কমপক্ষে ৪ অক্ষর</div>';
+        return;
+      }
+    }
+    
+    const hashed = simpleHash(password);
+    localStorage.setItem('stock_vault_password', hashed);
+    localStorage.setItem('stock_vault_phone', phone);
+    localStorage.setItem('stock_vault_method', method);
+    
+    if (adminId) {
+      try {
+        await updateDoc(doc(db, "admins", adminId), {
+          vaultPhone: phone,
+          vaultMethod: method,
+          vaultUpdatedAt: serverTimestamp()
+        });
+      } catch (e) { console.log('Vault backup error:', e); }
+    }
+    
+    status.innerHTML = '<div style="color:#0f9d58; font-size:13px;">✅ পাসওয়ার্ড সেভ হয়েছে!</div>';
+    setTimeout(() => { closeVaultSetup(); updateStockSettings(); }, 1500);
+  };
+  
+  function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return 'vault_' + Math.abs(hash).toString(36);
+  }
+  
+  // ==================== CLEAR ALL CATEGORIES ====================
+  window.clearAllCategories = async function() {
+    if (!confirm(`"${currentBizTypeName}"-এর সব ক্যাটাগরি মুছে ফেলবেন?`)) return;
+    if (!confirm('⚠️ নিশ্চিত?')) return;
+    
+    try {
+      const q = query(
+        collection(db, "categories"),
+        where("adminId", "==", adminId),
+        where("businessType", "==", currentBizType)
+      );
+      const snap = await getDocs(q);
+      
+      for (const d of snap.docs) {
+        await deleteDoc(doc(db, "categories", d.id));
+      }
+      
+      alert(`✅ ${snap.size}টি ক্যাটাগরি মুছে ফেলা হয়েছে`);
+      closeStockSettings();
+      await loadCategories(currentBizType);
+    } catch (e) { alert('❌ ' + e.message); }
+  };
+  
+  // ==================== EXPOSE updateSummary GLOBALLY (Fix) ====================
+  window.updateSummary = updateSummary;
+  
+  console.log('✅ Part E loaded');
+  console.log('🎉 Stock system fully ready!');ে
   
 </script>
 
