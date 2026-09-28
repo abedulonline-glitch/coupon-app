@@ -903,12 +903,377 @@
 
 <script type="module">
   // ============================================================
-  // STOCK MANAGEMENT — COMPLETE JAVASCRIPT
+  // STOCK MANAGEMENT — PART B: FOUNDATION
+  // Imports + State + Auth + Language + Business Selection
   // ============================================================
   
-  console.log('🚀 Stock script loading...');
+  console.log('🚀 Stock script loading... PART B');
   
-  // PART B এখানে আসবে
+  // ==================== IMPORTS ====================
+  import { db, auth } from './firebase-config-beta.js';
+  import { 
+    collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+    query, where, orderBy, onSnapshot, serverTimestamp 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { 
+    onAuthStateChanged, signOut 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { 
+    t, setLanguage as i18nSetLanguage, getLanguage, initLanguage, 
+    applyTranslations, autoTagTranslations, autoTagPlaceholders, 
+    autoTranslateAll, startMutationObserver, LANGUAGES 
+  } from './i18n.js';
+  
+  // ==================== GLOBAL STATE ====================
+  let adminId = null;
+  let adminData = null;
+  let currentBizType = null;
+  let currentBizTypeName = null;
+  let selectedBusiness = null;
+  let productCount = 0;
+  let currentCategories = [];
+  let optionalVisible = false;
+  
+  // Constants
+  const BIZ_TYPE_NAMES = {
+    hardware: '🔨 Hardware', paints: '🎨 Paints', medicine: '💊 Medicine',
+    restaurant: '🍽️ Restaurant', fruits: '🥬 Fruits & Veg', grocery: '🛒 Grocery',
+    marble: '🏛️ Marble & Tiles', clothing: '👕 Clothing', electronics: '📱 Electronics',
+    auto: '🚗 Auto Parts', jewellery: '💎 Jewellery', cosmetics: '🧴 Cosmetics'
+  };
+  
+  const DEFAULT_CATEGORIES = {
+    hardware:   ['Tiles', 'Adhesive', 'Cement', 'Paint', 'Sanitary', 'Fittings', 'Tools', 'Others'],
+    paints:     ['Interior', 'Exterior', 'Primer', 'Thinner', 'Brush', 'Roller', 'Others'],
+    medicine:   ['Tablet', 'Syrup', 'Injection', 'Ointment', 'Drops', 'Bandage', 'Others'],
+    restaurant: ['Starter', 'Main Course', 'Dessert', 'Beverage', 'Combo', 'Others'],
+    fruits:     ['Fruits', 'Vegetables', 'Herbs', 'Dry Fruits', 'Others'],
+    grocery:    ['Rice & Dal', 'Oil & Ghee', 'Spices', 'Snacks', 'Beverages', 'Others'],
+    marble:     ['Marble', 'Granite', 'Tiles', 'Adhesive', 'Polish', 'Others'],
+    clothing:   ['Shirt', 'Pant', 'Saree', 'Kids', 'Accessories', 'Others'],
+    electronics:['Mobile', 'Laptop', 'TV', 'Accessories', 'Charger', 'Others'],
+    auto:       ['Engine Parts', 'Body Parts', 'Electricals', 'Tyres', 'Oil', 'Others'],
+    jewellery:  ['Gold', 'Silver', 'Diamond', 'Imitation', 'Stones', 'Others'],
+    cosmetics:  ['Skin Care', 'Hair Care', 'Makeup', 'Fragrance', 'Tools', 'Others']
+  };
+  
+  // ==================== LANGUAGE SYSTEM ====================
+  function buildLangMenu() {
+    const list = document.getElementById('langList');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const current = getLanguage();
+    
+    LANGUAGES.forEach(lang => {
+      const isActive = lang.code === current;
+      const item = document.createElement('div');
+      item.className = 'lang-item' + (isActive ? ' active' : '');
+      item.innerHTML = `
+        <div class="flag-name">
+          <span class="flag">${lang.flag}</span>
+          <span>${lang.name}</span>
+        </div>
+        ${isActive ? '<span class="check">✓</span>' : ''}
+      `;
+      item.onclick = () => selectLanguage(lang);
+      list.appendChild(item);
+    });
+  }
+  
+  function updateLangButton() {
+    const current = getLanguage();
+    const lang = LANGUAGES.find(l => l.code === current);
+    if (lang) {
+      const flagEl = document.getElementById('currentLangFlag');
+      const nameEl = document.getElementById('currentLangName');
+      if (flagEl) flagEl.innerText = lang.flag;
+      if (nameEl) nameEl.innerText = lang.name;
+    }
+  }
+  
+  window.toggleLangMenu = function(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('langMenu');
+    if (!menu) return;
+    buildLangMenu();
+    menu.style.display = 'block';
+  };
+  
+  window.closeLangMenu = function(event) {
+    const menu = document.getElementById('langMenu');
+    if (menu) menu.style.display = 'none';
+  };
+  
+  function selectLanguage(lang) {
+    if (i18nSetLanguage(lang.code)) {
+      updateLangButton();
+      closeLangMenu();
+      setTimeout(() => { autoTranslateAll(); }, 150);
+    }
+  }
+  
+  function initLangButton() {
+    updateLangButton();
+  }
+  
+  // ==================== BUSINESS SELECTION ====================
+  window.selectBusiness = function(type, el) {
+    selectedBusiness = type;
+    currentBizType = type;
+    currentBizTypeName = BIZ_TYPE_NAMES[type] || type;
+    
+    document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+    if (el) el.classList.add('selected');
+    
+    setTimeout(async () => {
+      document.getElementById('businessSelectorPage').classList.remove('active');
+      document.getElementById('mainAppPage').classList.add('active');
+      const nav = document.getElementById('bottomNav');
+      if (nav) nav.style.display = 'flex';
+      
+      document.getElementById('topbarTitle').innerText = '📦 ' + (BIZ_TYPE_NAMES[type] || 'Stock');
+      
+      updateBizTypeBadge();
+      
+      // Reset product rows
+      productCount = 0;
+      const pl = document.getElementById('productsList');
+      if (pl) pl.innerHTML = '';
+      
+      await saveBusinessType(type);
+      
+      // Load categories then add product row
+      if (typeof loadCategories === 'function') {
+        await loadCategories(type);
+      }
+      
+      if (typeof addProductRow === 'function' && productCount === 0) {
+        addProductRow();
+      }
+      
+      if (typeof updateSummary === 'function') {
+        updateSummary();
+      }
+    }, 250);
+  };
+  
+  function updateBizTypeBadge() {
+    const badge = document.getElementById('bizTypeBadge');
+    const managerBizType = document.getElementById('currentBizType');
+    const name = currentBizTypeName || '🏢 Business Type';
+    
+    if (badge) {
+      badge.innerText = name;
+      badge.style.background = '#e6f4ea';
+      badge.style.color = '#0f9d58';
+    }
+    if (managerBizType) {
+      managerBizType.innerText = name;
+    }
+  }
+  
+  async function saveBusinessType(type) {
+    if (!adminId) return;
+    try {
+      await updateDoc(doc(db, "admins", adminId), {
+        businessType: type,
+        businessTypeName: BIZ_TYPE_NAMES[type] || type,
+        updatedAt: serverTimestamp()
+      });
+      console.log('✅ Business Type saved:', type);
+    } catch (e) {
+      console.error('❌ Business Type save error:', e);
+    }
+  }
+  
+  // ==================== CHANGE BUSINESS TYPE ====================
+  window.changeBusinessType = function() {
+    if (!confirm('ব্যবসার ধরন পরিবর্তন করলে আগের ক্যাটাগরিগুলো মুছে যাবে। নিশ্চিত?')) return;
+    
+    if (typeof closeCategoryModal === 'function') closeCategoryModal();
+    if (typeof closeStockSettings === 'function') closeStockSettings();
+    
+    document.getElementById('mainAppPage').classList.remove('active');
+    const nav = document.getElementById('bottomNav');
+    if (nav) nav.style.display = 'none';
+    document.getElementById('businessSelectorPage').classList.add('active');
+    
+    document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+    
+    // Reset
+    productCount = 0;
+    const pl = document.getElementById('productsList');
+    if (pl) pl.innerHTML = '';
+    currentBizType = null;
+    currentBizTypeName = null;
+    currentCategories = [];
+  };
+  
+  // ==================== TAB SWITCHING ====================
+  window.switchTab = function(tab, el) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    const tc = document.getElementById('tab-' + tab);
+    if (tc) tc.classList.add('active');
+    
+    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(t => t.classList.remove('active'));
+    
+    if (el) {
+      el.classList.add('active');
+      if (el.classList.contains('nav-item')) {
+        const tabs = document.querySelectorAll('.tabs .tab');
+        const idx = { add: 0, list: 1, dashboard: 2 }[tab];
+        if (idx !== undefined && tabs[idx]) tabs[idx].classList.add('active');
+      }
+    }
+  };
+  
+  // ==================== RADIO SELECTION ====================
+  window.selectRadio = function(groupName, value, el) {
+    if (!el || !el.parentElement) return;
+    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    
+    // Transport change → Truck weight dropdown
+    if (groupName === 'transport' && typeof updateTruckWeightOptions === 'function') {
+      updateTruckWeightOptions(value);
+    }
+    
+    if (typeof updateSummary === 'function') updateSummary();
+  };
+  
+  // ==================== GSTIN VALIDATION ====================
+  window.validateGstin = function(input) {
+    let val = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    input.value = val;
+    
+    const helper = document.getElementById('gstinHelper');
+    if (!helper) return;
+    
+    if (val.length === 0) {
+      helper.style.color = '#999';
+      helper.innerText = 'ফরম্যাট: ২ সংখ্যা + ৫ অক্ষর + ৪ সংখ্যা + ৩ অক্ষর + ১ সংখ্যা/অক্ষর (১৫ অক্ষর)';
+      return;
+    }
+    
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    
+    if (gstRegex.test(val)) {
+      helper.style.color = '#0f9d58';
+      helper.innerText = '✅ সঠিক GSTIN';
+    } else if (val.length < 15) {
+      helper.style.color = '#b06000';
+      helper.innerText = `⚠️ ${15 - val.length} অক্ষর আরো দরকার`;
+    } else {
+      helper.style.color = '#d93025';
+      helper.innerText = '❌ ভুল ফরম্যাট';
+    }
+  };
+  
+  // ==================== LOGOUT ====================
+  window.handleLogout = async function() {
+    if (!confirm('লগআউট করবেন?')) return;
+    try {
+      await signOut(auth);
+      window.location.href = 'beta.html';
+    } catch (e) {
+      alert('❌ ' + e.message);
+    }
+  };
+  
+  // ==================== OPTIONAL TOGGLE ====================
+  window.toggleOptional = function() {
+    optionalVisible = !optionalVisible;
+    
+    document.querySelectorAll('.p-optional, #optionalCost').forEach(input => {
+      input.type = optionalVisible ? 'number' : 'password';
+    });
+    
+    const hint = document.getElementById('optionalHint');
+    if (hint) {
+      hint.innerText = optionalVisible 
+        ? '✅ Optional খরচ দৃশ্যমান' 
+        : '🔒 এই খরচ শুধু অ্যাডমিন দেখতে পাবেন';
+    }
+  };
+  
+  // ==================== AUTH CHECK ====================
+  let authChecked = false;
+  
+  onAuthStateChanged(auth, async (user) => {
+    if (!authChecked) {
+      authChecked = true;
+      await new Promise(r => setTimeout(r, 500));
+    }
+    
+    if (!user) {
+      window.location.href = 'beta.html';
+      return;
+    }
+    
+    adminId = user.uid;
+    console.log('✅ User logged in:', user.email);
+    
+    try {
+      const snap = await getDoc(doc(db, "admins", adminId));
+      if (!snap.exists()) {
+        alert('অ্যাডমিন ডেটা পাওয়া যায়নি');
+        window.location.href = 'beta.html';
+        return;
+      }
+      
+      adminData = snap.data();
+      console.log('✅ Admin Data:', adminData.companyName || adminData.name);
+      
+      // Language apply
+      if (adminData.language) {
+        i18nSetLanguage(adminData.language);
+      }
+      
+      // Business Type আগে সেট থাকলে সরাসরি Main App
+      if (adminData.businessType) {
+        currentBizType = adminData.businessType;
+        currentBizTypeName = BIZ_TYPE_NAMES[adminData.businessType] || adminData.businessTypeName;
+        selectedBusiness = adminData.businessType;
+        
+        document.getElementById('businessSelectorPage').classList.remove('active');
+        document.getElementById('mainAppPage').classList.add('active');
+        const nav = document.getElementById('bottomNav');
+        if (nav) nav.style.display = 'flex';
+        document.getElementById('topbarTitle').innerText = '📦 ' + currentBizTypeName;
+        
+        updateBizTypeBadge();
+        
+        if (typeof loadCategories === 'function') {
+          await loadCategories(currentBizType);
+        }
+        
+        if (typeof addProductRow === 'function' && productCount === 0) {
+          addProductRow();
+        }
+        
+        if (typeof updateSummary === 'function') {
+          updateSummary();
+        }
+      }
+      
+      console.log('✅ Auth ready. Admin:', adminData.companyName || adminData.name);
+      
+    } catch (e) {
+      console.error('❌ Auth error:', e);
+    }
+  });
+  
+  // ==================== INIT ====================
+  initLanguage();
+  initLangButton();
+  
+  setTimeout(() => {
+    if (typeof autoTranslateAll === 'function') autoTranslateAll();
+    if (typeof startMutationObserver === 'function') startMutationObserver();
+  }, 500);
+  
   // PART C এখানে আসবে
   // PART D এখানে আসবে
   // PART E এখানে আসবে
