@@ -1882,12 +1882,23 @@
     return cat.includes('marble') || cat.includes('granite');
   }
   
+   // ============================================================
+  // MARBLE/GRANITE TEMPLATE — F-2a (Final)
+  // ============================================================
+  
+  function isMarbleOrGraniteCategory(catValue) {
+    if (!catValue) return false;
+    const cat = catValue.toLowerCase();
+    return cat.includes('marble') || cat.includes('granite');
+  }
+  
   function getMarbleTemplate(id) {
     return `
       <div class="product-row" id="product-row-${id}" data-type="marble" data-mode="simple">
         ${getRowHeader(id)}
         ${getRowCommonFields(id)}
         
+        <!-- ═══ Lot Name ═══ -->
         <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid #0f9d58;">
           <label style="font-size:12px; font-weight:700; color:#0f9d58; display:block; margin-bottom:6px;">
             📋 Lot Name
@@ -1896,6 +1907,7 @@
             oninput="recalcProduct(${id})" style="padding:10px; font-size:14px;">
         </div>
         
+        <!-- ═══ হিসাবের ধরন ═══ -->
         <div id="mode-section-${id}" style="display:none; background:#e8f0fe; padding:12px; border-radius:8px; margin-bottom:12px;">
           <label style="font-size:12px; font-weight:700; color:#1a73e8;">🎯 হিসাবের ধরন</label>
           <div class="radio-group">
@@ -1904,125 +1916,46 @@
           </div>
         </div>
         
+        <!-- ═══ Allowance ═══ -->
         <div id="allowance-section-${id}" style="display:none; background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
           <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
             <input type="checkbox" class="p-allow-check" onchange="toggleAllowance(${id}, this.checked)" style="width:auto; margin:0;">
             <span>✂️ Allowance</span>
-            <span onclick="event.preventDefault(); showAllowanceInfo(${id})" 
-              style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:pointer; margin-left:4px;">!</span>
+            <span class="allow-info-icon" data-info="allowance" 
+              style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:help; margin-left:4px; position:relative;">!</span>
           </label>
-          <div class="allowance-fields" id="allowance-fields-${id}" style="display:none; margin-top:10px;">
-            <div class="row-2">
-              <div>
-                <label style="font-size:11px;">দৈর্ঘ্যে ছাড় (inch)</label>
-                <input type="number" class="p-allow-l" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;">
-              </div>
-              <div>
-                <label style="font-size:11px;">প্রস্থে ছাড় (inch)</label>
-                <input type="number" class="p-allow-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;">
-              </div>
-            </div>
-          </div>
         </div>
         
+        <!-- ═══ Simple Mode ═══ -->
         <div class="marble-simple-mode" id="marble-simple-${id}">
-          <div style="background:#f8f9fa; padding:12px; border-radius:8px; border-left:3px solid #1a73e8; margin-bottom:12px;">
-            <div style="font-size:12px; font-weight:700; color:#1a73e8; margin-bottom:8px;">
-              📏 কোম্পানি মেজারমেন্ট
-            </div>
-            <div class="row-2">
-              <div>
-                <label style="font-size:11px;">দৈর্ঘ্য (ft)</label>
-                <input type="number" class="p-paper-l" placeholder="4" step="0.01" oninput="recalcProduct(${id})">
-              </div>
-              <div>
-                <label style="font-size:11px;">প্রস্থ (ft)</label>
-                <input type="number" class="p-paper-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})">
-              </div>
-            </div>
-          </div>
-          
-          <div class="row-3">
-            <div>
-              <label>Quantity</label>
-              <input type="number" class="p-qty" placeholder="40" oninput="recalcProduct(${id})">
-            </div>
-            <div>
-              <label>ওজন/sqft (kg)</label>
-              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
-            </div>
-            <div>
-              <label>🟢 পাকা রেট/sqft</label>
-              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
-            </div>
-          </div>
-          
-          <div class="row-2" style="margin-top:8px;">
-            <div>
-              <label>🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-            </div>
-            <div>
-              <label>GST %</label>
-              <select class="p-gst" onchange="recalcProduct(${id})">
-                <option value="0">0%</option>
-                <option value="5">5%</option>
-                <option value="12">12%</option>
-                <option value="18" selected>18%</option>
-                <option value="28">28%</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        
-        <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
-          <div style="background:#e8f0fe; padding:10px; border-radius:8px; margin-bottom:10px; font-size:11px; color:#1a73e8;">
-            ℹ️ প্রতিটি স্ল্যাবের মাপ আলাদা হলে এখানে যোগ করুন
-          </div>
-          
-          <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:10px; border-left:3px solid #f9a825;">
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
-              <input type="checkbox" class="p-allow-check-details" onchange="toggleDetailsAllowance(${id}, this.checked)" style="width:auto; margin:0;">
-              <span>✂️ Allowance</span>
-              <span onclick="event.preventDefault(); showAllowanceInfo(${id})" 
-                style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:pointer; margin-left:4px;">!</span>
-            </label>
-          </div>
-          
-          <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <button type="button" onclick="addDetailRow(${id}, false)" 
-              style="flex:1; padding:10px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
-              ➕ Add New Row
-            </button>
-            <button type="button" onclick="addDetailRow(${id}, true)" 
-              style="flex:1; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
-              📋 Copy Last Row
-            </button>
-          </div>
-          
           <div class="detail-table-wrapper">
-            <table class="detail-table" id="detail-table-${id}">
+            <table class="detail-table">
               <thead>
                 <tr>
                   <th>Length</th>
                   <th>Width</th>
                   <th class="allow-col" style="display:none;">L-Allow</th>
                   <th class="allow-col" style="display:none;">W-Allow</th>
-                  <th>Quantity</th>
-                  <th>X</th>
+                  <th>Qty</th>
                 </tr>
               </thead>
-              <tbody id="detail-tbody-${id}"></tbody>
+              <tbody id="simple-tbody-${id}">
+                <tr>
+                  <td><input type="number" class="d-l" placeholder="4" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" class="d-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
+                </tr>
+              </tbody>
             </table>
           </div>
           
-          <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-top:10px; font-size:12px; line-height:1.8; color:#555;">
-            📊 <b>Total Paper:</b> <span class="d-total-paper" style="color:#1a73e8; font-weight:700;">0</span> sqft<br>
-            📦 <b>Total Actual:</b> <span class="d-total-actual" style="color:#7b1fa2; font-weight:700;">0</span> sqft<br>
-            🎁 <b>Extra:</b> <span class="d-total-extra" style="color:#0f9d58; font-weight:700;">0</span> sqft
-          </div>
-          
-          <div class="row-2" style="margin-top:12px;">
+          <div class="row-3" style="margin-top:12px;">
+            <div>
+              <label style="font-size:11px;">ওজন/sqft (kg)</label>
+              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            </div>
             <div>
               <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
               <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
@@ -2035,9 +1968,63 @@
           
           <div class="row-2" style="margin-top:8px;">
             <div>
+              <label style="font-size:11px;">GST %</label>
+              <select class="p-gst" onchange="recalcProduct(${id})">
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18" selected>18%</option>
+                <option value="28">28%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ═══ Details Mode ═══ -->
+        <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
+          <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <button type="button" onclick="addDetailRow(${id}, false)" 
+              style="flex:1; padding:10px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+              ➕ Add New Row
+            </button>
+            <button type="button" onclick="addDetailRow(${id}, true)" 
+              style="flex:1; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+              📋 Copy Last Row
+            </button>
+          </div>
+          
+          <div class="detail-table-wrapper">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th>Length</th>
+                  <th>Width</th>
+                  <th class="allow-col" style="display:none;">L-Allow</th>
+                  <th class="allow-col" style="display:none;">W-Allow</th>
+                  <th>Qty</th>
+                  <th>X</th>
+                </tr>
+              </thead>
+              <tbody id="details-tbody-${id}"></tbody>
+            </table>
+          </div>
+          
+          <div class="row-3" style="margin-top:12px;">
+            <div>
               <label style="font-size:11px;">ওজন/sqft (kg)</label>
               <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
             </div>
+            <div>
+              <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            </div>
+            <div>
+              <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            </div>
+          </div>
+          
+          <div class="row-2" style="margin-top:8px;">
             <div>
               <label style="font-size:11px;">GST %</label>
               <select class="p-gst" onchange="recalcProduct(${id})">
@@ -2049,17 +2036,18 @@
               </select>
             </div>
           </div>
-          
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
-            <button type="button" onclick="finishCurrentLot(${id})" 
-              style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-              ✅ Lot Finish
-            </button>
-            <button type="button" onclick="newLotEntry(${id})" 
-              style="padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-              ➕ New Lot Entry
-            </button>
-          </div>
+        </div>
+        
+        <!-- ═══ Lot Buttons ═══ -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+          <button type="button" onclick="addNewMarbleLot(${id})" 
+            style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ➕ Add New Lot
+          </button>
+          <button type="button" onclick="finishMarbleLot(${id})" 
+            style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ✅ Finish Lot
+          </button>
         </div>
         
         ${getMarbleCalcBox(id)}
