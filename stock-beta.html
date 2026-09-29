@@ -4054,6 +4054,9 @@ function checkRowHasData(id) {
   // ============================================================
   // RECALC PRODUCT — Marble Override (Simple + Details)
   // ============================================================
+   // ============================================================
+  // RECALC PRODUCT — Marble (Allowance Check ফিক্স)
+  // ============================================================
   const _originalRecalcProduct = window.recalcProduct;
   
   window.recalcProduct = function(id) {
@@ -4065,6 +4068,10 @@ function checkRowHasData(id) {
     }
     
     const mode = row.dataset.mode || 'simple';
+    
+    // ✅ Allowance চেকবক্স চেক
+    const allowChecked = row.querySelector('.p-allow-check')?.checked || false;
+    
     let totalPaper = 0;
     let totalActual = 0;
     let totalQty = 0;
@@ -4075,9 +4082,11 @@ function checkRowHasData(id) {
         simpleSection.querySelectorAll('tbody tr').forEach(tr => {
           const l = parseFloat(tr.querySelector('.d-l')?.value) || 0;
           const w = parseFloat(tr.querySelector('.d-w')?.value) || 0;
-          const al = parseFloat(tr.querySelector('.d-al')?.value) || 0;
-          const aw = parseFloat(tr.querySelector('.d-aw')?.value) || 0;
           const q = parseFloat(tr.querySelector('.d-qty')?.value) || 0;
+          
+          // ✅ Allowance OFF হলে 0 ধরব
+          const al = allowChecked ? (parseFloat(tr.querySelector('.d-al')?.value) || 0) : 0;
+          const aw = allowChecked ? (parseFloat(tr.querySelector('.d-aw')?.value) || 0) : 0;
           
           totalPaper += (l * w) * q;
           totalActual += ((l + al / 12) * (w + aw / 12)) * q;
@@ -4090,9 +4099,10 @@ function checkRowHasData(id) {
         detailsTbody.querySelectorAll('tr').forEach(tr => {
           const l = parseFloat(tr.querySelector('.d-l')?.value) || 0;
           const w = parseFloat(tr.querySelector('.d-w')?.value) || 0;
-          const al = parseFloat(tr.querySelector('.d-al')?.value) || 0;
-          const aw = parseFloat(tr.querySelector('.d-aw')?.value) || 0;
           const q = parseFloat(tr.querySelector('.d-qty')?.value) || 0;
+          
+          const al = allowChecked ? (parseFloat(tr.querySelector('.d-al')?.value) || 0) : 0;
+          const aw = allowChecked ? (parseFloat(tr.querySelector('.d-aw')?.value) || 0) : 0;
           
           totalPaper += (l * w) * q;
           totalActual += ((l + al / 12) * (w + aw / 12)) * q;
@@ -4113,6 +4123,7 @@ function checkRowHasData(id) {
     const gstSel = row.querySelector('.p-gst');
     if (gstSel) gstPct = parseFloat(gstSel.value) || 0;
     
+    // ✅ Total Weight = Actual × wt/sqft
     const totalWeight = totalActual * wtPerSqft;
     
     const pakkaAmount = totalPaper * pakkaRate;
@@ -4136,7 +4147,10 @@ function checkRowHasData(id) {
       thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
     }
     
+    // ✅ Transport = Rate/টন × Weight kg ÷ 1000
+    // অর্থাৎ: Rate × Weight / 1000
     const thisTransport = (transportRate * totalWeight) / 1000;
+    
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
     const perSqft = totalPaper > 0 ? totalLanding / totalPaper : 0;
@@ -4192,8 +4206,7 @@ function checkRowHasData(id) {
     if (typeof updateSummary === 'function') updateSummary();
   };
   
-  console.log('✅ Marble recalcProduct override loaded (F-3e)');
-
+  console.log('✅ recalcProduct fixed (Allowance Check)');
 </script>
 
 </body>
