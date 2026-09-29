@@ -80,6 +80,19 @@
   /* Product Row */
   .product-row { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
   .product-row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+ /* Category-First Section */
+.category-first-section {
+  background: #f0f7ff;
+  padding: 14px;
+  border-radius: 10px;
+  border-left: 4px solid #1a73e8;
+  margin-bottom: 10px;
+}
+
+.category-first-section label {
+  display: block;
+  margin-bottom: 6px;
+}
   .product-row-header .num { font-size: 13px; font-weight: 700; color: #1a73e8; }
   .product-row-header .remove { background: #d93025; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
   
@@ -1613,27 +1626,59 @@
     const filtered = currentCategories.filter(c => c.name.toLowerCase().includes(q));
     renderCategoryPicker(filtered);
   };
- window.pickCategory = function(name, value) {
+window.pickCategory = function(name, value) {
   const productId = currentPickerProductId;
   if (!productId) { closeCategoryPicker(); return; }
   
   const row = document.getElementById('product-row-' + productId);
-  if (row) {
-    const hiddenInput = row.querySelector('.p-category');
-    const textInput = row.querySelector('.p-category-input');
-    if (hiddenInput) hiddenInput.value = value;
-    if (textInput) {
-      textInput.value = name;
-      textInput.style.color = '#202124';
+  if (!row) { closeCategoryPicker(); return; }
+  
+  // বর্তমান category চেক
+  const oldCategory = row.querySelector('.p-category')?.value || '';
+  const oldType = row.dataset.type || 'pending';
+  
+  // যদি আগে ডেটা থাকে এবং category পরিবর্তন হয় → Warning
+  if (oldCategory && oldCategory !== value && oldType !== 'pending') {
+    const hasData = checkRowHasData(productId);
+    if (hasData) {
+      if (!confirm(`⚠️ Category পরিবর্তন করলে আগের সব ডেটা মুছে যাবে।\n\n"${name}" সিলেক্ট করবেন?`)) {
+        closeCategoryPicker();
+        return;
+      }
     }
   }
   
+  const hiddenInput = row.querySelector('.p-category');
+  const textInput = row.querySelector('.p-category-input');
+  if (hiddenInput) hiddenInput.value = value;
+  if (textInput) {
+    textInput.value = name;
+    textInput.style.color = '#202124';
+  }
+  
   closeCategoryPicker();
+  
+  // Template Load
   setTimeout(() => {
-    if (typeof checkMarbleCategory === 'function') checkMarbleCategory(productId);
-    if (typeof recalcProduct === 'function') recalcProduct(productId);
+    if (typeof loadProductTemplate === 'function') {
+      loadProductTemplate(productId, name);
+    }
   }, 50);
 };
+
+// Helper — Row-তে ডেটা আছে কি না চেক
+function checkRowHasData(id) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return false;
+  
+  const name = row.querySelector('.p-name')?.value?.trim();
+  const lotName = row.querySelector('.p-lot-name')?.value?.trim();
+  const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+  const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
+  const dL = parseFloat(row.querySelector('.d-l')?.value) || 0;
+  
+  return !!(name || lotName || boxes > 0 || qty > 0 || dL > 0);
+}
   
   window.addCategoryFromPicker = async function() {
     const input = document.getElementById('pickerNewCat');
@@ -1758,6 +1803,309 @@
     `;
   }
   
+   // ============================================================
+  // SHARED PRODUCT INFO FIELDS
+  // ============================================================
+  function getProductInfoFields(id) {
+    return `
+      <label>পণ্যের নাম <span class="required">*</span></label>
+      <input type="text" class="p-name" placeholder="পণ্যের নাম" oninput="recalcProduct(${id})">
+      
+      <div class="row-2">
+        <div>
+          <label>ব্র্যান্ড</label>
+          <input type="text" class="p-brand" placeholder="ব্র্যান্ড">
+        </div>
+        <div>
+          <label>HSN Code <span class="required">*</span></label>
+          <input type="text" class="p-hsn" placeholder="HSN" maxlength="8">
+        </div>
+      </div>
+      
+      <label>GST %</label>
+      <select class="p-gst" onchange="recalcProduct(${id})">
+        <option value="0">0%</option>
+        <option value="5">5%</option>
+        <option value="12">12%</option>
+        <option value="18" selected>18%</option>
+        <option value="28">28%</option>
+        <option value="custom">✏️ Custom</option>
+      </select>
+      <input type="number" class="p-gst-custom" placeholder="GST %" 
+        style="margin-top:6px; display:none;" oninput="recalcProduct(${id})">
+    `;
+  }
+  
+  // ============================================================
+  // MARBLE TEMPLATE FIELDS
+  // ============================================================
+  function getMarbleTemplateFields(id) {
+    return `
+      ${getProductInfoFields(id)}
+      
+      <!-- ═══ Lot Name ═══ -->
+      <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid #0f9d58;">
+        <label style="font-size:12px; font-weight:700; color:#0f9d58; display:block; margin-bottom:6px;">
+          📋 Lot Name
+        </label>
+        <input type="text" class="p-lot-name" placeholder="যেমন: Arna A0001" 
+          oninput="recalcProduct(${id})" style="padding:10px; font-size:14px;">
+      </div>
+      
+      <!-- ═══ হিসাবের ধরন ═══ -->
+      <div style="background:#e8f0fe; padding:12px; border-radius:8px; margin-bottom:12px;">
+        <label style="font-size:12px; font-weight:700; color:#1a73e8;">🎯 হিসাবের ধরন</label>
+        <div class="radio-group">
+          <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">📋 Simple</div>
+          <div class="radio-option" onclick="selectMode(${id}, 'details', this)">📐 Details</div>
+        </div>
+      </div>
+      
+      <!-- ═══ Allowance ═══ -->
+      <div style="background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
+          <input type="checkbox" class="p-allow-check" onchange="toggleAllowance(${id}, this.checked)" style="width:auto; margin:0;">
+          <span>✂️ Allowance</span>
+          <span class="allow-info-icon" data-info="allowance" 
+            style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:help; margin-left:4px;">!</span>
+        </label>
+      </div>
+      
+      <!-- ═══ Simple Mode ═══ -->
+      <div class="marble-simple-mode" id="marble-simple-${id}">
+        <div class="detail-table-wrapper">
+          <table class="detail-table">
+            <thead>
+              <tr>
+                <th>Length</th>
+                <th>Width</th>
+                <th class="allow-col" style="display:none;">L-Allow</th>
+                <th class="allow-col" style="display:none;">W-Allow</th>
+                <th>Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="number" class="d-l" placeholder="4" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td><input type="number" class="d-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="row-3" style="margin-top:12px;">
+          <div>
+            <label style="font-size:11px;">ওজন/sqft (kg)</label>
+            <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+            <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          </div>
+          <div>
+            <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+            <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+          </div>
+        </div>
+      </div>
+      
+      <!-- ═══ Details Mode ═══ -->
+      <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button type="button" onclick="addDetailRow(${id}, false)" 
+            style="flex:1; padding:10px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+            ➕ Add New Row
+          </button>
+          <button type="button" onclick="addDetailRow(${id}, true)" 
+            style="flex:1; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+            📋 Copy Last Row
+          </button>
+        </div>
+        
+        <div class="detail-table-wrapper">
+          <table class="detail-table">
+            <thead>
+              <tr>
+                <th>Length</th>
+                <th>Width</th>
+                <th class="allow-col" style="display:none;">L-Allow</th>
+                <th class="allow-col" style="display:none;">W-Allow</th>
+                <th>Qty</th>
+                <th>X</th>
+              </tr>
+            </thead>
+            <tbody id="details-tbody-${id}"></tbody>
+          </table>
+        </div>
+        
+        <div class="row-3" style="margin-top:12px;">
+          <div>
+            <label style="font-size:11px;">ওজন/sqft (kg)</label>
+            <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+            <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          </div>
+          <div>
+            <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+            <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+          </div>
+        </div>
+      </div>
+      
+      <!-- ═══ Lot Buttons ═══ -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+        <button type="button" onclick="addNewMarbleLot(${id})" 
+          style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+          ➕ Add New Lot
+        </button>
+        <button type="button" onclick="finishMarbleLot(${id})" 
+          style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+          ✅ Finish Lot
+        </button>
+      </div>
+      
+      ${getMarbleCalcBox(id)}
+      ${getRowImageUpload()}
+    `;
+  }
+  
+  // ============================================================
+  // TILES TEMPLATE FIELDS
+  // ============================================================
+  function getTilesTemplateFields(id) {
+    return `
+      ${getProductInfoFields(id)}
+      
+      <label>মূল্য নির্ধারণের ধরন</label>
+      <div class="radio-group">
+        <div class="radio-option selected" onclick="selectRating(${id}, 'sqft', this)">📐 sqft</div>
+        <div class="radio-option" onclick="selectRating(${id}, 'box', this)">📦 বক্স</div>
+        <div class="radio-option" onclick="selectRating(${id}, 'piece', this)">🔢 পিস</div>
+      </div>
+      
+      <div class="row-3">
+        <div>
+          <label>সাইজ</label>
+          <input type="text" class="p-size" placeholder="4' × 2'" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>পিস/বক্স</label>
+          <input type="number" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>sqft/বক্স</label>
+          <input type="number" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <div class="row-3">
+        <div>
+          <label>ওজন/বক্স (kg)</label>
+          <input type="number" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>বক্স</label>
+          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟢 পাকা রেট</label>
+          <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+        </div>
+      </div>
+      
+      <label>🟡 Cash রেট 🔒</label>
+      <div class="optional-wrap">
+        <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+      </div>
+      
+      ${getCalcBox(id)}
+      ${getRowImageUpload()}
+    `;
+  }
+  
+  // ============================================================
+  // GENERAL TEMPLATE FIELDS
+  // ============================================================
+  function getGeneralTemplateFields(id) {
+    return `
+      ${getProductInfoFields(id)}
+      
+      <div class="row-3">
+        <div>
+          <label>সাইজ</label>
+          <input type="text" class="p-size" placeholder="1 kg / ৪ ইঞ্চি" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>পিস/বক্স</label>
+          <input type="number" class="p-pieces" placeholder="12" value="1" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>ওজন/বক্স (kg)</label>
+          <input type="number" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+        </div>
+      </div>
+      
+      <div class="row-2">
+        <div>
+          <label>বক্স</label>
+          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+        </div>
+        <div>
+          <label>🟢 পাকা রেট</label>
+          <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+        </div>
+      </div>
+      
+      <label>🟡 Cash রেট 🔒</label>
+      <div class="optional-wrap">
+        <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+      </div>
+      
+      ${getCalcBox(id)}
+      ${getRowImageUpload()}
+    `;
+  }
+  
+  // ============================================================
+  // LOAD TEMPLATE — Category অনুযায়ী
+  // ============================================================
+  window.loadProductTemplate = function(id, categoryName) {
+    const row = document.getElementById('product-row-' + id);
+    const container = document.getElementById('template-container-' + id);
+    if (!row || !container) return;
+    
+    const catLower = (categoryName || '').toLowerCase();
+    const isMG = catLower.includes('marble') || catLower.includes('granite');
+    const isTiles = catLower.includes('tile');
+    
+    let templateHTML = '';
+    let type = 'general';
+    
+    if (isMG) {
+      type = 'marble';
+      templateHTML = getMarbleTemplateFields(id);
+    } else if (isTiles) {
+      type = 'tiles';
+      templateHTML = getTilesTemplateFields(id);
+    } else {
+      type = 'general';
+      templateHTML = getGeneralTemplateFields(id);
+    }
+    
+    row.dataset.type = type;
+    container.innerHTML = templateHTML;
+    container.style.display = 'block';
+    
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+    
+    console.log(`✅ Template loaded for #${id}: ${type}`);
+  };
+  
   function getCalcBox(id) {
   return `
     <div class="calc-box" id="calc-box-${id}">
@@ -1861,19 +2209,38 @@
   }
   
   // ==================== TEMPLATES ====================
+    // ============================================================
+  // PRODUCT ROW — Category-First Structure
+  // ============================================================
   function getProductRowHTML(bizType, id) {
-    switch(bizType) {
-      case 'marble': return getMarbleTemplate(id);
-      case 'medicine': return getMedicineTemplate(id);
-      case 'grocery':
-      case 'fruits': return getGroceryTemplate(id);
-      case 'clothing':
-      case 'jewellery':
-      case 'cosmetics': return getClothingTemplate(id);
-      case 'restaurant': return getRestaurantTemplate(id);
-      case 'electronics': return getElectronicsTemplate(id);
-      default: return getHardwareTemplate(id);
-    }
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="pending" data-mode="simple">
+        <div class="product-row-header">
+          <span class="num">📦 পণ্য ${id}</span>
+          <span class="remove" onclick="removeProductRow(${id})">🗑️ মুছুন</span>
+        </div>
+        
+        <!-- ═══ শুধু Category ═══ -->
+        <div class="category-first-section">
+          <label style="font-size:13px; font-weight:700; color:#1a73e8;">
+            📂 ক্যাটাগরি সিলেক্ট করুন <span class="required">*</span>
+          </label>
+          <div class="category-picker" style="position: relative; margin-top:6px;">
+            <input type="text" class="p-category-input" 
+              placeholder="টাইপ করুন বা ক্লিক করুন..." 
+              readonly onclick="openCategoryPicker(${id})" 
+              style="cursor: pointer; background: white; padding:12px; font-size:14px;">
+            <input type="hidden" class="p-category" value="">
+          </div>
+        </div>
+        
+        <!-- ═══ Template Container (শুরুতে লুকানো) ═══ -->
+        <div class="template-container" id="template-container-${id}" style="display:none; margin-top:14px;">
+          <!-- Template এখানে লোড হবে -->
+        </div>
+        
+      </div>
+    `;
   }
    
    // ============================================================
