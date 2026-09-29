@@ -190,7 +190,6 @@
   margin-top: 12px;
   font-size: 13px;
 }
-
   /* Calc Box — Per Box Display */
 .calc-perbox-display {
   margin-bottom: 12px;
@@ -242,64 +241,6 @@
   max-height: 800px;
   opacity: 1;
   margin-top: 10px;
-}
-  /* Detail Table (Excel-Like) */
-.detail-table-wrapper {
-  overflow-x: auto;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  -webkit-overflow-scrolling: touch;
-}
-
-.detail-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 500px;
-  font-size: 12px;
-}
-
-.detail-table thead {
-  background: #1a73e8;
-  color: white;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.detail-table th {
-  padding: 8px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.detail-table td {
-  padding: 4px 3px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.detail-table td input {
-  width: 100%;
-  padding: 6px 4px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 12px;
-  text-align: center;
-  background: white;
-}
-
-.detail-table td input:focus {
-  border-color: #1a73e8;
-  outline: none;
-}
-
-.detail-table tbody tr:nth-child(even) {
-  background: #fafafa;
-}
-
-.detail-table tbody tr:hover {
-  background: #f0f7ff;
 }
 .calc-row {
   display: flex;
@@ -1673,27 +1614,26 @@
     renderCategoryPicker(filtered);
   };
   
-window.pickCategory = function(name, value) {
-  const productId = currentPickerProductId;
-  if (!productId) { closeCategoryPicker(); return; }
-  
-  const row = document.getElementById('product-row-' + productId);
-  if (row) {
-    const hiddenInput = row.querySelector('.p-category');
-    const textInput = row.querySelector('.p-category-input');
-    if (hiddenInput) hiddenInput.value = value;
-    if (textInput) {
-      textInput.value = name;
-      textInput.style.color = '#202124';
+  window.pickCategory = function(name, value) {
+    const productId = currentPickerProductId;
+    if (!productId) { closeCategoryPicker(); return; }
+    
+    const row = document.getElementById('product-row-' + productId);
+    if (row) {
+      const hiddenInput = row.querySelector('.p-category');
+      const textInput = row.querySelector('.p-category-input');
+      if (hiddenInput) hiddenInput.value = value;
+      if (textInput) {
+        textInput.value = name;
+        textInput.style.color = '#202124';
+      }
     }
-  }
-  
-  closeCategoryPicker();
-  setTimeout(() => {
-    if (typeof checkMarbleCategory === 'function') checkMarbleCategory(productId);
-    if (typeof recalcProduct === 'function') recalcProduct(productId);
-  }, 50);
-};
+    
+    closeCategoryPicker();
+    setTimeout(() => {
+      if (typeof recalcProduct === 'function') recalcProduct(productId);
+    }, 50);
+  };
   
   window.addCategoryFromPicker = async function() {
     const input = document.getElementById('pickerNewCat');
@@ -1867,494 +1807,6 @@ window.pickCategory = function(name, value) {
   `;
 }
   
-  // ============================================================
-  // MARBLE CALC BOX
-  // ============================================================
-  function getMarbleCalcBox(id) {
-    return `
-      <div class="calc-box" id="calc-box-${id}">
-        <div class="calc-perbox-display">
-          <div class="calc-row" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
-            <span style="font-size:13px;">📄 Total Paper (sqft):</span>
-            <b class="calc-total-paper" style="color:#1a73e8; font-size:16px;">0</b>
-          </div>
-          <div class="calc-row" style="background:linear-gradient(135deg,#f3e8fd,#e1bee7); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
-            <span style="font-size:13px;">📦 Total Actual (sqft):</span>
-            <b class="calc-total-actual" style="color:#7b1fa2; font-size:16px;">0</b>
-          </div>
-          <div class="calc-row" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
-            <span style="font-size:13px;">📊 প্রতি sqft (Paper based):</span>
-            <b class="calc-per-sqft" style="color:#1a73e8; font-size:18px;">₹0</b>
-          </div>
-          <div class="calc-row" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
-            <span style="font-size:13px;">💵 প্রতি sqft (Tax ছাড়া):</span>
-            <b class="calc-per-sqft-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
-          </div>
-        </div>
-        
-        <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
-          <span>📊 বিস্তারিত হিসাব দেখুন</span>
-          <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
-        </div>
-        
-        <div class="calc-details-shutter" id="calc-details-${id}">
-          <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
-          <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
-          <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
-          <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
-          <div class="calc-divider"></div>
-          <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
-          <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
-          <div class="calc-row" style="font-size:11px; color:#666;">
-            <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
-          </div>
-          <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
-          <div class="benefit-box" style="display: none;">
-            <div class="calc-divider"></div>
-            <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
-            <div class="calc-row"><span>📦 আসল মাপ:</span><b class="calc-actual">0</b></div>
-            <div class="calc-row highlight-green"><span>🎁 Extra:</span><b class="calc-extra">0</b></div>
-            <div class="calc-row highlight-green"><span>📈 Extra %:</span><b class="calc-extra-pct">0%</b></div>
-            <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
-            <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
-          </div>
-        </div>
-      </div>
-    `;
-  } 
-  
-  // ============================================================
-  // MARBLE/GRANITE SYSTEM — v3 (Complete)
-  // ============================================================
-  
-  window._detailRowCounters = window._detailRowCounters || {};
-  
-  function isMarbleOrGraniteCategory(catValue) {
-    if (!catValue) return false;
-    const cat = catValue.toLowerCase();
-    return cat.includes('marble') || cat.includes('granite');
-  }
-  
-  // ============================================================
-  // GET MARBLE TEMPLATE
-  // ============================================================
-  function getMarbleTemplate(id) {
-    window._detailRowCounters[id] = 0;
-    
-    return `
-      <div class="product-row" id="product-row-${id}" data-type="marble" data-mode="simple">
-        ${getRowHeader(id)}
-        ${getRowCommonFields(id)}
-        
-        <!-- ═══ Lot Name ═══ -->
-        <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid #0f9d58;">
-          <label style="font-size:12px; font-weight:700; color:#0f9d58; display:block; margin-bottom:6px;">
-            📋 Lot Name
-          </label>
-          <input type="text" class="p-lot-name" placeholder="যেমন: Arna A0001" 
-            oninput="recalcProduct(${id})" style="padding:10px; font-size:14px;">
-        </div>
-        
-        <!-- ═══ হিসাবের ধরন ═══ -->
-        <div id="mode-section-${id}" style="display:none; background:#e8f0fe; padding:12px; border-radius:8px; margin-bottom:12px;">
-          <label style="font-size:12px; font-weight:700; color:#1a73e8;">🎯 হিসাবের ধরন</label>
-          <div class="radio-group">
-            <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">
-              📋 Simple
-            </div>
-            <div class="radio-option" onclick="selectMode(${id}, 'details', this)">
-              📐 Details
-            </div>
-          </div>
-        </div>
-        
-        <!-- ═══ Allowance (Simple-এর জন্য) ═══ -->
-        <div id="allowance-section-${id}" style="display:none; background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
-          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
-            <input type="checkbox" class="p-allow-check" onchange="toggleAllowance(${id}, this.checked)" style="width:auto; margin:0;">
-            <span>✂️ Allowance</span>
-            <span onclick="event.preventDefault(); showAllowanceInfo(${id})" 
-              style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:pointer; margin-left:4px;">!</span>
-          </label>
-          
-          <div class="allowance-fields" id="allowance-fields-${id}" style="display:none; margin-top:10px;">
-            <div class="row-2">
-              <div>
-                <label style="font-size:11px;">দৈর্ঘ্যে ছাড় (inch)</label>
-                <input type="number" class="p-allow-l" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;">
-              </div>
-              <div>
-                <label style="font-size:11px;">প্রস্থে ছাড় (inch)</label>
-                <input type="number" class="p-allow-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;">
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- ═══ কোম্পানি মেজারমেন্ট (Simple Mode) ═══ -->
-        <div class="marble-simple-mode" id="marble-simple-${id}">
-          <div style="background:#f8f9fa; padding:12px; border-radius:8px; border-left:3px solid #1a73e8; margin-bottom:12px;">
-            <div style="font-size:12px; font-weight:700; color:#1a73e8; margin-bottom:8px;">
-              📏 কোম্পানি মেজারমেন্ট
-            </div>
-            <div class="row-2">
-              <div>
-                <label style="font-size:11px;">দৈর্ঘ্য (ft)</label>
-                <input type="number" class="p-paper-l" placeholder="4" step="0.01" oninput="recalcProduct(${id})">
-              </div>
-              <div>
-                <label style="font-size:11px;">প্রস্থ (ft)</label>
-                <input type="number" class="p-paper-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})">
-              </div>
-            </div>
-          </div>
-          
-          <div class="row-3">
-            <div>
-              <label>Quantity</label>
-              <input type="number" class="p-qty" placeholder="40" oninput="recalcProduct(${id})">
-            </div>
-            <div>
-              <label>ওজন/sqft (kg)</label>
-              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
-            </div>
-            <div>
-              <label>🟢 পাকা রেট/sqft</label>
-              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
-            </div>
-          </div>
-          
-          <div class="row-2" style="margin-top:8px;">
-            <div>
-              <label>🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-            </div>
-            <div>
-              <label>GST %</label>
-              <select class="p-gst" onchange="recalcProduct(${id})">
-                <option value="0">0%</option>
-                <option value="5">5%</option>
-                <option value="12">12%</option>
-                <option value="18" selected>18%</option>
-                <option value="28">28%</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        
-        <!-- ═══ Details Mode — Excel-Like Table ═══ -->
-        <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
-          <div style="background:#e8f0fe; padding:10px; border-radius:8px; margin-bottom:10px; font-size:11px; color:#1a73e8;">
-            ℹ️ প্রতিটি স্ল্যাবের মাপ আলাদা হলে এখানে যোগ করুন
-          </div>
-          
-          <!-- Master Allowance Checkbox -->
-          <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:10px; border-left:3px solid #f9a825;">
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
-              <input type="checkbox" class="p-allow-check-details" onchange="toggleDetailsAllowance(${id}, this.checked)" style="width:auto; margin:0;">
-              <span>✂️ Allowance</span>
-              <span onclick="event.preventDefault(); showAllowanceInfo(${id})" 
-                style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:pointer; margin-left:4px;">!</span>
-            </label>
-          </div>
-          
-          <!-- Action Buttons -->
-          <div style="display:flex; gap:8px; margin-bottom:10px;">
-            <button type="button" onclick="addDetailRow(${id}, false)" 
-              style="flex:1; padding:10px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
-              ➕ Add New Row
-            </button>
-            <button type="button" onclick="addDetailRow(${id}, true)" 
-              style="flex:1; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
-              📋 Copy Last Row
-            </button>
-          </div>
-          
-          <!-- Table -->
-          <div class="detail-table-wrapper">
-            <table class="detail-table" id="detail-table-${id}">
-              <thead>
-                <tr>
-                  <th>Length</th>
-                  <th>Width</th>
-                  <th class="allow-col" style="display:none;">L-Allow</th>
-                  <th class="allow-col" style="display:none;">W-Allow</th>
-                  <th>Quantity</th>
-                  <th>X</th>
-                </tr>
-              </thead>
-              <tbody id="detail-tbody-${id}">
-                <!-- Rows যোগ হবে -->
-              </tbody>
-            </table>
-          </div>
-          
-          <!-- Details Summary -->
-          <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-top:10px; font-size:12px; line-height:1.8; color:#555;">
-            📊 <b>Total Paper:</b> <span class="d-total-paper" style="color:#1a73e8; font-weight:700;">0</span> sqft<br>
-            📦 <b>Total Actual:</b> <span class="d-total-actual" style="color:#7b1fa2; font-weight:700;">0</span> sqft<br>
-            🎁 <b>Extra:</b> <span class="d-total-extra" style="color:#0f9d58; font-weight:700;">0</span> sqft
-          </div>
-          
-          <!-- Rates -->
-          <div class="row-2" style="margin-top:12px;">
-            <div>
-              <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
-            </div>
-            <div>
-              <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-            </div>
-          </div>
-          
-          <div class="row-2" style="margin-top:8px;">
-            <div>
-              <label style="font-size:11px;">ওজন/sqft (kg)</label>
-              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
-            </div>
-            <div>
-              <label style="font-size:11px;">GST %</label>
-              <select class="p-gst" onchange="recalcProduct(${id})">
-                <option value="0">0%</option>
-                <option value="5">5%</option>
-                <option value="12">12%</option>
-                <option value="18" selected>18%</option>
-                <option value="28">28%</option>
-              </select>
-            </div>
-          </div>
-          
-          <!-- Lot Action Buttons -->
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
-            <button type="button" onclick="finishCurrentLot(${id})" 
-              style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-              ✅ Lot Finish
-            </button>
-            <button type="button" onclick="newLotEntry(${id})" 
-              style="padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-              ➕ New Lot Entry
-            </button>
-          </div>
-        </div>
-        
-        ${getMarbleCalcBox(id)}
-        ${getRowImageUpload()}
-      </div>
-    `;
-  }
-  
-  // ============================================================
-  // TOGGLE ALLOWANCE (Simple Mode)
-  // ============================================================
-  window.toggleAllowance = function(id, show) {
-    const fields = document.getElementById('allowance-fields-' + id);
-    if (fields) fields.style.display = show ? 'block' : 'none';
-    recalcProduct(id);
-  };
-  
-  // ============================================================
-  // TOGGLE DETAILS ALLOWANCE (Master Checkbox)
-  // ============================================================
-  window.toggleDetailsAllowance = function(id, show) {
-    const table = document.getElementById('detail-table-' + id);
-    if (!table) return;
-    
-    // সব Allow column দেখাও/লুকাও
-    table.querySelectorAll('.allow-col').forEach(col => {
-      col.style.display = show ? 'table-cell' : 'none';
-    });
-    
-    // প্রতিটি Row-এর Allow cell দেখাও/লুকাও
-    table.querySelectorAll('.allow-cell').forEach(cell => {
-      cell.style.display = show ? 'table-cell' : 'none';
-    });
-    
-    recalcProduct(id);
-  };
-  
-  // ============================================================
-  // DETAIL ROW FUNCTIONS
-  // ============================================================
-  window.addDetailRow = function(productId, copyLast) {
-    window._detailRowCounters[productId] = (window._detailRowCounters[productId] || 0) + 1;
-    const rowNum = window._detailRowCounters[productId];
-    
-    const tbody = document.getElementById('detail-tbody-' + productId);
-    if (!tbody) return;
-    
-    const allowChecked = document.querySelector(`#product-row-${productId} .p-allow-check-details`)?.checked || false;
-    
-    let prefillL = '', prefillW = '', prefillAL = '', prefillAW = '', prefillQty = '';
-    
-    if (copyLast) {
-      const lastRow = tbody.querySelector('tr:last-child');
-      if (lastRow) {
-        prefillL = lastRow.querySelector('.d-l')?.value || '';
-        prefillW = lastRow.querySelector('.d-w')?.value || '';
-        prefillAL = lastRow.querySelector('.d-al')?.value || '';
-        prefillAW = lastRow.querySelector('.d-aw')?.value || '';
-        prefillQty = lastRow.querySelector('.d-qty')?.value || '';
-      }
-    }
-    
-    const rowHtml = `
-      <tr data-row-id="${rowNum}">
-        <td><input type="number" class="d-l" placeholder="4" step="0.01" value="${prefillL}" oninput="recalcDetailRow(${productId})"></td>
-        <td><input type="number" class="d-w" placeholder="3" step="0.01" value="${prefillW}" oninput="recalcDetailRow(${productId})"></td>
-        <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
-          <input type="number" class="d-al" placeholder="6" step="0.01" value="${prefillAL}" oninput="recalcDetailRow(${productId})" style="background:#fff3e0;">
-        </td>
-        <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
-          <input type="number" class="d-aw" placeholder="3" step="0.01" value="${prefillAW}" oninput="recalcDetailRow(${productId})" style="background:#fff3e0;">
-        </td>
-        <td><input type="number" class="d-qty" placeholder="10" value="${prefillQty}" oninput="recalcDetailRow(${productId})"></td>
-        <td style="text-align:center;">
-          <button type="button" onclick="removeDetailRow(${productId}, this)" 
-            style="padding:4px 8px; background:#d93025; color:white; border:none; border-radius:4px; font-size:11px; cursor:pointer;">
-            ❌
-          </button>
-        </td>
-      </tr>
-    `;
-    
-    tbody.insertAdjacentHTML('beforeend', rowHtml);
-    recalcProduct(productId);
-  };
-  
-  window.removeDetailRow = function(productId, btn) {
-    const row = btn.closest('tr');
-    if (row) row.remove();
-    recalcProduct(productId);
-  };
-  
-  window.recalcDetailRow = function(productId) {
-    recalcProduct(productId);
-  };
-  
-  // ============================================================
-  // LOT FINISH & NEW LOT ENTRY
-  // ============================================================
-  window.finishCurrentLot = function(id) {
-    const row = document.getElementById('product-row-' + id);
-    if (!row) return;
-    
-    const lotName = row.querySelector('.p-lot-name')?.value || 'বর্তমান লট';
-    const mode = row.dataset.mode || 'simple';
-    
-    let totalPaper = 0, totalQty = 0;
-    
-    if (mode === 'simple') {
-      const l = parseFloat(row.querySelector('.p-paper-l')?.value) || 0;
-      const w = parseFloat(row.querySelector('.p-paper-w')?.value) || 0;
-      const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
-      totalPaper = l * w * qty;
-      totalQty = qty;
-    } else {
-      const tbody = document.getElementById('detail-tbody-' + id);
-      if (tbody) {
-        tbody.querySelectorAll('tr').forEach(tr => {
-          const l = parseFloat(tr.querySelector('.d-l')?.value) || 0;
-          const w = parseFloat(tr.querySelector('.d-w')?.value) || 0;
-          const qty = parseFloat(tr.querySelector('.d-qty')?.value) || 0;
-          totalPaper += l * w * qty;
-          totalQty += qty;
-        });
-      }
-    }
-    
-    if (totalQty === 0) {
-      alert('⚠️ আগে ডেটা দিন');
-      return;
-    }
-    
-    const msg = `✅ "${lotName}" লট শেষ করবেন?\n\n` +
-      `📊 Total Paper: ${totalPaper.toFixed(2)} sqft\n` +
-      `📦 Total Quantity: ${totalQty} স্ল্যাব\n\n` +
-      `পরের লটের জন্য নতুন Row আসবে।`;
-    
-    if (!confirm(msg)) return;
-    
-    // নতুন Row যোগ করুন
-    addProductRow();
-    
-    // নতুন Row-এ scroll
-    setTimeout(() => {
-      const newRow = document.getElementById('product-row-' + productCount);
-      if (newRow) {
-        newRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 200);
-  };
-  
-  window.newLotEntry = function(id) {
-    // সরাসরি নতুন Row
-    if (!confirm('➕ নতুন Lot যোগ করবেন?')) return;
-    
-    addProductRow();
-    
-    setTimeout(() => {
-      const newRow = document.getElementById('product-row-' + productCount);
-      if (newRow) {
-        newRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 200);
-  };
-  
-  // ============================================================
-  // ALLOWANCE INFO
-  // ============================================================
-  window.showAllowanceInfo = function(id) {
-    const msg = `✂️ Allowance কী?\n\n` +
-      `কোম্পানি কাগজে সবসময় কম মাপ লিখে।\n\n` +
-      `📝 উদাহরণ:\n` +
-      `ম্যাপে লেখা: 4' × 3' = 12 sqft\n` +
-      `আসলে পাওয়া: 4'6" × 3'3" = 14.625 sqft\n\n` +
-      `🎁 Extra: 2.625 sqft (21.88%)\n\n` +
-      `মানে — আপনি 12 sqft এর দামে 14.625 sqft মাল পান। এটাই Allowance।`;
-    
-    alert(msg);
-  };
-  
-  // ============================================================
-  // CHECK MARBLE CATEGORY
-  // ============================================================
-  window.checkMarbleCategory = function(id) {
-    const row = document.getElementById('product-row-' + id);
-    if (!row) return;
-    
-    if (row.dataset.type !== 'marble') return;
-    
-    const catValue = row.querySelector('.p-category')?.value || '';
-    const isMG = isMarbleOrGraniteCategory(catValue);
-    
-    const modeSection = document.getElementById('mode-section-' + id);
-    const allowSection = document.getElementById('allowance-section-' + id);
-    const simpleMode = document.getElementById('marble-simple-' + id);
-    const detailsMode = document.getElementById('marble-details-' + id);
-    
-    if (isMG) {
-      // Marble/Granite — সব দেখাও
-      if (modeSection) modeSection.style.display = 'block';
-      if (allowSection) allowSection.style.display = 'block';
-      
-      const mode = row.dataset.mode || 'simple';
-      if (simpleMode) simpleMode.style.display = mode === 'simple' ? 'block' : 'none';
-      if (detailsMode) detailsMode.style.display = mode === 'details' ? 'block' : 'none';
-    } else {
-      // অন্য ক্যাটাগরি — লুকাও
-      if (modeSection) modeSection.style.display = 'none';
-      if (allowSection) allowSection.style.display = 'none';
-      if (simpleMode) simpleMode.style.display = 'block';
-      if (detailsMode) detailsMode.style.display = 'none';
-      row.dataset.mode = 'simple';
-    }
-    
-    recalcProduct(id);
-  };
-  
-  console.log('✅ Part F v3 loaded');
- 
   // ==================== TEMPLATES ====================
   function getProductRowHTML(bizType, id) {
     switch(bizType) {
@@ -2371,38 +1823,81 @@ window.pickCategory = function(name, value) {
     }
   }
   
-    // ============================================================
-  // MARBLE/GRANITE TEMPLATE — COMPLETE REWRITE
-  // ============================================================
-  
-  // Detail Row Counter
-  window._detailRowCounters = window._detailRowCounters || {};
-  
-  // ============================================================
-  // MARBLE/GRANITE TEMPLATE — v2 (Fixed Position + Conditional)
-  // ============================================================
-  
-  window._detailRowCounters = window._detailRowCounters || {};
-  
- // ============================================================
-  // ALLOWANCE INFO POPUP
-  // ============================================================
-  window.showAllowanceInfo = function(id) {
-    const msg = `✂️ Allowance কী?\n\n` +
-      `কোম্পানি কাগজে সবসময় কম মাপ লিখে।\n\n` +
-      `📝 উদাহরণ:\n` +
-      `ম্যাপে লেখা: 4' × 3' = 12 sqft\n` +
-      `আসলে পাওয়া: 4'6" × 3'3" = 14.625 sqft\n\n` +
-      `🎁 Extra: 2.625 sqft (21.88%)\n\n` +
-      `মানে — আপনি 12 sqft এর দামে 14.625 sqft মাল পান। এটাই Allowance।`;
-    
-    alert(msg);
-  };
-  
-  // ============================================================
-  // CATEGORY CHANGE HANDLER — Marble/Granite Check
-  // ============================================================
-
+  function getMarbleTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="marble" data-rating="sqft" data-mode="simple">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <label>মূল্য নির্ধারণের ধরন</label>
+        <div class="radio-group">
+          <div class="radio-option selected" onclick="selectRating(${id}, 'sqft', this)">📐 sqft</div>
+          <div class="radio-option" onclick="selectRating(${id}, 'box', this)">📦 বক্স</div>
+          <div class="radio-option" onclick="selectRating(${id}, 'piece', this)">🔢 পিস</div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>সাইজ</label>
+            <input type="text" class="p-size" placeholder="4' × 2'" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>পিস/বক্স</label>
+            <input type="number" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>sqft/বক্স</label>
+            <input type="number" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+        </div>
+        
+        <div class="row-3">
+          <div>
+            <label>ওজন/বক্স (kg)</label>
+            <input type="number" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>বক্স</label>
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label>🟢 পাকা রেট</label>
+            <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+          </div>
+        </div>
+        
+        <div style="margin-top: 10px; padding: 12px; background: #fff8e1; border-radius: 8px; border-left: 3px solid #f9a825;">
+          <label style="color: #b06000;">📐 হিসাবের ধরন</label>
+          <div class="radio-group">
+            <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">📋 Simple</div>
+            <div class="radio-option" onclick="selectMode(${id}, 'details', this)">📐 Details</div>
+          </div>
+          <div class="allowance-section" id="allowance-${id}" style="display: none; margin-top: 12px;">
+            <label style="color: #b06000;">✂️ ছাড় (Allowance)</label>
+            <div class="row-2">
+              <div>
+                <label>দৈর্ঘ্যে</label>
+                <input type="number" class="p-allow-l" placeholder="0" step="0.01" oninput="recalcProduct(${id})">
+              </div>
+              <div>
+                <label>প্রস্থে</label>
+                <input type="number" class="p-allow-w" placeholder="0" step="0.01" oninput="recalcProduct(${id})">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <label>🟡 Cash রেট</label>
+        <div class="optional-wrap">
+          <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})">
+          <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+        </div>
+        
+        ${getCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
   
   function getMedicineTemplate(id) {
     return `
@@ -2756,76 +2251,22 @@ window.pickCategory = function(name, value) {
     
     if (typeof recalcProduct === 'function') recalcProduct(id);
   };
-
- const _originalRecalcProduct = window.recalcProduct;
- window.selectMode = function(id, mode, el) {
-  const row = document.getElementById('product-row-' + id);
-  if (!row) return;
   
-  const oldMode = row.dataset.mode || 'simple';
-  row.dataset.mode = mode;
-  
-  if (el && el.parentElement) {
+  window.selectMode = function(id, mode, el) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    row.dataset.mode = mode;
+    
     el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
     el.classList.add('selected');
-  }
-  
-  if (row.dataset.type === 'marble') {
-    const simpleDiv = document.getElementById('marble-simple-' + id);
-    const detailsDiv = document.getElementById('marble-details-' + id);
     
-    if (simpleDiv) simpleDiv.style.display = mode === 'simple' ? 'block' : 'none';
-    if (detailsDiv) detailsDiv.style.display = mode === 'details' ? 'block' : 'none';
-    
-    // Simple → Details: Simple-এর ডেটা প্রথম Row-তে কপি
-    if (mode === 'details' && oldMode === 'simple') {
-      const tbody = document.getElementById('detail-tbody-' + id);
-      if (tbody && tbody.querySelectorAll('tr').length === 0) {
-        const paperL = row.querySelector('.p-paper-l')?.value || '';
-        const paperW = row.querySelector('.p-paper-w')?.value || '';
-        const qty = row.querySelector('.p-qty')?.value || '';
-        const allowChecked = row.querySelector('.p-allow-check')?.checked || false;
-        const allowL = allowChecked ? (row.querySelector('.p-allow-l')?.value || '') : '';
-        const allowW = allowChecked ? (row.querySelector('.p-allow-w')?.value || '') : '';
-        
-        // Details Master Allowance চেকবক্স সিঙ্ক
-        const detailsAllowCheck = row.querySelector('.p-allow-check-details');
-        if (detailsAllowCheck) {
-          detailsAllowCheck.checked = allowChecked;
-          toggleDetailsAllowance(id, allowChecked);
-        }
-        
-        // প্রথম Row যোগ
-        if (paperL || paperW || qty) {
-          window._detailRowCounters[id] = 0;
-          addDetailRow(id, false);
-          
-          // প্রথম Row-তে ডেটা বসাও
-          setTimeout(() => {
-            const firstRow = tbody.querySelector('tr:first-child');
-            if (firstRow) {
-              if (paperL) firstRow.querySelector('.d-l').value = paperL;
-              if (paperW) firstRow.querySelector('.d-w').value = paperW;
-              if (qty) firstRow.querySelector('.d-qty').value = qty;
-              if (allowL) firstRow.querySelector('.d-al').value = allowL;
-              if (allowW) firstRow.querySelector('.d-aw').value = allowW;
-            }
-            recalcProduct(id);
-          }, 100);
-        }
-      }
+    const allowance = document.getElementById('allowance-' + id);
+    if (allowance) {
+      allowance.style.display = mode === 'details' ? 'block' : 'none';
     }
     
-    // Details → Simple: Simple-এ সব খালি (আলাদা হিসাব)
-    if (mode === 'simple' && oldMode === 'details') {
-      // কিছুই করব না — Simple-এর পুরনো ডেটা আগের মতোই থাকবে
-    }
-  } else if (typeof _originalSelectMode === 'function') {
-    _originalSelectMode.call(this, id, mode, el);
-  }
-  
-  recalcProduct(id);
-};
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+  };
   
   window.selectUnit = function(id, unit, el) {
     const row = document.getElementById('product-row-' + id);
@@ -2835,293 +2276,6 @@ window.pickCategory = function(name, value) {
     el.classList.add('selected');
     if (typeof recalcProduct === 'function') recalcProduct(id);
   };
-  
-   // ============================================================
-  // RECALC PRODUCT — MARBLE OVERRIDE v3
-  // ============================================================
-   // ============================================================
-  // RECALC PRODUCT — Universal (Marble + Tiles + General)
-  // ============================================================
-  const _originalRecalcProduct = window.recalcProduct;
-  
-  window.recalcProduct = function(id) {
-    const row = document.getElementById('product-row-' + id);
-    if (!row) return;
-    
-    const bizType = row.dataset.type || 'general';
-    const mode = row.dataset.mode || 'simple';
-    const catValue = row.querySelector('.p-category')?.value || '';
-    const isMG = typeof isMarbleOrGraniteCategory === 'function' 
-      ? isMarbleOrGraniteCategory(catValue) 
-      : false;
-    
-    // ============================================================
-    // MARBLE/GRANITE PATH
-    // ============================================================
-    if (bizType === 'marble' && isMG) {
-      recalcMarbleProduct(id, row, mode);
-      return;
-    }
-    
-    // ============================================================
-    // TILES/GENERAL PATH (সব অন্য ক্যাটাগরি)
-    // ============================================================
-    recalcStandardProduct(id, row, bizType);
-  };
-  
-  // ============================================================
-  // MARBLE/GRANITE CALCULATION
-  // ============================================================
-  function recalcMarbleProduct(id, row, mode) {
-    let totalPaper = 0;
-    let totalActual = 0;
-    let totalQty = 0;
-    
-    if (mode === 'simple') {
-      const paperL = parseFloat(row.querySelector('.p-paper-l')?.value) || 0;
-      const paperW = parseFloat(row.querySelector('.p-paper-w')?.value) || 0;
-      const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
-      
-      const allowChecked = row.querySelector('.p-allow-check')?.checked || false;
-      const allowL = allowChecked ? (parseFloat(row.querySelector('.p-allow-l')?.value) || 0) : 0;
-      const allowW = allowChecked ? (parseFloat(row.querySelector('.p-allow-w')?.value) || 0) : 0;
-      
-      totalPaper = (paperL * paperW) * qty;
-      totalActual = ((paperL + allowL / 12) * (paperW + allowW / 12)) * qty;
-      totalQty = qty;
-    } else {
-      const tbody = document.getElementById('detail-tbody-' + id);
-      if (tbody) {
-        tbody.querySelectorAll('tr').forEach(tr => {
-          const l = parseFloat(tr.querySelector('.d-l')?.value) || 0;
-          const w = parseFloat(tr.querySelector('.d-w')?.value) || 0;
-          const al = parseFloat(tr.querySelector('.d-al')?.value) || 0;
-          const aw = parseFloat(tr.querySelector('.d-aw')?.value) || 0;
-          const q = parseFloat(tr.querySelector('.d-qty')?.value) || 0;
-          
-          totalPaper += (l * w) * q;
-          totalActual += ((l + al / 12) * (w + aw / 12)) * q;
-          totalQty += q;
-        });
-      }
-      
-      // Details Summary আপডেট
-      const dPaper = row.querySelector('.d-total-paper');
-      const dActual = row.querySelector('.d-total-actual');
-      const dExtra = row.querySelector('.d-total-extra');
-      if (dPaper) dPaper.innerText = totalPaper.toFixed(2);
-      if (dActual) dActual.innerText = totalActual.toFixed(2);
-      if (dExtra) dExtra.innerText = (totalActual - totalPaper).toFixed(2);
-    }
-    
-    const extra = totalActual - totalPaper;
-    const extraPct = totalPaper > 0 ? (extra / totalPaper) * 100 : 0;
-    const savingsPct = totalActual > 0 ? (extra / totalActual) * 100 : 0;
-    
-    const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
-    const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-    const wtPerSqft = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
-    
-    let gstPct = 0;
-    const gstSel = row.querySelector('.p-gst');
-    if (gstSel) gstPct = parseFloat(gstSel.value) || 0;
-    
-    const totalWeight = totalActual * wtPerSqft;
-    
-    const pakkaAmount = totalPaper * pakkaRate;
-    const cashAmount = totalPaper * cashRate;
-    const gstAmount = pakkaAmount * (gstPct / 100);
-    const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
-    
-    const truckWeightKg = getTruckWeightKg();
-    const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
-    const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
-    const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
-    const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
-    const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
-    const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
-    
-    const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
-    
-    let thisExtra = 0;
-    if (truckWeightKg > 0) {
-      thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
-    }
-    
-    const thisTransport = (transportRate * totalWeight) / 1000;
-    const totalLanding = pakkaCashGst + thisExtra + thisTransport;
-    
-    const perSqft = totalPaper > 0 ? totalLanding / totalPaper : 0;
-    const perSqftNoTax = totalPaper > 0 ? (totalLanding - gstAmount) / totalPaper : 0;
-    const realRate = totalActual > 0 ? totalLanding / totalActual : 0;
-    
-    // Display
-    const box = document.getElementById('calc-box-' + id);
-    if (!box) return;
-    
-    const setText = (sel, val) => {
-      const el = box.querySelector(sel);
-      if (el) el.innerText = val;
-    };
-    
-    setText('.calc-total-paper', totalPaper.toFixed(2));
-    setText('.calc-total-actual', totalActual.toFixed(2));
-    setText('.calc-per-sqft', '₹' + perSqft.toFixed(2));
-    setText('.calc-per-sqft-no-tax', '₹' + perSqftNoTax.toFixed(2));
-    setText('.calc-qty', `${totalQty} slab · ${totalPaper.toFixed(2)} sqft`);
-    setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
-    setText('.calc-cash', '₹' + cashAmount.toFixed(2));
-    setText('.calc-gst', '₹' + gstAmount.toFixed(2));
-    setText('.calc-transport-share', '₹' + thisTransport.toFixed(2));
-    setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
-    setText('.calc-total', '₹' + totalLanding.toFixed(2));
-    
-    const shareEl = box.querySelector('.calc-weight-share');
-    if (shareEl) {
-      if (truckWeightKg > 0) {
-        shareEl.innerText = `${((totalWeight / truckWeightKg) * 100).toFixed(2)}% (${totalWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
-      } else {
-        shareEl.innerText = '⚠️ Truck weight দিন';
-      }
-    }
-    
-    const benefitBox = box.querySelector('.benefit-box');
-    if (benefitBox) {
-      if (extra > 0) {
-        benefitBox.style.display = 'block';
-        setText('.calc-paper', totalPaper.toFixed(2) + ' sqft');
-        setText('.calc-actual', totalActual.toFixed(2) + ' sqft');
-        setText('.calc-extra', extra.toFixed(2) + ' sqft');
-        setText('.calc-extra-pct', extraPct.toFixed(2) + '% extra');
-        setText('.calc-savings-pct', savingsPct.toFixed(2) + '% saved');
-        setText('.calc-real-rate', '₹' + realRate.toFixed(2));
-      } else {
-        benefitBox.style.display = 'none';
-      }
-    }
-    
-    if (typeof recalcRoleRate === 'function') recalcRoleRate(id);
-    if (typeof updateSummary === 'function') updateSummary();
-  }
-  
-  // ============================================================
-  // STANDARD CALCULATION (Tiles + General)
-  // ============================================================
-  function recalcStandardProduct(id, row, bizType) {
-    const rating = row.dataset.rating || 'box';
-    
-    const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
-    const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
-    const weight = parseFloat(row.querySelector('.p-weight')?.value) || 0;
-    const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
-    const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
-    const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-    
-    let gstPct = 0;
-    const gstSelectEl = row.querySelector('.p-gst');
-    const gstCustomEl = row.querySelector('.p-gst-custom');
-    if (gstSelectEl) {
-      if (gstSelectEl.value === 'custom') {
-        if (gstCustomEl) { gstCustomEl.style.display = 'block'; gstPct = parseFloat(gstCustomEl.value) || 0; }
-      } else {
-        if (gstCustomEl) gstCustomEl.style.display = 'none';
-        gstPct = parseFloat(gstSelectEl.value) || 0;
-      }
-    }
-    
-    // Total Quantity
-    let totalQty = 0;
-    let qtyUnit = 'box';
-    
-    if (bizType === 'grocery' || bizType === 'fruits') {
-      const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
-      totalQty = qty * boxes;
-      qtyUnit = row.dataset.unit || 'kg';
-    } else if (rating === 'sqft') {
-      totalQty = sqftPerBox * boxes;
-      qtyUnit = 'sqft';
-    } else if (rating === 'piece') {
-      totalQty = pieces * boxes;
-      qtyUnit = 'piece';
-    } else {
-      totalQty = boxes;
-      qtyUnit = 'box';
-    }
-    
-    const pakkaAmount = totalQty * pakkaRate;
-    const cashAmount = totalQty * cashRate;
-    const gstAmount = pakkaAmount * (gstPct / 100);
-    const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
-    
-    const thisProductWeight = weight * boxes;
-    const truckWeightKg = getTruckWeightKg();
-    
-    const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
-    const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
-    const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
-    const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
-    const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
-    const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
-    
-    const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
-    
-    let thisExtra = 0;
-    if (truckWeightKg > 0) {
-      thisExtra = (totalExtraLump / truckWeightKg) * thisProductWeight;
-    }
-    
-    const thisTransport = (transportRate * thisProductWeight) / 1000;
-    const totalLanding = pakkaCashGst + thisExtra + thisTransport;
-    
-    // Display
-    const box = document.getElementById('calc-box-' + id);
-    if (!box) return;
-    
-    const qtyEl = box.querySelector('.calc-qty');
-    if (qtyEl) qtyEl.innerText = `${totalQty.toFixed(2)} ${qtyUnit}`;
-    
-    const pakkaEl = box.querySelector('.calc-pakka');
-    if (pakkaEl) pakkaEl.innerText = '₹' + pakkaAmount.toFixed(2);
-    
-    const cashEl = box.querySelector('.calc-cash');
-    if (cashEl) cashEl.innerText = '₹' + cashAmount.toFixed(2);
-    
-    const gstEl = box.querySelector('.calc-gst');
-    if (gstEl) gstEl.innerText = '₹' + gstAmount.toFixed(2);
-    
-    const transportEl = box.querySelector('.calc-transport-share');
-    if (transportEl) transportEl.innerText = '₹' + thisTransport.toFixed(2);
-    
-    const extraEl = box.querySelector('.calc-extra-share');
-    if (extraEl) extraEl.innerText = '₹' + thisExtra.toFixed(2);
-    
-    const shareEl = box.querySelector('.calc-weight-share');
-    if (shareEl) {
-      if (truckWeightKg > 0) {
-        shareEl.innerText = `${((thisProductWeight / truckWeightKg) * 100).toFixed(2)}% (${thisProductWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
-      } else {
-        shareEl.innerText = '⚠️ Truck weight দিন';
-      }
-    }
-    
-    const totalEl = box.querySelector('.calc-total');
-    if (totalEl) totalEl.innerText = '₹' + totalLanding.toFixed(2);
-    
-    const perBoxEl = box.querySelector('.calc-per-box');
-    if (perBoxEl) perBoxEl.innerText = '₹' + (boxes > 0 ? totalLanding / boxes : 0).toFixed(2);
-    
-    const perBoxNoTaxEl = box.querySelector('.calc-per-box-no-tax');
-    if (perBoxNoTaxEl) {
-      const landingNoTax = totalLanding - gstAmount;
-      perBoxNoTaxEl.innerText = '₹' + (boxes > 0 ? landingNoTax / boxes : 0).toFixed(2);
-    }
-    
-    if (typeof recalcRoleRate === 'function') recalcRoleRate(id);
-    if (typeof updateSummary === 'function') updateSummary();
-  }
-  
-  console.log('✅ Universal recalcProduct loaded');
-  
   
   // ==================== SAME LOT / NEW LOT / FINISH ====================
   let sameLotTemplateRowId = null;
@@ -3473,7 +2627,157 @@ window.pickCategory = function(name, value) {
     return (pakkaRate + cashRate) * (1 + gstPct / 100);
   }
   
-   // ==================== ROLE RATE FALLBACK ====================
+  // ==================== RECALC PRODUCT ====================
+  window.recalcProduct = function(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    
+    const bizType = row.dataset.type || 'hardware';
+    const rating = row.dataset.rating || 'box';
+    const mode = row.dataset.mode || 'simple';
+    
+    const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
+    const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
+    const weight = parseFloat(row.querySelector('.p-weight')?.value) || 0;
+    const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+    const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
+    const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
+    const size = row.querySelector('.p-size')?.value || '';
+    const allowL = parseFloat(row.querySelector('.p-allow-l')?.value) || 0;
+    const allowW = parseFloat(row.querySelector('.p-allow-w')?.value) || 0;
+    
+    let gstPct = 0;
+    const gstSelectEl = row.querySelector('.p-gst');
+    const gstCustomEl = row.querySelector('.p-gst-custom');
+    if (gstSelectEl) {
+      if (gstSelectEl.value === 'custom') {
+        if (gstCustomEl) { gstCustomEl.style.display = 'block'; gstPct = parseFloat(gstCustomEl.value) || 0; }
+      } else {
+        if (gstCustomEl) gstCustomEl.style.display = 'none';
+        gstPct = parseFloat(gstSelectEl.value) || 0;
+      }
+    }
+    
+    // Total Quantity
+    let totalQty = 0;
+    let qtyUnit = 'box';
+    
+    if (bizType === 'marble') {
+      if (rating === 'sqft') { totalQty = sqftPerBox * boxes; qtyUnit = 'sqft'; }
+      else if (rating === 'box') { totalQty = boxes; qtyUnit = 'box'; }
+      else { totalQty = pieces * boxes; qtyUnit = 'piece'; }
+    } else if (bizType === 'grocery' || bizType === 'fruits') {
+      const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
+      totalQty = qty * boxes;
+      qtyUnit = row.dataset.unit || 'kg';
+    } else {
+      totalQty = boxes;
+      qtyUnit = 'box';
+    }
+    
+    const pakkaAmount = totalQty * pakkaRate;
+    const cashAmount = totalQty * cashRate;
+    const gstAmount = pakkaAmount * (gstPct / 100);
+    const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
+    
+    const thisProductWeight = weight * boxes;
+    const truckWeightKg = getTruckWeightKg();
+    
+    const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
+    const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
+    const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
+    const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
+    const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
+    const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
+    
+    const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
+    
+    let perKgExtra = 0;
+    let thisExtra = 0;
+    if (truckWeightKg > 0) {
+      perKgExtra = totalExtraLump / truckWeightKg;
+      thisExtra = perKgExtra * thisProductWeight;
+    }
+    
+    const thisTransport = (transportRate * thisProductWeight) / 1000;
+    const totalLanding = pakkaCashGst + thisExtra + thisTransport;
+    
+    // Benefit (Marble)
+    let paperSize = 0, actualSize = 0, extra = 0, extraPct = 0, savingsPct = 0, realRate = 0, showBenefit = false;
+    
+    if (bizType === 'marble' && mode === 'details' && size) {
+      const parsed = parseSize(size);
+      if (parsed && parsed.l > 0 && parsed.w > 0) {
+        const paperL = Math.max(0, parsed.l - (allowL / 12));
+        const paperW = Math.max(0, parsed.w - (allowW / 12));
+        paperSize = paperL * paperW * boxes * pieces;
+        actualSize = parsed.l * parsed.w * boxes * pieces;
+        extra = actualSize - paperSize;
+        if (paperSize > 0) extraPct = (extra / paperSize) * 100;
+        if (actualSize > 0) savingsPct = (extra / actualSize) * 100;
+        if (actualSize > 0) realRate = totalLanding / actualSize;
+        showBenefit = true;
+      }
+    }
+    
+    // Display
+    const box = document.getElementById('calc-box-' + id);
+    if (!box) return;
+    
+    const qtyEl = box.querySelector('.calc-qty');
+    if (qtyEl) qtyEl.innerText = `${totalQty.toFixed(2)} ${qtyUnit}`;
+    box.querySelector('.calc-pakka').innerText = '₹' + pakkaAmount.toFixed(2);
+    box.querySelector('.calc-cash').innerText = '₹' + cashAmount.toFixed(2);
+    box.querySelector('.calc-gst').innerText = '₹' + gstAmount.toFixed(2);
+    
+    const transportEl = box.querySelector('.calc-transport-share');
+    if (transportEl) transportEl.innerText = '₹' + thisTransport.toFixed(2);
+    
+    const extraEl = box.querySelector('.calc-extra-share');
+    if (extraEl) extraEl.innerText = '₹' + thisExtra.toFixed(2);
+    
+    const shareEl = box.querySelector('.calc-weight-share');
+    if (shareEl) {
+      if (truckWeightKg > 0) {
+        shareEl.innerText = `${((thisProductWeight / truckWeightKg) * 100).toFixed(2)}% (${thisProductWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
+      } else {
+        shareEl.innerText = '⚠️ Truck weight দিন';
+      }
+    }
+    
+    box.querySelector('.calc-total').innerText = '₹' + totalLanding.toFixed(2);
+    
+    const perBoxEl = box.querySelector('.calc-per-box');
+    if (perBoxEl) perBoxEl.innerText = '₹' + (boxes > 0 ? totalLanding / boxes : 0).toFixed(2);
+    
+    const perBoxNoTaxEl = box.querySelector('.calc-per-box-no-tax');
+    if (perBoxNoTaxEl) {
+      const landingNoTax = totalLanding - gstAmount;
+      perBoxNoTaxEl.innerText = '₹' + (boxes > 0 ? landingNoTax / boxes : 0).toFixed(2);
+    }
+    
+    const benefitBox = box.querySelector('.benefit-box');
+    if (benefitBox) {
+      if (showBenefit) {
+        benefitBox.style.display = 'block';
+        box.querySelector('.calc-paper').innerText = paperSize.toFixed(2) + ' sqft';
+        box.querySelector('.calc-actual').innerText = actualSize.toFixed(2) + ' sqft';
+        box.querySelector('.calc-extra').innerText = extra.toFixed(2) + ' sqft';
+        box.querySelector('.calc-extra-pct').innerText = extraPct.toFixed(2) + '% extra';
+        box.querySelector('.calc-savings-pct').innerText = savingsPct.toFixed(2) + '% saved';
+        box.querySelector('.calc-real-rate').innerText = '₹' + realRate.toFixed(2);
+      } else {
+        benefitBox.style.display = 'none';
+      }
+    }
+    
+    // Role Rate recalc
+    recalcRoleRate(id);
+    
+    updateSummary();
+  };
+  
+  // ==================== ROLE RATE FALLBACK ====================
   function getCategoryRoleRates(categoryValue) {
     // Phase 3A-3-এ বাস্তবায়িত হবে
     return null;
@@ -3565,19 +2869,19 @@ window.pickCategory = function(name, value) {
     recalcRoleRate(id);
   };
   
-window.toggleCalcDetails = function(id) {
-    const details = document.getElementById('calc-details-' + id);
-    const arrow = document.getElementById('calc-arrow-' + id);
-    if (!details || !arrow) return;
-    
-    if (details.classList.contains('open')) {
-      details.classList.remove('open');
-      arrow.classList.remove('open');
-    } else {
-      details.classList.add('open');
-      arrow.classList.add('open');  // ← এখানে 'add' হবে
-    }
-  };
+ window.toggleCalcDetails = function(id) {
+  const details = document.getElementById('calc-details-' + id);
+  const arrow = document.getElementById('calc-arrow-' + id);
+  if (!details || !arrow) return;
+  
+  if (details.classList.contains('open')) {
+    details.classList.remove('open');
+    arrow.classList.remove('open');
+  } else {
+    details.classList.add('open');
+    arrow.classList.add('open');
+  }
+}; 
   
   // ==================== UPDATE SUMMARY ====================
   function updateSummary() {
@@ -3708,23 +3012,6 @@ window.toggleCalcDetails = function(id) {
       </div>
     `;
   }
-  
-  // ============================================================
-  // CALC DETAILS SHUTTER TOGGLE
-  // ============================================================
- // window.toggleCalcDetails = function(id) {
- //   const details = document.getElementById('calc-details-' + id);
-  //  const arrow = document.getElementById('calc-arrow-' + id);
- //   if (!details || !arrow) return;
-    
-  //  if (details.classList.contains('open')) {
-  //    details.classList.remove('open');
-   //   arrow.classList.remove('open');
-  //  } else {
-   //   details.classList.add('open');
-   //   arrow.classList.add('open');  // ← এখানে 'add' হবে
-  //  }
-//  };
   
   // ==================== TOGGLE ROLE RATES ====================
   window.toggleRoleRates = function(id) {
