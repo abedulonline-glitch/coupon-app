@@ -2191,6 +2191,10 @@ function checkRowHasData(id) {
           <div class="calc-row" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
             <span style="font-size:13px;">💵 প্রতি sqft (Tax ছাড়া):</span>
             <b class="calc-per-sqft-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
+            <div class="calc-row" style="background:linear-gradient(135deg,#e6f4ea,#c8e6c9); padding:10px 14px; border-radius:10px; margin-top:8px;">
+            <span style="font-size:13px;">💰 প্রতি sqft (Actual based):</span>
+            <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:18px;">₹0</b>
+          </div>
           </div>
         </div>
         
@@ -4124,7 +4128,12 @@ function checkRowHasData(id) {
     if (gstSel) gstPct = parseFloat(gstSel.value) || 0;
     
     // ✅ Total Weight = Actual × wt/sqft
-    const totalWeight = totalActual * wtPerSqft;
+        // ✅ Transport-এর জন্য Paper weight
+    const paperWeightForTransport = totalPaper * wtPerSqft;
+    // ✅ Extra cost-এর জন্য Actual weight
+    const actualWeightForExtra = totalActual * wtPerSqft;
+    // Display-এ ব্যবহারের জন্য
+    const totalWeight = actualWeightForExtra;
     
     const pakkaAmount = totalPaper * pakkaRate;
     const cashAmount = totalPaper * cashRate;
@@ -4149,13 +4158,17 @@ function checkRowHasData(id) {
     
     // ✅ Transport = Rate/টন × Weight kg ÷ 1000
     // অর্থাৎ: Rate × Weight / 1000
-    const thisTransport = (transportRate * totalWeight) / 1000;
+        // ✅ Transport Paper weight-এ
+    const thisTransport = (transportRate * paperWeightForTransport) / 1000;
     
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
-    const perSqft = totalPaper > 0 ? totalLanding / totalPaper : 0;
-    const perSqftNoTax = totalPaper > 0 ? (totalLanding - gstAmount) / totalPaper : 0;
-    const realRate = totalActual > 0 ? totalLanding / totalActual : 0;
+        // ✅ Paper-based Cost (Cash বাদ — Vault-এ থাকবে)
+    const pakkaGstTransport = pakkaAmount + gstAmount + thisTransport;
+    const perPaperSqft = totalPaper > 0 ? pakkaGstTransport / totalPaper : 0;
+    const perPaperSqftNoTax = totalPaper > 0 ? (pakkaAmount + thisTransport) / totalPaper : 0;
+    // ✅ Actual-based Cost (আসল খরচ — Allowance-এর লাভ এখানে বোঝা যায়)
+    const perActualSqft = totalActual > 0 ? pakkaGstTransport / totalActual : 0;
     
     // Display
     const box = document.getElementById('calc-box-' + id);
@@ -4168,8 +4181,12 @@ function checkRowHasData(id) {
     
     setText('.calc-total-paper', totalPaper.toFixed(2));
     setText('.calc-total-actual', totalActual.toFixed(2));
-    setText('.calc-per-sqft', '₹' + perSqft.toFixed(2));
-    setText('.calc-per-sqft-no-tax', '₹' + perSqftNoTax.toFixed(2));
+       setText('.calc-per-sqft', '₹' + perPaperSqft.toFixed(2));
+    setText('.calc-per-sqft-no-tax', '₹' + perPaperSqftNoTax.toFixed(2));
+    
+    // ✅ Per Actual sqft — নতুন
+    const perActualEl = box.querySelector('.calc-per-actual-sqft');
+    if (perActualEl) perActualEl.innerText = '₹' + perActualSqft.toFixed(2);
     setText('.calc-qty', `${totalQty} slab · ${totalPaper.toFixed(2)} sqft`);
     setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
     setText('.calc-cash', '₹' + cashAmount.toFixed(2));
@@ -4196,7 +4213,7 @@ function checkRowHasData(id) {
         setText('.calc-extra', extra.toFixed(2) + ' sqft');
         setText('.calc-extra-pct', extraPct.toFixed(2) + '% extra');
         setText('.calc-savings-pct', savingsPct.toFixed(2) + '% saved');
-        setText('.calc-real-rate', '₹' + realRate.toFixed(2));
+         setText('.calc-real-rate', '₹' + perActualSqft.toFixed(2));
       } else {
         benefitBox.style.display = 'none';
       }
