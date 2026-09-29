@@ -1839,6 +1839,9 @@ function checkRowHasData(id) {
   // ============================================================
   // MARBLE TEMPLATE FIELDS
   // ============================================================
+   // ============================================================
+  // MARBLE TEMPLATE FIELDS — F-3c (Button Position Fixed)
+  // ============================================================
   function getMarbleTemplateFields(id) {
     return `
       ${getProductInfoFields(id)}
@@ -1896,7 +1899,20 @@ function checkRowHasData(id) {
           </table>
         </div>
         
-        <div class="row-3" style="margin-top:12px;">
+        <!-- ═══ Lot Buttons (Rates এর উপরে) ═══ -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; margin-bottom:12px;">
+          <button type="button" onclick="addNewMarbleLot(${id})" 
+            style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ➕ Add New Lot
+          </button>
+          <button type="button" onclick="finishMarbleLot(${id})" 
+            style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ✅ Finish Lot
+          </button>
+        </div>
+        
+        <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
+        <div class="row-3">
           <div>
             <label style="font-size:11px;">ওজন/sqft (kg)</label>
             <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
@@ -1941,7 +1957,20 @@ function checkRowHasData(id) {
           </table>
         </div>
         
-        <div class="row-3" style="margin-top:12px;">
+        <!-- ═══ Lot Buttons (Rates এর উপরে) ═══ -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; margin-bottom:12px;">
+          <button type="button" onclick="addNewMarbleLot(${id})" 
+            style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ➕ Add New Lot
+          </button>
+          <button type="button" onclick="finishMarbleLot(${id})" 
+            style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ✅ Finish Lot
+          </button>
+        </div>
+        
+        <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
+        <div class="row-3">
           <div>
             <label style="font-size:11px;">ওজন/sqft (kg)</label>
             <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
@@ -1955,18 +1984,6 @@ function checkRowHasData(id) {
             <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
           </div>
         </div>
-      </div>
-      
-      <!-- ═══ Lot Buttons ═══ -->
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
-        <button type="button" onclick="addNewMarbleLot(${id})" 
-          style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-          ➕ Add New Lot
-        </button>
-        <button type="button" onclick="finishMarbleLot(${id})" 
-          style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-          ✅ Finish Lot
-        </button>
       </div>
       
       ${getMarbleCalcBox(id)}
