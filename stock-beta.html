@@ -3011,20 +3011,45 @@ function checkRowHasData(id) {
     if (typeof recalcProduct === 'function') recalcProduct(id);
   };
   
+    // ============================================================
+  // SELECT MODE — Simple / Details Toggle
+  // ============================================================
   window.selectMode = function(id, mode, el) {
     const row = document.getElementById('product-row-' + id);
     if (!row) return;
+    
     row.dataset.mode = mode;
     
-    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
-    el.classList.add('selected');
+    if (el && el.parentElement) {
+      el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+    }
     
-    const allowance = document.getElementById('allowance-' + id);
-    if (allowance) {
-      allowance.style.display = mode === 'details' ? 'block' : 'none';
+    if (row.dataset.type === 'marble') {
+      const simpleDiv = document.getElementById('marble-simple-' + id);
+      const detailsDiv = document.getElementById('marble-details-' + id);
+      
+      if (simpleDiv) {
+        simpleDiv.style.display = (mode === 'simple') ? 'block' : 'none';
+      }
+      if (detailsDiv) {
+        detailsDiv.style.display = (mode === 'details') ? 'block' : 'none';
+      }
+      
+      // Details Mode-এ প্রথমবার গেলে খালি Row যোগ করি
+      if (mode === 'details') {
+        const tbody = document.getElementById('details-tbody-' + id);
+        if (tbody && tbody.querySelectorAll('tr').length === 0) {
+          if (typeof addDetailRow === 'function') {
+            addDetailRow(id, false);
+          }
+        }
+      }
     }
     
     if (typeof recalcProduct === 'function') recalcProduct(id);
+    
+    console.log(`✅ Mode changed to ${mode} for #${id}`);
   };
   
   window.selectUnit = function(id, unit, el) {
