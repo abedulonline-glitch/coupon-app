@@ -2526,19 +2526,6 @@ function checkRowHasData(id) {
     console.log(`✅ Finish Marble Lot for #${id}`);
   };
   
-  // Helper function
-  function checkRowHasData(id) {
-    const row = document.getElementById('product-row-' + id);
-    if (!row) return false;
-    
-    const name = row.querySelector('.p-name')?.value?.trim();
-    const lotName = row.querySelector('.p-lot-name')?.value?.trim();
-    const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
-    const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
-    const dL = parseFloat(row.querySelector('.d-l')?.value) || 0;
-    
-    return !!(name || lotName || boxes > 0 || qty > 0 || dL > 0);
-  }
   
   console.log('✅ Lot Functions loaded (F-3b)');
   
