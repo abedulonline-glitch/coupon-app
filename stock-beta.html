@@ -190,6 +190,7 @@
   margin-top: 12px;
   font-size: 13px;
 }
+
   /* Calc Box — Per Box Display */
 .calc-perbox-display {
   margin-bottom: 12px;
@@ -1810,6 +1811,62 @@ window.pickCategory = function(name, value) {
   `;
 }
   
+  // ============================================================
+  // MARBLE CALC BOX — Per sqft Display
+  // ============================================================
+  function getMarbleCalcBox(id) {
+    return `
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-perbox-display">
+          <div class="calc-row" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+            <span style="font-size:13px;">📄 Total Paper (sqft):</span>
+            <b class="calc-total-paper" style="color:#1a73e8; font-size:16px;">0</b>
+          </div>
+          <div class="calc-row" style="background:linear-gradient(135deg,#f3e8fd,#e1bee7); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+            <span style="font-size:13px;">📦 Total Actual (sqft):</span>
+            <b class="calc-total-actual" style="color:#7b1fa2; font-size:16px;">0</b>
+          </div>
+          <div class="calc-row" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+            <span style="font-size:13px;">📊 প্রতি sqft (Paper based):</span>
+            <b class="calc-per-sqft" style="color:#1a73e8; font-size:18px;">₹0</b>
+          </div>
+          <div class="calc-row" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
+            <span style="font-size:13px;">💵 প্রতি sqft (Tax ছাড়া):</span>
+            <b class="calc-per-sqft-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
+          </div>
+        </div>
+        
+        <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
+          <span>📊 বিস্তারিত হিসাব দেখুন</span>
+          <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
+        </div>
+        
+        <div class="calc-details-shutter" id="calc-details-${id}">
+          <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
+          <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+          <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+          <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+          <div class="calc-divider"></div>
+          <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+          <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+          <div class="calc-row" style="font-size:11px; color:#666;">
+            <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+          </div>
+          <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
+          <div class="benefit-box" style="display: none;">
+            <div class="calc-divider"></div>
+            <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
+            <div class="calc-row"><span>📦 আসল মাপ:</span><b class="calc-actual">0</b></div>
+            <div class="calc-row highlight-green"><span>🎁 Extra:</span><b class="calc-extra">0</b></div>
+            <div class="calc-row highlight-green"><span>📈 Extra %:</span><b class="calc-extra-pct">0%</b></div>
+            <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
+            <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
   // ==================== TEMPLATES ====================
   function getProductRowHTML(bizType, id) {
     switch(bizType) {
@@ -3012,19 +3069,19 @@ window.pickCategory = function(name, value) {
     recalcRoleRate(id);
   };
   
- window.toggleCalcDetails = function(id) {
-  const details = document.getElementById('calc-details-' + id);
-  const arrow = document.getElementById('calc-arrow-' + id);
-  if (!details || !arrow) return;
-  
-  if (details.classList.contains('open')) {
-    details.classList.remove('open');
-    arrow.classList.remove('open');
-  } else {
-    details.classList.add('open');
-    arrow.classList.add('open');
-  }
-}; 
+window.toggleCalcDetails = function(id) {
+    const details = document.getElementById('calc-details-' + id);
+    const arrow = document.getElementById('calc-arrow-' + id);
+    if (!details || !arrow) return;
+    
+    if (details.classList.contains('open')) {
+      details.classList.remove('open');
+      arrow.classList.remove('open');
+    } else {
+      details.classList.add('open');
+      arrow.classList.add('open');  // ← এখানে 'add' হবে
+    }
+  };
   
   // ==================== UPDATE SUMMARY ====================
   function updateSummary() {
@@ -3155,6 +3212,23 @@ window.pickCategory = function(name, value) {
       </div>
     `;
   }
+  
+  // ============================================================
+  // CALC DETAILS SHUTTER TOGGLE
+  // ============================================================
+ // window.toggleCalcDetails = function(id) {
+ //   const details = document.getElementById('calc-details-' + id);
+  //  const arrow = document.getElementById('calc-arrow-' + id);
+ //   if (!details || !arrow) return;
+    
+  //  if (details.classList.contains('open')) {
+  //    details.classList.remove('open');
+   //   arrow.classList.remove('open');
+  //  } else {
+   //   details.classList.add('open');
+   //   arrow.classList.add('open');  // ← এখানে 'add' হবে
+  //  }
+//  };
   
   // ==================== TOGGLE ROLE RATES ====================
   window.toggleRoleRates = function(id) {
