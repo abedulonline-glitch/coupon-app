@@ -2456,6 +2456,91 @@ function checkRowHasData(id) {
   // ============================================================
   
   window._detailRowCounters = window._detailRowCounters || {};
+
+  // ============================================================
+  // LOT FUNCTIONS — Add New Lot / Finish Lot
+  // ============================================================
+  
+  window.addNewMarbleLot = function(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    
+    const lotName = row.querySelector('.p-lot-name')?.value?.trim();
+    const hasData = checkRowHasData(id);
+    
+    if (hasData) {
+      const msg = `✅ বর্তমান লট সেভ হবে${lotName ? ` (${lotName})` : ''}\n\n` +
+                  `নতুন Marble লট যোগ করবেন?`;
+      if (!confirm(msg)) return;
+    }
+    
+    if (typeof addProductRow === 'function') {
+      addProductRow();
+      
+      setTimeout(() => {
+        const newRow = document.getElementById('product-row-' + productCount);
+        if (newRow && typeof loadProductTemplate === 'function') {
+          const catHidden = newRow.querySelector('.p-category');
+          const catInput = newRow.querySelector('.p-category-input');
+          if (catHidden) catHidden.value = 'marble';
+          if (catInput) {
+            catInput.value = 'Marble';
+            catInput.style.color = '#202124';
+          }
+          
+          loadProductTemplate(productCount, 'Marble');
+          
+          newRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
+    }
+    
+    console.log(`✅ Add New Lot for #${id}`);
+  };
+  
+  window.finishMarbleLot = function(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    
+    const lotName = row.querySelector('.p-lot-name')?.value?.trim();
+    const hasData = checkRowHasData(id);
+    
+    if (hasData) {
+      const msg = `✅ "${lotName || 'বর্তমান লট'}" লট সেভ হবে।\n\n` +
+                  `এরপর সম্পূর্ণ নতুন Category সিলেক্ট করতে পারবেন।\n\n` +
+                  `Finish করবেন?`;
+      if (!confirm(msg)) return;
+    }
+    
+    if (typeof addProductRow === 'function') {
+      addProductRow();
+      
+      setTimeout(() => {
+        const newRow = document.getElementById('product-row-' + productCount);
+        if (newRow) {
+          newRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
+    }
+    
+    console.log(`✅ Finish Marble Lot for #${id}`);
+  };
+  
+  // Helper function
+  function checkRowHasData(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return false;
+    
+    const name = row.querySelector('.p-name')?.value?.trim();
+    const lotName = row.querySelector('.p-lot-name')?.value?.trim();
+    const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+    const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
+    const dL = parseFloat(row.querySelector('.d-l')?.value) || 0;
+    
+    return !!(name || lotName || boxes > 0 || qty > 0 || dL > 0);
+  }
+  
+  console.log('✅ Lot Functions loaded (F-3b)');
   
   window.addDetailRow = function(productId, copyLast) {
     window._detailRowCounters[productId] = (window._detailRowCounters[productId] || 0) + 1;
