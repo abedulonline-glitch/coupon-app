@@ -2603,11 +2603,45 @@ function checkRowHasData(id) {
   console.log('✅ Detail Row Functions loaded (F-3a)');
   
   // Toggle Allowance (Simple Mode)
+   // ============================================================
+  // TOGGLE ALLOWANCE — Simple + Details দুই Mode-এ
+  // ============================================================
   window.toggleAllowance = function(id, show) {
-    const fields = document.getElementById('allowance-fields-' + id);
-    if (fields) fields.style.display = show ? 'block' : 'none';
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return;
+    
+    // Simple Mode-এর সব allow-col ও allow-cell
+    const simpleMode = document.getElementById('marble-simple-' + id);
+    if (simpleMode) {
+      simpleMode.querySelectorAll('.allow-col').forEach(col => {
+        col.style.display = show ? 'table-cell' : 'none';
+      });
+      simpleMode.querySelectorAll('.allow-cell').forEach(cell => {
+        cell.style.display = show ? 'table-cell' : 'none';
+      });
+    }
+    
+    // Details Mode-এর সব allow-col ও allow-cell
+    const detailsMode = document.getElementById('marble-details-' + id);
+    if (detailsMode) {
+      detailsMode.querySelectorAll('.allow-col').forEach(col => {
+        col.style.display = show ? 'table-cell' : 'none';
+      });
+      detailsMode.querySelectorAll('.allow-cell').forEach(cell => {
+        cell.style.display = show ? 'table-cell' : 'none';
+      });
+    }
+    
+    // Details Mode-এর Master Checkbox সিঙ্ক
+    const detailsCheck = row.querySelector('.p-allow-check-details');
+    if (detailsCheck) detailsCheck.checked = show;
+    
     if (typeof recalcProduct === 'function') recalcProduct(id);
+    
+    console.log(`✅ Allowance ${show ? 'ON' : 'OFF'} for #${id}`);
   };
+  
+  console.log('✅ toggleAllowance updated (F-3d)');
   
   // Toggle Details Allowance (Master)
   window.toggleDetailsAllowance = function(id, show) {
