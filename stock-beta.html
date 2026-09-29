@@ -1807,6 +1807,59 @@
   `;
 }
   
+  function getMarbleCalcBox(id) {
+    return `
+      <div class="calc-box" id="calc-box-${id}">
+        <div class="calc-perbox-display">
+          <div class="calc-row" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+            <span style="font-size:13px;">📄 Total Paper (sqft):</span>
+            <b class="calc-total-paper" style="color:#1a73e8; font-size:16px;">0</b>
+          </div>
+          <div class="calc-row" style="background:linear-gradient(135deg,#f3e8fd,#e1bee7); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+            <span style="font-size:13px;">📦 Total Actual (sqft):</span>
+            <b class="calc-total-actual" style="color:#7b1fa2; font-size:16px;">0</b>
+          </div>
+          <div class="calc-row" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+            <span style="font-size:13px;">📊 প্রতি sqft (Paper based):</span>
+            <b class="calc-per-sqft" style="color:#1a73e8; font-size:18px;">₹0</b>
+          </div>
+          <div class="calc-row" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
+            <span style="font-size:13px;">💵 প্রতি sqft (Tax ছাড়া):</span>
+            <b class="calc-per-sqft-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
+          </div>
+        </div>
+        
+        <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
+          <span>📊 বিস্তারিত হিসাব দেখুন</span>
+          <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
+        </div>
+        
+        <div class="calc-details-shutter" id="calc-details-${id}">
+          <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
+          <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+          <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+          <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+          <div class="calc-divider"></div>
+          <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+          <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+          <div class="calc-row" style="font-size:11px; color:#666;">
+            <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+          </div>
+          <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
+          <div class="benefit-box" style="display: none;">
+            <div class="calc-divider"></div>
+            <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
+            <div class="calc-row"><span>📦 আসল মাপ:</span><b class="calc-actual">0</b></div>
+            <div class="calc-row highlight-green"><span>🎁 Extra:</span><b class="calc-extra">0</b></div>
+            <div class="calc-row highlight-green"><span>📈 Extra %:</span><b class="calc-extra-pct">0%</b></div>
+            <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
+            <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
   // ==================== TEMPLATES ====================
   function getProductRowHTML(bizType, id) {
     switch(bizType) {
@@ -1823,77 +1876,193 @@
     }
   }
   
+  function isMarbleOrGraniteCategory(catValue) {
+    if (!catValue) return false;
+    const cat = catValue.toLowerCase();
+    return cat.includes('marble') || cat.includes('granite');
+  }
+  
   function getMarbleTemplate(id) {
     return `
-      <div class="product-row" id="product-row-${id}" data-type="marble" data-rating="sqft" data-mode="simple">
+      <div class="product-row" id="product-row-${id}" data-type="marble" data-mode="simple">
         ${getRowHeader(id)}
         ${getRowCommonFields(id)}
         
-        <label>মূল্য নির্ধারণের ধরন</label>
-        <div class="radio-group">
-          <div class="radio-option selected" onclick="selectRating(${id}, 'sqft', this)">📐 sqft</div>
-          <div class="radio-option" onclick="selectRating(${id}, 'box', this)">📦 বক্স</div>
-          <div class="radio-option" onclick="selectRating(${id}, 'piece', this)">🔢 পিস</div>
+        <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid #0f9d58;">
+          <label style="font-size:12px; font-weight:700; color:#0f9d58; display:block; margin-bottom:6px;">
+            📋 Lot Name
+          </label>
+          <input type="text" class="p-lot-name" placeholder="যেমন: Arna A0001" 
+            oninput="recalcProduct(${id})" style="padding:10px; font-size:14px;">
         </div>
         
-        <div class="row-3">
-          <div>
-            <label>সাইজ</label>
-            <input type="text" class="p-size" placeholder="4' × 2'" oninput="recalcProduct(${id})">
-          </div>
-          <div>
-            <label>পিস/বক্স</label>
-            <input type="number" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
-          </div>
-          <div>
-            <label>sqft/বক্স</label>
-            <input type="number" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
-          </div>
-        </div>
-        
-        <div class="row-3">
-          <div>
-            <label>ওজন/বক্স (kg)</label>
-            <input type="number" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
-          </div>
-          <div>
-            <label>বক্স</label>
-            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
-          </div>
-          <div>
-            <label>🟢 পাকা রেট</label>
-            <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
-          </div>
-        </div>
-        
-        <div style="margin-top: 10px; padding: 12px; background: #fff8e1; border-radius: 8px; border-left: 3px solid #f9a825;">
-          <label style="color: #b06000;">📐 হিসাবের ধরন</label>
+        <div id="mode-section-${id}" style="display:none; background:#e8f0fe; padding:12px; border-radius:8px; margin-bottom:12px;">
+          <label style="font-size:12px; font-weight:700; color:#1a73e8;">🎯 হিসাবের ধরন</label>
           <div class="radio-group">
             <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">📋 Simple</div>
             <div class="radio-option" onclick="selectMode(${id}, 'details', this)">📐 Details</div>
           </div>
-          <div class="allowance-section" id="allowance-${id}" style="display: none; margin-top: 12px;">
-            <label style="color: #b06000;">✂️ ছাড় (Allowance)</label>
+        </div>
+        
+        <div id="allowance-section-${id}" style="display:none; background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
+            <input type="checkbox" class="p-allow-check" onchange="toggleAllowance(${id}, this.checked)" style="width:auto; margin:0;">
+            <span>✂️ Allowance</span>
+            <span onclick="event.preventDefault(); showAllowanceInfo(${id})" 
+              style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:pointer; margin-left:4px;">!</span>
+          </label>
+          <div class="allowance-fields" id="allowance-fields-${id}" style="display:none; margin-top:10px;">
             <div class="row-2">
               <div>
-                <label>দৈর্ঘ্যে</label>
-                <input type="number" class="p-allow-l" placeholder="0" step="0.01" oninput="recalcProduct(${id})">
+                <label style="font-size:11px;">দৈর্ঘ্যে ছাড় (inch)</label>
+                <input type="number" class="p-allow-l" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;">
               </div>
               <div>
-                <label>প্রস্থে</label>
-                <input type="number" class="p-allow-w" placeholder="0" step="0.01" oninput="recalcProduct(${id})">
+                <label style="font-size:11px;">প্রস্থে ছাড় (inch)</label>
+                <input type="number" class="p-allow-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;">
               </div>
             </div>
           </div>
         </div>
         
-        <label>🟡 Cash রেট</label>
-        <div class="optional-wrap">
-          <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})">
-          <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+        <div class="marble-simple-mode" id="marble-simple-${id}">
+          <div style="background:#f8f9fa; padding:12px; border-radius:8px; border-left:3px solid #1a73e8; margin-bottom:12px;">
+            <div style="font-size:12px; font-weight:700; color:#1a73e8; margin-bottom:8px;">
+              📏 কোম্পানি মেজারমেন্ট
+            </div>
+            <div class="row-2">
+              <div>
+                <label style="font-size:11px;">দৈর্ঘ্য (ft)</label>
+                <input type="number" class="p-paper-l" placeholder="4" step="0.01" oninput="recalcProduct(${id})">
+              </div>
+              <div>
+                <label style="font-size:11px;">প্রস্থ (ft)</label>
+                <input type="number" class="p-paper-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row-3">
+            <div>
+              <label>Quantity</label>
+              <input type="number" class="p-qty" placeholder="40" oninput="recalcProduct(${id})">
+            </div>
+            <div>
+              <label>ওজন/sqft (kg)</label>
+              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            </div>
+            <div>
+              <label>🟢 পাকা রেট/sqft</label>
+              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            </div>
+          </div>
+          
+          <div class="row-2" style="margin-top:8px;">
+            <div>
+              <label>🟡 Cash রেট/sqft 🔒</label>
+              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            </div>
+            <div>
+              <label>GST %</label>
+              <select class="p-gst" onchange="recalcProduct(${id})">
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18" selected>18%</option>
+                <option value="28">28%</option>
+              </select>
+            </div>
+          </div>
         </div>
         
-        ${getCalcBox(id)}
+        <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
+          <div style="background:#e8f0fe; padding:10px; border-radius:8px; margin-bottom:10px; font-size:11px; color:#1a73e8;">
+            ℹ️ প্রতিটি স্ল্যাবের মাপ আলাদা হলে এখানে যোগ করুন
+          </div>
+          
+          <div style="background:#fff8e1; padding:10px; border-radius:8px; margin-bottom:10px; border-left:3px solid #f9a825;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
+              <input type="checkbox" class="p-allow-check-details" onchange="toggleDetailsAllowance(${id}, this.checked)" style="width:auto; margin:0;">
+              <span>✂️ Allowance</span>
+              <span onclick="event.preventDefault(); showAllowanceInfo(${id})" 
+                style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:pointer; margin-left:4px;">!</span>
+            </label>
+          </div>
+          
+          <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <button type="button" onclick="addDetailRow(${id}, false)" 
+              style="flex:1; padding:10px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+              ➕ Add New Row
+            </button>
+            <button type="button" onclick="addDetailRow(${id}, true)" 
+              style="flex:1; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+              📋 Copy Last Row
+            </button>
+          </div>
+          
+          <div class="detail-table-wrapper">
+            <table class="detail-table" id="detail-table-${id}">
+              <thead>
+                <tr>
+                  <th>Length</th>
+                  <th>Width</th>
+                  <th class="allow-col" style="display:none;">L-Allow</th>
+                  <th class="allow-col" style="display:none;">W-Allow</th>
+                  <th>Quantity</th>
+                  <th>X</th>
+                </tr>
+              </thead>
+              <tbody id="detail-tbody-${id}"></tbody>
+            </table>
+          </div>
+          
+          <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-top:10px; font-size:12px; line-height:1.8; color:#555;">
+            📊 <b>Total Paper:</b> <span class="d-total-paper" style="color:#1a73e8; font-weight:700;">0</span> sqft<br>
+            📦 <b>Total Actual:</b> <span class="d-total-actual" style="color:#7b1fa2; font-weight:700;">0</span> sqft<br>
+            🎁 <b>Extra:</b> <span class="d-total-extra" style="color:#0f9d58; font-weight:700;">0</span> sqft
+          </div>
+          
+          <div class="row-2" style="margin-top:12px;">
+            <div>
+              <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            </div>
+            <div>
+              <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            </div>
+          </div>
+          
+          <div class="row-2" style="margin-top:8px;">
+            <div>
+              <label style="font-size:11px;">ওজন/sqft (kg)</label>
+              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            </div>
+            <div>
+              <label style="font-size:11px;">GST %</label>
+              <select class="p-gst" onchange="recalcProduct(${id})">
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18" selected>18%</option>
+                <option value="28">28%</option>
+              </select>
+            </div>
+          </div>
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+            <button type="button" onclick="finishCurrentLot(${id})" 
+              style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+              ✅ Lot Finish
+            </button>
+            <button type="button" onclick="newLotEntry(${id})" 
+              style="padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+              ➕ New Lot Entry
+            </button>
+          </div>
+        </div>
+        
+        ${getMarbleCalcBox(id)}
         ${getRowImageUpload()}
       </div>
     `;
