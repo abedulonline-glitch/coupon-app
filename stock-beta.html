@@ -2384,15 +2384,7 @@ window.pickCategory = function(name, value) {
   
   window._detailRowCounters = window._detailRowCounters || {};
   
-  function isMarbleOrGraniteCategory(catValue) {
-    if (!catValue) return false;
-    const cat = catValue.toLowerCase();
-    return cat.includes('marble') || cat.includes('granite');
-  }
-  
-
-  
-  // ============================================================
+ // ============================================================
   // ALLOWANCE INFO POPUP
   // ============================================================
   window.showAllowanceInfo = function(id) {
