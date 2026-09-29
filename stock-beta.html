@@ -2434,6 +2434,85 @@ function checkRowHasData(id) {
     );
   };
   
+    // ============================================================
+  // DETAIL ROW FUNCTIONS (Details Mode-এর জন্য)
+  // ============================================================
+  
+  window._detailRowCounters = window._detailRowCounters || {};
+  
+  window.addDetailRow = function(productId, copyLast) {
+    window._detailRowCounters[productId] = (window._detailRowCounters[productId] || 0) + 1;
+    const rowNum = window._detailRowCounters[productId];
+    
+    const tbody = document.getElementById('details-tbody-' + productId);
+    if (!tbody) {
+      console.warn('Details tbody not found for #' + productId);
+      return;
+    }
+    
+    const row = document.getElementById('product-row-' + productId);
+    const allowChecked = row?.querySelector('.p-allow-check')?.checked || false;
+    
+    let prefillL = '', prefillW = '', prefillAL = '', prefillAW = '', prefillQty = '';
+    
+    if (copyLast) {
+      const lastRow = tbody.querySelector('tr:last-child');
+      if (lastRow) {
+        prefillL = lastRow.querySelector('.d-l')?.value || '';
+        prefillW = lastRow.querySelector('.d-w')?.value || '';
+        prefillAL = lastRow.querySelector('.d-al')?.value || '';
+        prefillAW = lastRow.querySelector('.d-aw')?.value || '';
+        prefillQty = lastRow.querySelector('.d-qty')?.value || '';
+      }
+    }
+    
+    const rowHtml = `
+      <tr data-row-id="${rowNum}">
+        <td><input type="number" class="d-l" placeholder="4" step="0.01" value="${prefillL}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" class="d-w" placeholder="3" step="0.01" value="${prefillW}" oninput="recalcProduct(${productId})"></td>
+        <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
+          <input type="number" class="d-al" placeholder="6" step="0.01" value="${prefillAL}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
+        </td>
+        <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
+          <input type="number" class="d-aw" placeholder="3" step="0.01" value="${prefillAW}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
+        </td>
+        <td><input type="number" class="d-qty" placeholder="10" value="${prefillQty}" oninput="recalcProduct(${productId})"></td>
+        <td style="text-align:center;">
+          <button type="button" onclick="removeDetailRow(${productId}, this)" 
+            style="padding:4px 8px; background:#d93025; color:white; border:none; border-radius:4px; font-size:11px; cursor:pointer;">
+            ❌
+          </button>
+        </td>
+      </tr>
+    `;
+    
+    tbody.insertAdjacentHTML('beforeend', rowHtml);
+    
+    if (typeof recalcProduct === 'function') recalcProduct(productId);
+    
+    console.log(`✅ Added detail row #${rowNum} for product #${productId}${copyLast ? ' (copied)' : ''}`);
+  };
+  
+  window.removeDetailRow = function(productId, btn) {
+    const row = btn.closest('tr');
+    if (!row) return;
+    
+    const tbody = document.getElementById('details-tbody-' + productId);
+    const rowCount = tbody ? tbody.querySelectorAll('tr').length : 0;
+    
+    if (rowCount <= 1) {
+      if (!confirm('শেষ Row মুছে ফেলবেন? তারপর আবার একটি Row যোগ করতে হবে।')) return;
+    }
+    
+    row.remove();
+    
+    if (typeof recalcProduct === 'function') recalcProduct(productId);
+    
+    console.log(`🗑️ Removed detail row for product #${productId}`);
+  };
+  
+  console.log('✅ Detail Row Functions loaded (F-3a)');
+  
   // Toggle Allowance (Simple Mode)
   window.toggleAllowance = function(id, show) {
     const fields = document.getElementById('allowance-fields-' + id);
