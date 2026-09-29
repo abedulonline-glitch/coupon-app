@@ -1613,27 +1613,27 @@
     const filtered = currentCategories.filter(c => c.name.toLowerCase().includes(q));
     renderCategoryPicker(filtered);
   };
+ window.pickCategory = function(name, value) {
+  const productId = currentPickerProductId;
+  if (!productId) { closeCategoryPicker(); return; }
   
-  window.pickCategory = function(name, value) {
-    const productId = currentPickerProductId;
-    if (!productId) { closeCategoryPicker(); return; }
-    
-    const row = document.getElementById('product-row-' + productId);
-    if (row) {
-      const hiddenInput = row.querySelector('.p-category');
-      const textInput = row.querySelector('.p-category-input');
-      if (hiddenInput) hiddenInput.value = value;
-      if (textInput) {
-        textInput.value = name;
-        textInput.style.color = '#202124';
-      }
+  const row = document.getElementById('product-row-' + productId);
+  if (row) {
+    const hiddenInput = row.querySelector('.p-category');
+    const textInput = row.querySelector('.p-category-input');
+    if (hiddenInput) hiddenInput.value = value;
+    if (textInput) {
+      textInput.value = name;
+      textInput.style.color = '#202124';
     }
-    
-    closeCategoryPicker();
-    setTimeout(() => {
-      if (typeof recalcProduct === 'function') recalcProduct(productId);
-    }, 50);
-  };
+  }
+  
+  closeCategoryPicker();
+  setTimeout(() => {
+    if (typeof checkMarbleCategory === 'function') checkMarbleCategory(productId);
+    if (typeof recalcProduct === 'function') recalcProduct(productId);
+  }, 50);
+};
   
   window.addCategoryFromPicker = async function() {
     const input = document.getElementById('pickerNewCat');
@@ -2067,6 +2067,79 @@
       </div>
     `;
   }
+  
+   // ============================================================
+  // MARBLE SUPPORT FUNCTIONS
+  // ============================================================
+  
+  // Allowance Info Popup
+  window.showAllowanceInfo = function(id) {
+    alert(
+      '✂️ Allowance কী?\n\n' +
+      'কোম্পানি কাগজে সবসময় কম মাপ লিখে।\n\n' +
+      '📝 উদাহরণ:\n' +
+      'ম্যাপে লেখা: 4\' × 3\' = 12 sqft\n' +
+      'আসলে পাওয়া: 4\'6" × 3\'3" = 14.625 sqft\n\n' +
+      '🎁 Extra: 2.625 sqft (21.88%)\n\n' +
+      'মানে — আপনি 12 sqft এর দামে 14.625 sqft মাল পান।'
+    );
+  };
+  
+  // Toggle Allowance (Simple Mode)
+  window.toggleAllowance = function(id, show) {
+    const fields = document.getElementById('allowance-fields-' + id);
+    if (fields) fields.style.display = show ? 'block' : 'none';
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+  };
+  
+  // Toggle Details Allowance (Master)
+  window.toggleDetailsAllowance = function(id, show) {
+    const table = document.getElementById('detail-table-' + id);
+    if (!table) return;
+    
+    table.querySelectorAll('.allow-col').forEach(col => {
+      col.style.display = show ? 'table-cell' : 'none';
+    });
+    table.querySelectorAll('.allow-cell').forEach(cell => {
+      cell.style.display = show ? 'table-cell' : 'none';
+    });
+    
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+  };
+  
+  // Check Marble Category — Simple/Details দেখাও
+  window.checkMarbleCategory = function(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row || row.dataset.type !== 'marble') return;
+    
+    const catValue = row.querySelector('.p-category')?.value || '';
+    const isMG = typeof isMarbleOrGraniteCategory === 'function' 
+      ? isMarbleOrGraniteCategory(catValue) 
+      : false;
+    
+    const modeSection = document.getElementById('mode-section-' + id);
+    const allowSection = document.getElementById('allowance-section-' + id);
+    const simpleMode = document.getElementById('marble-simple-' + id);
+    const detailsMode = document.getElementById('marble-details-' + id);
+    
+    if (isMG) {
+      if (modeSection) modeSection.style.display = 'block';
+      if (allowSection) allowSection.style.display = 'block';
+      const mode = row.dataset.mode || 'simple';
+      if (simpleMode) simpleMode.style.display = mode === 'simple' ? 'block' : 'none';
+      if (detailsMode) detailsMode.style.display = mode === 'details' ? 'block' : 'none';
+    } else {
+      if (modeSection) modeSection.style.display = 'none';
+      if (allowSection) allowSection.style.display = 'none';
+      if (simpleMode) simpleMode.style.display = 'block';
+      if (detailsMode) detailsMode.style.display = 'none';
+      row.dataset.mode = 'simple';
+    }
+    
+    if (typeof recalcProduct === 'function') recalcProduct(id);
+  };
+  
+  console.log('✅ Marble Support Functions loaded (F-1)');
   
   function getMedicineTemplate(id) {
     return `
