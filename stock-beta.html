@@ -1938,17 +1938,17 @@ function checkRowHasData(id) {
           <table class="detail-table">
             <thead>
               <tr>
-                <th>Length</th>
-                <th>Width</th>
-                <th class="allow-col" style="display:none;">L-Allow</th>
-                <th class="allow-col" style="display:none;">W-Allow</th>
+                <th>Length (in)</th>
+                <th>Width (in)</th>
+                <th class="allow-col" style="display:none;">L-Allow (in)</th>
+                <th class="allow-col" style="display:none;">W-Allow (in)</th>
                 <th>Qty</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><input type="number" class="d-l" placeholder="4" step="0.01" oninput="recalcProduct(${id})"></td>
-                <td><input type="number" class="d-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td><input type="number" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td><input type="number" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
                 <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
                 <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
                 <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
@@ -2003,10 +2003,10 @@ function checkRowHasData(id) {
           <table class="detail-table">
             <thead>
               <tr>
-                <th>Length</th>
-                <th>Width</th>
-                <th class="allow-col" style="display:none;">L-Allow</th>
-                <th class="allow-col" style="display:none;">W-Allow</th>
+                <th>Length (in)</th>
+                <th>Width (in)</th>
+                <th class="allow-col" style="display:none;">L-Allow (in)</th>
+                <th class="allow-col" style="display:none;">W-Allow (in)</th>
                 <th>Qty</th>
                 <th>X</th>
               </tr>
@@ -2376,17 +2376,17 @@ function checkRowHasData(id) {
             <table class="detail-table">
               <thead>
                 <tr>
-                  <th>Length</th>
-                  <th>Width</th>
-                  <th class="allow-col" style="display:none;">L-Allow</th>
-                  <th class="allow-col" style="display:none;">W-Allow</th>
+                  <th>Length (in)</th>
+                  <th>Width (in)</th>
+                  <th class="allow-col" style="display:none;">L-Allow (in)</th>
+                  <th class="allow-col" style="display:none;">W-Allow (in)</th>
                   <th>Qty</th>
                 </tr>
               </thead>
               <tbody id="simple-tbody-${id}">
                 <tr>
-                  <td><input type="number" class="d-l" placeholder="4" step="0.01" oninput="recalcProduct(${id})"></td>
-                  <td><input type="number" class="d-w" placeholder="3" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
                   <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
                   <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
                   <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
@@ -2441,10 +2441,10 @@ function checkRowHasData(id) {
             <table class="detail-table">
               <thead>
                 <tr>
-                  <th>Length</th>
-                  <th>Width</th>
-                  <th class="allow-col" style="display:none;">L-Allow</th>
-                  <th class="allow-col" style="display:none;">W-Allow</th>
+                  <th>Length (in)</th>
+                  <th>Width (in)</th>
+                  <th class="allow-col" style="display:none;">L-Allow (in)</th>
+                  <th class="allow-col" style="display:none;">W-Allow (in)</th>
                   <th>Qty</th>
                   <th>X</th>
                 </tr>
@@ -2623,8 +2623,8 @@ function checkRowHasData(id) {
     
     const rowHtml = `
       <tr data-row-id="${rowNum}">
-        <td><input type="number" class="d-l" placeholder="4" step="0.01" value="${prefillL}" oninput="recalcProduct(${productId})"></td>
-        <td><input type="number" class="d-w" placeholder="3" step="0.01" value="${prefillW}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" class="d-l" placeholder="60" step="0.01" value="${prefillL}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" class="d-w" placeholder="48" step="0.01" value="${prefillW}" oninput="recalcProduct(${productId})"></td>
         <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
           <input type="number" class="d-al" placeholder="6" step="0.01" value="${prefillAL}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
         </td>
@@ -4154,8 +4154,8 @@ function checkRowHasData(id) {
           const al = allowChecked ? (parseFloat(tr.querySelector('.d-al')?.value) || 0) : 0;
           const aw = allowChecked ? (parseFloat(tr.querySelector('.d-aw')?.value) || 0) : 0;
           
-          totalPaper += (l * w) * q;
-          totalActual += ((l + al / 12) * (w + aw / 12)) * q;
+          totalPaper += ((l / 12) * (w / 12)) * q;
+          totalActual += (((l + al) / 12) * ((w + aw) / 12)) * q;
           totalQty += q;
         });
       }
@@ -4170,8 +4170,8 @@ function checkRowHasData(id) {
           const al = allowChecked ? (parseFloat(tr.querySelector('.d-al')?.value) || 0) : 0;
           const aw = allowChecked ? (parseFloat(tr.querySelector('.d-aw')?.value) || 0) : 0;
           
-          totalPaper += (l * w) * q;
-          totalActual += ((l + al / 12) * (w + aw / 12)) * q;
+          totalPaper += ((l / 12) * (w / 12)) * q;
+          totalActual += (((l + al) / 12) * ((w + aw) / 12)) * q;
           totalQty += q;
         });
       }
