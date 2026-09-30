@@ -194,7 +194,17 @@
   margin-left: 6px;
 }
 
-/* ===== Calculation Box ===== */
+/* Container GST Section */
+#containerGstWrapper {
+  animation: slideDownGst 0.3s ease-out;
+}
+
+@keyframes slideDownGst {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+  
+  /* ===== Calculation Box ===== */
 .calc-box {
   background: #f8f9fa;
   border: 1px solid #e0e0e0;
@@ -667,6 +677,27 @@
         </div>
         
                <label>পরিবহন রেট (₹/টন)</label>
+        <div id="containerGstWrapper" style="display:none; margin-top:10px; background:#e3f2fd; padding:12px; border-radius:8px; border-left:3px solid #2196f3;">
+  <label style="font-size:12px; font-weight:700; color:#1976d2; display:block; margin-bottom:6px;">
+    📦 Container GST % (Tax Benefit)
+  </label>
+  <select id="containerGstPercent" onchange="handleContainerGstChange()" 
+    style="width:100%; padding:10px; border:1px solid #90caf9; border-radius:8px; font-size:14px; background:white;">
+    <option value="0">0%</option>
+    <option value="5">5%</option>
+    <option value="12">12%</option>
+    <option value="18" selected>18% (ডিফল্ট)</option>
+    <option value="28">28%</option>
+    <option value="custom">✏️ Custom</option>
+  </select>
+  <input type="number" id="containerGstCustom" placeholder="GST %" 
+    style="display:none; margin-top:6px; padding:10px; border:1px solid #90caf9; border-radius:8px; width:100%; background:white;"
+    oninput="handleContainerGstChange()">
+  
+  <div id="containerGstPreview" style="margin-top:10px; background:white; padding:10px; border-radius:8px; font-size:12px; color:#555; line-height:1.6;">
+    <!-- JS দিয়ে প্রিভিউ -->
+  </div>
+</div>
         <input type="number" id="transportRate" placeholder="4800">
         
         <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
