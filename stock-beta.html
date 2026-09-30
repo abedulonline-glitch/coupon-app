@@ -732,7 +732,7 @@ textarea:focus {
     <!-- JS দিয়ে প্রিভিউ -->
   </div>
 </div>
-        <input type="number" id="transportRate" placeholder="4800">
+        <input type="number" min="0" id="transportRate" placeholder="4800">
         
         <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
         <select id="truckWeight" onchange="updateSummary(); recalcAllProducts();">
@@ -748,7 +748,7 @@ textarea:focus {
           </optgroup>
           <option value="custom">✏️ Custom (নিজে লিখুন)</option>
         </select>
-        <input type="number" id="truckWeightCustom" placeholder="টন" step="0.01" 
+        <input type="number" min="0" id="truckWeightCustom" placeholder="টন" step="0.01" 
           style="margin-top:6px; display:none; background:#e8f0fe;"
           oninput="updateSummary(); recalcAllProducts();">
         <div class="helper">💡 এই ওজনের অনুপাতে Loading/Unloading/Insurance ভাগ হবে</div>
@@ -766,22 +766,22 @@ textarea:focus {
         <div class="row-2">
           <div>
             <label>🟢 লোডিং (₹)</label>
-            <input type="number" id="loadingCost" placeholder="যেমন: 10000" style="background: #e6f4ea;">
+            <input type="number" min="0" id="loadingCost" placeholder="যেমন: 10000" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟢 আনলোডিং (₹)</label>
-            <input type="number" id="unloadingCost" placeholder="যেমন: 12000" style="background: #e6f4ea;">
+            <input type="number" min="0" id="unloadingCost" placeholder="যেমন: 12000" style="background: #e6f4ea;">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>🟢 ইন্সুরেন্স (₹)</label>
-            <input type="number" id="insuranceCost" placeholder="যেমন: 1500" style="background: #e6f4ea;">
+            <input type="number" min="0" id="insuranceCost" placeholder="যেমন: 1500" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟢 অন্যান্য (₹)</label>
-            <input type="number" id="otherPakka" placeholder="যেমন: 300" style="background: #e6f4ea;">
+            <input type="number" min="0" id="otherPakka" placeholder="যেমন: 300" style="background: #e6f4ea;">
           </div>
         </div>
         
@@ -791,7 +791,7 @@ textarea:focus {
   <span onclick="editOptionalLabel()" style="font-size:11px; color:#1a73e8; cursor:pointer; text-decoration:underline; margin-left:6px;">✏️ নাম পরিবর্তন</span>
       </label>
         <div class="optional-wrap">
-          <input type="number" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
+          <input type="number" min="0" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
           <span class="optional-icon" onclick="toggleOptional()">👁️</span>
         </div>
        <div class="optional-hint" id="optionalHint">🔒 শুধু অ্যাডমিন দেখতে পারবেন (নগদ খরচ)</div>
@@ -1480,6 +1480,71 @@ textarea:focus {
   
   console.log('✅ Enter Navigation loaded'); 
   
+  // ============================================================
+  // NEGATIVE ENTRY BLOCKER
+  // ============================================================
+  document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!target) return;
+    
+    // শুধু numeric input
+    if (target.type !== 'number') return;
+    
+    const val = target.value;
+    
+    // যদি negative হয়
+    if (val && (val.startsWith('-') || parseFloat(val) < 0)) {
+      // সাথে সাথে positive করে দাও
+      const positiveVal = Math.abs(parseFloat(val));
+      target.value = isNaN(positiveVal) ? '' : positiveVal;
+      
+      // সতর্কতা flash
+      target.style.transition = 'all 0.3s';
+      target.style.background = '#ffcdd2';
+      setTimeout(() => {
+        target.style.background = '';
+        target.style.transition = '';
+      }, 400);
+      
+      console.log('⚠️ Negative value blocked:', val);
+    }
+  });
+  
+  // ✅ Paste-এও ব্লক
+  document.addEventListener('paste', (e) => {
+    const target = e.target;
+    if (!target || target.type !== 'number') return;
+    
+    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    if (pastedText && parseFloat(pastedText) < 0) {
+      e.preventDefault();
+      target.value = Math.abs(parseFloat(pastedText));
+      console.log('⚠️ Negative paste blocked');
+    }
+  });
+  
+  console.log('✅ Negative Blocker loaded');
+  
+   // ✅ text-type numeric fields-এর জন্য
+  document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!target) return;
+    
+    // যে ফিল্ডে numeric মান প্রত্যাশিত
+    const numericClasses = [
+      'd-l', 'd-w', 'd-qty', 'd-al', 'd-aw',
+      'p-weight', 'p-pieces', 'p-boxes', 'p-pakka', 'p-optional', 'p-sqft',
+      'p-qty', 'p-wt-sqft', 'p-allow-l', 'p-allow-w'
+    ];
+    
+    const hasNumericClass = numericClasses.some(cls => target.classList.contains(cls));
+    if (!hasNumericClass) return;
+    
+    const val = target.value;
+    if (val && val.startsWith('-')) {
+      target.value = val.replace(/^-+/, '');
+    }
+  });
   // ============================================================
   // CONTAINER GST — Show/Hide + Preview
   // ============================================================
@@ -2310,11 +2375,11 @@ function checkRowHasData(id) {
             </thead>
             <tbody>
               <tr>
-                <td><input type="number" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
-                <td><input type="number" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
-                <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
+                <td><input type="number" min="0" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td><input type="number" min="0" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                <td><input type="number" min="0" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
               </tr>
             </tbody>
           </table>
@@ -2336,15 +2401,15 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             <label style="font-size:11px;">ওজন/sqft (kg)</label>
-            <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-            <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
           </div>
           <div>
             <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-            <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
           </div>
         </div>
       </div>
@@ -2394,15 +2459,15 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             ওজন/sqft (kg)</label>
-            <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             🟢 পাকা রেট/sqft</label>
-            <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
           </div>
           <div>
             <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-            <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
           </div>
         </div>
       </div>
@@ -2432,32 +2497,32 @@ function checkRowHasData(id) {
         </div>
         <div>
           <label>পিস/বক্স</label>
-          <input type="number" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>sqft/বক্স</label>
-          <input type="number" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
         </div>
       </div>
       
       <div class="row-3">
         <div>
           <label>ওজন/বক্স (kg)</label>
-          <input type="number" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>বক্স</label>
-          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label style="font-size:11px;">🟢 পাকা রেট <span class="rate-unit">/sqft</span></label>
-          <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          <input type="number" min="0" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
         </div>
       </div>
       
      <label style="font-size:11px;">🟡 Cash রেট <span class="rate-unit">/sqft</span></label>
       <div class="optional-wrap">
-        <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+        <input type="number" min="0" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
       </div>
       
       ${getCalcBox(id)}
@@ -2479,28 +2544,28 @@ function checkRowHasData(id) {
         </div>
         <div>
           <label>পিস/বক্স</label>
-          <input type="number" class="p-pieces" placeholder="12" value="1" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-pieces" placeholder="12" value="1" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>ওজন/বক্স (kg)</label>
-          <input type="number" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
         </div>
       </div>
       
       <div class="row-2">
         <div>
           <label>বক্স</label>
-          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>🟢 পাকা রেট</label>
-          <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          <input type="number" min="0" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
         </div>
       </div>
       
       <label>🟡 Cash রেট 🔒</label>
       <div class="optional-wrap">
-        <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+        <input type="number" min="0" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
       </div>
       
       ${getCalcBox(id)}
@@ -2755,11 +2820,11 @@ function checkRowHasData(id) {
               </thead>
               <tbody id="simple-tbody-${id}">
                 <tr>
-                  <td><input type="number" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
-                  <td><input type="number" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
-                  <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                  <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                  <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" min="0" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" min="0" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td><input type="number" min="0" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
                 </tr>
               </tbody>
             </table>
@@ -2768,15 +2833,15 @@ function checkRowHasData(id) {
           <div class="row-3" style="margin-top:12px;">
             <div>
               <label style="font-size:11px;">ওজন/sqft (kg)</label>
-              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
             </div>
             <div>
               <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+              <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
             </div>
             <div>
               <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+              <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
             </div>
           </div>
           
@@ -2826,15 +2891,15 @@ function checkRowHasData(id) {
           <div class="row-3" style="margin-top:12px;">
             <div>
               <label style="font-size:11px;">ওজন/sqft (kg)</label>
-              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
             </div>
             <div>
               <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+              <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
             </div>
             <div>
               <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+              <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
             </div>
           </div>
           
@@ -3042,15 +3107,15 @@ function checkRowHasData(id) {
     
     const rowHtml = `
       <tr data-row-id="${rowNum}">
-        <td><input type="number" class="d-l" placeholder="60" step="0.01" value="${prefillL}" oninput="recalcProduct(${productId})"></td>
-        <td><input type="number" class="d-w" placeholder="48" step="0.01" value="${prefillW}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" min="0" class="d-l" placeholder="60" step="0.01" value="${prefillL}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" min="0" class="d-w" placeholder="48" step="0.01" value="${prefillW}" oninput="recalcProduct(${productId})"></td>
         <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
-          <input type="number" class="d-al" placeholder="6" step="0.01" value="${prefillAL}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
+          <input type="number" min="0" class="d-al" placeholder="6" step="0.01" value="${prefillAL}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
         </td>
         <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
-          <input type="number" class="d-aw" placeholder="3" step="0.01" value="${prefillAW}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
+          <input type="number" min="0" class="d-aw" placeholder="3" step="0.01" value="${prefillAW}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
         </td>
-        <td><input type="number" class="d-qty" placeholder="10" value="${prefillQty}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" min="0" class="d-qty" placeholder="10" value="${prefillQty}" oninput="recalcProduct(${productId})"></td>
         <td style="text-align:center;">
           <button type="button" onclick="removeDetailRow(${productId}, this)" 
             style="padding:4px 8px; background:#d93025; color:white; border:none; border-radius:4px; font-size:11px; cursor:pointer;">
@@ -3209,18 +3274,18 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>ওজন/বক্স (kg)</label>
-            <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-3">
           <div>
             <label>বক্স</label>
-            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>MRP</label>
@@ -3230,7 +3295,7 @@ function checkRowHasData(id) {
         
         <label>🟡 Cash রেট</label>
         <div class="optional-wrap">
-          <input type="number" class="p-optional" placeholder="20" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" min="0" class="p-optional" placeholder="20" step="0.01" oninput="recalcProduct(${id})">
           <span class="optional-icon" onclick="toggleOptional()">👁️</span>
         </div>
         
@@ -3257,27 +3322,27 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             <label>পরিমাণ/প্যাক</label>
-            <input type="number" class="p-qty" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-qty" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>মোট প্যাক</label>
-            <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>ওজন/প্যাক (kg)</label>
-            <input type="number" class="p-weight" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-weight" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" class="p-pakka" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" class="p-optional" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" min="0" class="p-optional" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3313,15 +3378,15 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             <label>পিস</label>
-            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>ওজন/পিস (kg)</label>
-            <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
         </div>
         
@@ -3333,7 +3398,7 @@ function checkRowHasData(id) {
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" min="0" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3358,23 +3423,23 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>পরিমাণ</label>
-            <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>ওজন/পোর্শন (kg)</label>
-            <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" class="p-optional" placeholder="10" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" min="0" class="p-optional" placeholder="10" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3410,18 +3475,18 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>পিস</label>
-            <input type="number" class="p-boxes" placeholder="10" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-boxes" placeholder="10" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>ওজন/পিস (kg)</label>
-            <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-3">
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" class="p-pakka" placeholder="15000" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="15000" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>MRP</label>
@@ -3430,7 +3495,7 @@ function checkRowHasData(id) {
           <div>
             <label>🟡 Cash</label>
             <div class="optional-wrap">
-              <input type="number" class="p-optional" placeholder="500" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" min="0" class="p-optional" placeholder="500" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3455,23 +3520,23 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>ওজন/বক্স (kg)</label>
-            <input type="number" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>বক্স</label>
-            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+            <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" min="0" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" min="0" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
