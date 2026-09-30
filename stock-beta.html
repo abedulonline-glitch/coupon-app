@@ -663,13 +663,27 @@
             <input type="date" id="purchaseDate">
           </div>
         </div>
+      <!-- ✅ Free Delivery Checkbox — Invoice ও Source এর মাঝে -->
+<div style="margin:14px 0; background:#e8f5e9; padding:14px; border-radius:10px; border-left:4px solid #4caf50;">
+  <label style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:700; color:#2e7d32; cursor:pointer; margin:0;">
+    <input type="checkbox" id="freeDeliveryCommon" 
+      onchange="handleFreeDeliveryChange()" 
+      style="width:22px; height:22px; margin:0; cursor:pointer;">
+    <span>🚚 ফ্রি ডেলিভারি (মহাজন দিচ্ছে)</span>
+  </label>
+  <div style="font-size:11px; color:#558b2f; margin-top:6px; padding-left:32px;">
+    ✅ চেক করলে পরিবহন সংক্রান্ত সব ফিল্ড লুকিয়ে যাবে
+  </div>
+</div>
         
         <label>উৎস <span class="required">*</span></label>
         <div class="radio-group">
           <div class="radio-option selected" onclick="selectRadio('source', 'local', this)">🏠 Local</div>
           <div class="radio-option" onclick="selectRadio('source', 'import', this)">✈️ Import</div>
         </div>
-        
+
+        <!-- ✅ Transport Wrapper — Free Delivery হলে লুকাবে -->
+               <div id="transportSectionWrapper">
         <label>পরিবহন পদ্ধতি <span class="required">*</span></label>
         <div class="radio-group">
           <div class="radio-option selected" onclick="selectRadio('transport', 'lorry', this)">🚛 লরি</div>
@@ -677,20 +691,7 @@
         </div>
         
                <label>পরিবহন রেট (₹/টন)</label>
-      <!-- ✅ Free Delivery Checkbox (Common) -->
-<div style="margin-top:12px; background:#e8f5e9; padding:12px; border-radius:8px; border-left:3px solid #4caf50;">
-  <label style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; color:#2e7d32; cursor:pointer; margin:0;">
-    <input type="checkbox" id="freeDeliveryCommon" 
-      onchange="handleFreeDeliveryChange()" 
-      style="width:20px; height:20px; margin:0; cursor:pointer;">
-    <span>🚚 ফ্রি ডেলিভারি (মহাজন দিচ্ছে)</span>
-  </label>
-  <div style="font-size:11px; color:#558b2f; margin-top:6px; padding-left:30px;">
-    ✅ চেক করলে সব পণ্যের পরিবহন খরচ ₹০ হবে
-  </div>
-</div>
-        
-        <div id="containerGstWrapper" style="display:none; margin-top:10px; background:#e3f2fd; padding:12px; border-radius:8px; border-left:3px solid #2196f3;">
+     <div id="containerGstWrapper" style="display:none; margin-top:10px; background:#e3f2fd; padding:12px; border-radius:8px; border-left:3px solid #2196f3;">
   <label style="font-size:12px; font-weight:700; color:#1976d2; display:block; margin-bottom:6px;">
     📦 Container GST % (Tax Benefit)
   </label>
@@ -731,7 +732,9 @@
           style="margin-top:6px; display:none; background:#e8f0fe;"
           oninput="updateSummary(); recalcAllProducts();">
         <div class="helper">💡 এই ওজনের অনুপাতে Loading/Unloading/Insurance ভাগ হবে</div>
-      </div>
+     </div>
+<!-- ✅ Transport Wrapper End -->
+               </div>
 
       <!-- Additional Costs (Whole Bill) -->
       <div class="card">
@@ -1351,28 +1354,28 @@
   // ============================================================
   
   // Common checkbox change
+  // ============================================================
+  // FREE DELIVERY — Hide/Show Transport Section
+  // ============================================================
   window.handleFreeDeliveryChange = function() {
     const commonCheck = document.getElementById('freeDeliveryCommon')?.checked || false;
+    const transportWrapper = document.getElementById('transportSectionWrapper');
     
-    // সব Product-এর common override সিঙ্ক করি
-    document.querySelectorAll('.p-free-delivery').forEach(pChk => {
-      // যদি Common ON → Product-এ OFF সেট (override নেই)
-      // যদি Common OFF → Product যেটা ON ছিল সেটা রেখে দেব
+    if (transportWrapper) {
       if (commonCheck) {
-        // Common ON হলে Product override মুছে ফেলি
-        if (pChk.dataset.override === 'true') {
-          // ইউজার নিজে OFF করেছে
-        } else {
-          pChk.checked = false;
-        }
+        // ✅ Free Delivery — Transport Section লুকাও
+        transportWrapper.style.display = 'none';
+        console.log('🚚 Free Delivery ON — Transport section hidden');
+      } else {
+        // ✅ Paid Delivery — Transport Section দেখাও
+        transportWrapper.style.display = 'block';
+        console.log('💰 Free Delivery OFF — Transport section shown');
       }
-    });
+    }
     
     // সব Product recalc
     if (typeof recalcAllProducts === 'function') recalcAllProducts();
     if (typeof updateSummary === 'function') updateSummary();
-    
-    console.log(`✅ Free Delivery (Common): ${commonCheck}`);
   };
   
   // কোনো Product ফ্রি ডেলিভারি কি না
@@ -1675,7 +1678,12 @@ window.selectRadio = function(groupName, value, el) {
           updateSummary();
         }
       }
-            // ✅ Truck Weight dropdown ফিল্টার — Default Lorry
+               // ✅ Free Delivery Initial Check
+      if (typeof handleFreeDeliveryChange === 'function') {
+        handleFreeDeliveryChange();
+      }  
+      
+  // ✅ Truck Weight dropdown ফিল্টার — Default Lorry
       setTimeout(() => {
         if (typeof updateTruckWeightOptions === 'function') {
           updateTruckWeightOptions('lorry');
