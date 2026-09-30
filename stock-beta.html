@@ -1323,6 +1323,89 @@
     }
   };
   
+   // ============================================================
+  // CONTAINER GST — Show/Hide + Preview
+  // ============================================================
+  window.handleContainerGstChange = function() {
+    const sel = document.getElementById('containerGstPercent');
+    const customInput = document.getElementById('containerGstCustom');
+    if (!sel) return;
+    
+    // Custom input show/hide
+    if (sel.value === 'custom') {
+      if (customInput) customInput.style.display = 'block';
+    } else {
+      if (customInput) customInput.style.display = 'none';
+    }
+    
+    // Preview আপডেট
+    updateContainerGstPreview();
+    
+    // সব Product-এর হিসাব আপডেট
+    if (typeof recalcAllProducts === 'function') recalcAllProducts();
+    if (typeof updateSummary === 'function') updateSummary();
+  };
+  
+  // Container-এর GST% পড়া
+  window.getContainerGstPercent = function() {
+    const sel = document.getElementById('containerGstPercent');
+    const customInput = document.getElementById('containerGstCustom');
+    if (!sel) return 0;
+    
+    if (sel.value === 'custom') {
+      return parseFloat(customInput?.value) || 0;
+    }
+    return parseFloat(sel.value) || 0;
+  };
+  
+  // Container সিলেক্ট করা কি না
+  window.isContainerTransport = function() {
+    // transport radio এর selected value থেকে
+    const transportGroup = document.querySelectorAll('input[type="hidden"][name="transport"]');
+    // অথবা সরাসরি radio থেকে
+    const radios = document.querySelectorAll('.radio-group');
+    for (const group of radios) {
+      const selected = group.querySelector('.radio-option.selected');
+      if (selected && selected.innerText.toLowerCase().includes('container')) {
+        return true;
+      }
+    }
+    return false;
+  };
+  
+  // Container GST Preview — Common Info-তে
+  function updateContainerGstPreview() {
+    const previewEl = document.getElementById('containerGstPreview');
+    if (!previewEl) return;
+    
+    const rate = parseFloat(document.getElementById('transportRate')?.value) || 0;
+    const gstPct = getContainerGstPercent();
+    
+    if (rate <= 0) {
+      previewEl.innerHTML = '💡 Transport Rate দিন';
+      return;
+    }
+    
+    if (gstPct <= 0) {
+      previewEl.innerHTML = `
+        📊 Rate: <b>₹${rate}</b>/টন<br>
+        GST: <b>0%</b><br>
+        📦 Actual Rate: <b>₹${rate.toFixed(2)}</b>/টন
+      `;
+      return;
+    }
+    
+    const taxFreeRate = rate / (1 + gstPct / 100);
+    const savingsPerTon = rate - taxFreeRate;
+    const savingsPerKg = savingsPerTon / 1000;
+    
+    previewEl.innerHTML = `
+      📊 Rate: <b>₹${rate}</b>/টন (Including GST ${gstPct}%)<br>
+      📦 Actual Rate: <b>₹${taxFreeRate.toFixed(2)}</b>/টন (₹${(taxFreeRate/1000).toFixed(4)}/kg)<br>
+      💰 <span style="color:#0f9d58;">সঞ্চয়: ₹${savingsPerKg.toFixed(4)}/kg</span>
+    `;
+  }
+  
   // ============================================================
   // TRUCK WEIGHT OPTIONS — Lorry vs Container
   // ============================================================
@@ -1366,24 +1449,33 @@
   };
   
   // ==================== RADIO SELECTION ====================
- window.selectRadio = function(groupName, value, el) {
+window.selectRadio = function(groupName, value, el) {
   if (!el || !el.parentElement) return;
   el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   
-  // ✅ Transport পরিবর্তন হলে Truck Weight dropdown ফিল্টার
+  // ✅ Transport পরিবর্তন হলে
   if (groupName === 'transport') {
-    if (typeof updateTruckWeightOptions === 'function') {
-      updateTruckWeightOptions(value);
+    const wrapper = document.getElementById('containerGstWrapper');
+    
+    if (value === 'container') {
+      // Container — GST Dropdown দেখাও
+      if (wrapper) wrapper.style.display = 'block';
+      if (typeof updateTruckWeightOptions === 'function') {
+        updateTruckWeightOptions('container');
+      }
+      if (typeof updateContainerGstPreview === 'function') {
+        updateContainerGstPreview();
+      }
+    } else {
+      // Lorry — GST Dropdown লুকাও
+      if (wrapper) wrapper.style.display = 'none';
+      if (typeof updateTruckWeightOptions === 'function') {
+        updateTruckWeightOptions('lorry');
+      }
     }
   }
   
-  // ✅ Source পরিবর্তন হলে (Local/Import) — ভবিষ্যতে দরকার হলে
-  if (groupName === 'source') {
-    console.log('Source changed to:', value);
-  }
-  
-  // পণ্যের হিসাব আপডেট
   if (typeof recalcAllProducts === 'function') recalcAllProducts();
   if (typeof updateSummary === 'function') updateSummary();
 };
@@ -3743,7 +3835,15 @@ function checkRowHasData(id) {
       thisExtra = perKgExtra * thisProductWeight;
     }
     
-    const thisTransport = (transportRate * thisProductWeight) / 1000;
+       // ✅ Container হলে Tax-ছাড়া rate ব্যবহার
+    let effectiveTransportRate = transportRate;
+    if (isContainerTransport()) {
+      const gstPct = getContainerGstPercent();
+      if (gstPct > 0) {
+        effectiveTransportRate = transportRate / (1 + gstPct / 100);
+      }
+    }
+    const thisTransport = (effectiveTransportRate * thisProductWeight) / 1000;
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
     // Benefit (Marble)
@@ -4381,7 +4481,15 @@ function checkRowHasData(id) {
     // ✅ Transport = Rate/টন × Weight kg ÷ 1000
     // অর্থাৎ: Rate × Weight / 1000
         // ✅ Transport Paper weight-এ
-    const thisTransport = (transportRate * paperWeightForTransport) / 1000;
+        // ✅ Container হলে Tax-ছাড়া rate ব্যবহার
+    let effectiveTransportRate = transportRate;
+    if (isContainerTransport()) {
+      const gstPct = getContainerGstPercent();
+      if (gstPct > 0) {
+        effectiveTransportRate = transportRate / (1 + gstPct / 100);
+      }
+    }
+    const thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
     
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
