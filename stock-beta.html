@@ -2238,20 +2238,22 @@ function checkRowHasData(id) {
             <span style="font-size:13px;">📄 Total Paper (sqft):</span>
             <b class="calc-total-paper" style="color:#1a73e8; font-size:16px;">0</b>
           </div>
-          <div class="calc-row" style="background:linear-gradient(135deg,#f3e8fd,#e1bee7); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
-            <span style="font-size:13px;">📦 Total Actual (sqft):</span>
-            <b class="calc-total-actual" style="color:#7b1fa2; font-size:16px;">0</b>
+          <!-- ✅ Combined Per sqft — Paper + Actual (Vault-এ লুকানোর জন্য একসাথে) -->
+          <div class="per-sqft-combined" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:12px 14px; border-radius:10px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:12px;">📊 প্রতি sqft (Paper):</span>
+              <b class="calc-per-sqft" style="color:#1a73e8; font-size:16px;">₹0</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
+              <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
+              <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
+            </div>
           </div>
-          <div class="calc-row" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
-            <span style="font-size:13px;">📊 প্রতি sqft (Paper based):</span>
-            <b class="calc-per-sqft" style="color:#1a73e8; font-size:18px;">₹0</b>
-          </div>
+          
+          <!-- Tax ছাড়া Paper-based (আলাদা থাকবে) -->
           <div class="calc-row" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
             <span style="font-size:13px;">💵 প্রতি sqft (Tax ছাড়া):</span>
             <b class="calc-per-sqft-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
-            <div class="calc-row" style="background:linear-gradient(135deg,#e6f4ea,#c8e6c9); padding:10px 14px; border-radius:10px; margin-top:8px;">
-            <span style="font-size:13px;">💰 প্রতি sqft (Actual based):</span>
-            <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:18px;">₹0</b>
           </div>
           </div>
         </div>
