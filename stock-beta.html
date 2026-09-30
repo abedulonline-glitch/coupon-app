@@ -1546,6 +1546,97 @@ textarea:focus {
       target.value = val.replace(/^-+/, '');
     }
   });
+ 
+    // ============================================================
+  // PART 2B: AUTO UPPERCASE + MOBILE KEYBOARD
+  // ============================================================
+  
+  // ✅ GSTIN auto uppercase
+  document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!target) return;
+    
+    if (target.id === 'supplierGst') {
+      const cursorPos = target.selectionStart;
+      target.value = target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (target.setSelectionRange) {
+        target.setSelectionRange(cursorPos, cursorPos);
+      }
+    }
+    
+    if (target.id === 'containerGstCustom') {
+      target.value = target.value.replace(/[^0-9.]/g, '');
+    }
+  });
+  
+  // ✅ Page load-এ সব uppercase field ঠিক
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const uppercaseFields = ['supplierGst'];
+      uppercaseFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.setAttribute('autocapitalize', 'characters');
+          el.setAttribute('spellcheck', 'false');
+          el.setAttribute('autocomplete', 'off');
+        }
+      });
+    }, 800);
+  });
+  
+  // ✅ Mobile Numeric Keyboard
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const numericClasses = ['p-pieces', 'p-boxes', 'd-qty', 'p-qty'];
+      const decimalClasses = [
+        'p-weight', 'p-pakka', 'p-optional', 'p-sqft', 'p-wt-sqft',
+        'p-allow-l', 'p-allow-w', 'd-l', 'd-w', 'd-al', 'd-aw'
+      ];
+      
+      numericClasses.forEach(cls => {
+        document.querySelectorAll('.' + cls).forEach(el => {
+          el.setAttribute('inputmode', 'numeric');
+          el.setAttribute('autocomplete', 'off');
+        });
+      });
+      
+      decimalClasses.forEach(cls => {
+        document.querySelectorAll('.' + cls).forEach(el => {
+          el.setAttribute('inputmode', 'decimal');
+          el.setAttribute('autocomplete', 'off');
+        });
+      });
+      
+      console.log('✅ Mobile Keyboard optimized');
+    }, 800);
+  });
+  
+  // ✅ Dynamic field-এর জন্য
+  const keyboardObserver = new MutationObserver(() => {
+    const numericClasses = ['p-pieces', 'p-boxes', 'd-qty', 'p-qty'];
+    const decimalClasses = [
+      'p-weight', 'p-pakka', 'p-optional', 'p-sqft', 'p-wt-sqft',
+      'p-allow-l', 'p-allow-w', 'd-l', 'd-w', 'd-al', 'd-aw'
+    ];
+    
+    numericClasses.forEach(cls => {
+      document.querySelectorAll('.' + cls + ':not([inputmode])').forEach(el => {
+        el.setAttribute('inputmode', 'numeric');
+      });
+    });
+    
+    decimalClasses.forEach(cls => {
+      document.querySelectorAll('.' + cls + ':not([inputmode])').forEach(el => {
+        el.setAttribute('inputmode', 'decimal');
+      });
+    });
+  });
+  
+  setTimeout(() => {
+    keyboardObserver.observe(document.body, { childList: true, subtree: true });
+  }, 1500);
+  
+  console.log('✅ Auto Uppercase + Mobile Keyboard loaded');
   // ============================================================
   // CONTAINER GST — Show/Hide + Preview
   // ============================================================
