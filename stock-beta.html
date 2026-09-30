@@ -2273,7 +2273,11 @@ function checkRowHasData(id) {
             <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
           </div>
           <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
-          <div class="benefit-box" style="display: none;">
+          <div class="calc-row" style="background:#e6f4ea; padding:8px 12px; border-radius:8px; margin-top:6px; font-size:14px;">
+            <span>💵 মোট (Tax ছাড়া):</span>
+            <b class="calc-total-no-tax" style="color:#0f9d58;">₹0</b>
+          </div>
+           <div class="benefit-box" style="display: none;">
             <div class="calc-divider"></div>
             <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
             <div class="calc-row"><span>📦 আসল মাপ:</span><b class="calc-actual">0</b></div>
@@ -4252,7 +4256,9 @@ function checkRowHasData(id) {
     setText('.calc-transport-share', '₹' + thisTransport.toFixed(2));
     setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
     setText('.calc-total', '₹' + totalLanding.toFixed(2));
-    
+        // ✅ Landing without Tax
+    const landingNoTax = totalLanding - gstAmount;
+    setText('.calc-total-no-tax', '₹' + landingNoTax.toFixed(2));
     const shareEl = box.querySelector('.calc-weight-share');
     if (shareEl) {
       if (truckWeightKg > 0) {
