@@ -4244,8 +4244,9 @@ function checkRowHasData(id) {
     const box = document.getElementById('calc-box-' + id);
     if (!box) return;
     
-    const setText = (sel, val) => {
-      const el = box.querySelector(sel);
+       const setText = (sel, val) => {
+      let el = box.querySelector(sel);
+      if (!el) el = row.querySelector(sel);
       if (el) el.innerText = val;
     };
     
@@ -4254,7 +4255,7 @@ function checkRowHasData(id) {
        setText('.calc-per-sqft', '₹' + perPaperSqft.toFixed(2));
         // ✅ Measurement Benefit per sqft (Paper - Actual)
     const measureBenefit = perPaperSqft - perActualSqft;
-    const benefitEl = box.querySelector('.calc-measure-benefit');
+        const benefitEl = box.querySelector('.calc-measure-benefit') || row.querySelector('.calc-measure-benefit');
     if (benefitEl) {
       if (measureBenefit > 0) {
         benefitEl.innerText = '₹' + measureBenefit.toFixed(2) + '/sqft';
