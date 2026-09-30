@@ -677,6 +677,19 @@
         </div>
         
                <label>পরিবহন রেট (₹/টন)</label>
+      <!-- ✅ Free Delivery Checkbox (Common) -->
+<div style="margin-top:12px; background:#e8f5e9; padding:12px; border-radius:8px; border-left:3px solid #4caf50;">
+  <label style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; color:#2e7d32; cursor:pointer; margin:0;">
+    <input type="checkbox" id="freeDeliveryCommon" 
+      onchange="handleFreeDeliveryChange()" 
+      style="width:20px; height:20px; margin:0; cursor:pointer;">
+    <span>🚚 ফ্রি ডেলিভারি (মহাজন দিচ্ছে)</span>
+  </label>
+  <div style="font-size:11px; color:#558b2f; margin-top:6px; padding-left:30px;">
+    ✅ চেক করলে সব পণ্যের পরিবহন খরচ ₹০ হবে
+  </div>
+</div>
+        
         <div id="containerGstWrapper" style="display:none; margin-top:10px; background:#e3f2fd; padding:12px; border-radius:8px; border-left:3px solid #2196f3;">
   <label style="font-size:12px; font-weight:700; color:#1976d2; display:block; margin-bottom:6px;">
     📦 Container GST % (Tax Benefit)
@@ -917,6 +930,16 @@
     </label>
     <input type="number" id="sameLotBoxes" placeholder="100" 
       style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+    
+   <!-- ✅ Free Delivery Override (Per Product) -->
+<div style="background:#f1f8e9; padding:10px; border-radius:8px; margin-top:10px; margin-bottom:10px; border-left:3px solid #8bc34a;">
+  <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#33691e; cursor:pointer; margin:0;">
+    <input type="checkbox" class="p-free-delivery" 
+      onchange="recalcProduct(${id})" 
+      style="width:18px; height:18px; margin:0; cursor:pointer;">
+    <span>🚚 এই পণ্যটি ফ্রি ডেলিভারি</span>
+  </label>
+</div>
     
     <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
       📸 ছবি ও ভিডিও
@@ -1323,7 +1346,65 @@
     }
   };
   
-   // ============================================================
+  // ============================================================
+  // FREE DELIVERY — Common + Product Level
+  // ============================================================
+  
+  // Common checkbox change
+  window.handleFreeDeliveryChange = function() {
+    const commonCheck = document.getElementById('freeDeliveryCommon')?.checked || false;
+    
+    // সব Product-এর common override সিঙ্ক করি
+    document.querySelectorAll('.p-free-delivery').forEach(pChk => {
+      // যদি Common ON → Product-এ OFF সেট (override নেই)
+      // যদি Common OFF → Product যেটা ON ছিল সেটা রেখে দেব
+      if (commonCheck) {
+        // Common ON হলে Product override মুছে ফেলি
+        if (pChk.dataset.override === 'true') {
+          // ইউজার নিজে OFF করেছে
+        } else {
+          pChk.checked = false;
+        }
+      }
+    });
+    
+    // সব Product recalc
+    if (typeof recalcAllProducts === 'function') recalcAllProducts();
+    if (typeof updateSummary === 'function') updateSummary();
+    
+    console.log(`✅ Free Delivery (Common): ${commonCheck}`);
+  };
+  
+  // কোনো Product ফ্রি ডেলিভারি কি না
+  window.isProductFreeDelivery = function(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return false;
+    
+    // Common checked?
+    const common = document.getElementById('freeDeliveryCommon')?.checked || false;
+    
+    // Product override checked?
+    const productChk = row.querySelector('.p-free-delivery');
+    const productOverride = productChk?.checked || false;
+    
+    // Logic:
+    // - Common ON + Product OFF → Free (Common apply)
+    // - Common ON + Product ON → Free
+    // - Common OFF + Product ON → Free (only this)
+    // - Common OFF + Product OFF → Not Free
+    
+    if (common) {
+      // Common ON — চেক করি Product override বন্ধ করেছে কি না
+      // (এই মুহূর্তে Simple — Common ON মানে সব Free)
+      return true;
+    }
+    
+    return productOverride;
+  };
+  
+  console.log('✅ Free Delivery Functions loaded');
+  
+  // ============================================================
   // CONTAINER GST — Show/Hide + Preview
   // ============================================================
   window.handleContainerGstChange = function() {
@@ -3847,7 +3928,13 @@ function checkRowHasData(id) {
         effectiveTransportRate = transportRate / (1 + gstPct / 100);
       }
     }
-    const thisTransport = (effectiveTransportRate * thisProductWeight) / 1000;
+       // ✅ Free Delivery চেক
+    let thisTransport = 0;
+    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+      thisTransport = 0;
+    } else {
+      thisTransport = (effectiveTransportRate * thisProductWeight) / 1000;
+    }
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
     // Benefit (Marble)
@@ -3878,8 +3965,14 @@ function checkRowHasData(id) {
     box.querySelector('.calc-cash').innerText = '₹' + cashAmount.toFixed(2);
     box.querySelector('.calc-gst').innerText = '₹' + gstAmount.toFixed(2);
     
-    const transportEl = box.querySelector('.calc-transport-share');
-    if (transportEl) transportEl.innerText = '₹' + thisTransport.toFixed(2);
+       const transportEl = box.querySelector('.calc-transport-share');
+    if (transportEl) {
+      if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+        transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
+      } else {
+        transportEl.innerText = '₹' + thisTransport.toFixed(2);
+      }
+    }
     
     const extraEl = box.querySelector('.calc-extra-share');
     if (extraEl) extraEl.innerText = '₹' + thisExtra.toFixed(2);
@@ -4493,7 +4586,13 @@ function checkRowHasData(id) {
         effectiveTransportRate = transportRate / (1 + gstPct / 100);
       }
     }
-    const thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
+        // ✅ Free Delivery চেক
+    let thisTransport = 0;
+    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+      thisTransport = 0;
+    } else {
+      thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
+    }
     
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
@@ -4537,7 +4636,14 @@ function checkRowHasData(id) {
     setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
     setText('.calc-cash', '₹' + cashAmount.toFixed(2));
     setText('.calc-gst', '₹' + gstAmount.toFixed(2));
-    setText('.calc-transport-share', '₹' + thisTransport.toFixed(2));
+       if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+      const transportEl = box.querySelector('.calc-transport-share');
+      if (transportEl) {
+        transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
+      }
+    } else {
+      setText('.calc-transport-share', '₹' + thisTransport.toFixed(2));
+    }
     setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
     setText('.calc-total', '₹' + totalLanding.toFixed(2));
         // ✅ Landing without Tax
