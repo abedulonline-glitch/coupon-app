@@ -2245,8 +2245,14 @@ function checkRowHasData(id) {
               <b class="calc-per-sqft" style="color:#1a73e8; font-size:16px;">₹0</b>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
+             <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
               <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
               <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+              <span style="font-size:11px; color:#0f9d58;">📈 মেজারমেন্ট বেনিফিট:</span>
+              <b class="calc-measure-benefit" style="color:#0f9d58; font-size:13px; background:#c8e6c9; padding:2px 8px; border-radius:10px;">₹0/sqft</b>
+            </div>
             </div>
           </div>
           
@@ -4246,7 +4252,18 @@ function checkRowHasData(id) {
     setText('.calc-total-paper', totalPaper.toFixed(2));
     setText('.calc-total-actual', totalActual.toFixed(2));
        setText('.calc-per-sqft', '₹' + perPaperSqft.toFixed(2));
-    setText('.calc-per-sqft-no-tax', '₹' + perPaperSqftNoTax.toFixed(2));
+        // ✅ Measurement Benefit per sqft (Paper - Actual)
+    const measureBenefit = perPaperSqft - perActualSqft;
+    const benefitEl = box.querySelector('.calc-measure-benefit');
+    if (benefitEl) {
+      if (measureBenefit > 0) {
+        benefitEl.innerText = '₹' + measureBenefit.toFixed(2) + '/sqft';
+        benefitEl.style.display = 'inline-block';
+      } else {
+        benefitEl.style.display = 'none';
+      }
+    }
+     setText('.calc-per-sqft-no-tax', '₹' + perPaperSqftNoTax.toFixed(2));
     
     // ✅ Per Actual sqft — নতুন
     const perActualEl = box.querySelector('.calc-per-actual-sqft');
