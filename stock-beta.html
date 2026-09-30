@@ -450,6 +450,87 @@
   margin-top: 6px;
 }
 
+/* ============================================================
+   Allowance Tooltip — Modern (Hover + Touch)
+   ============================================================ */
+.allow-info-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #ffc107;
+  color: #000;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: help;
+  margin-left: 6px;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.allow-info-icon:hover,
+.allow-info-icon.active {
+  background: #ff9800;
+  transform: scale(1.1);
+}
+
+/* Tooltip — Hover */
+.allow-info-icon:hover::after,
+.allow-info-icon.active::after {
+  content: "✂️ Allowance কী?\A\A কোম্পানি কাগজে কম মাপ লিখলে যা বাড়তি পাওয়া যায়।\A\A উদাহরণ:\A ম্যাপে: 4' × 3' = 12 sqft\A আসল: 4'6\" × 3'3\" = 14.625 sqft\A\A 🎁 Extra: 2.625 sqft\A 📈 বেনিফিট: 21.88%";
+  white-space: pre-line;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #2c3e50, #34495e);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 400;
+  width: 240px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  z-index: 10000;
+  line-height: 1.6;
+  text-align: left;
+  animation: tooltipFadeIn 0.2s ease-out;
+  pointer-events: none;
+}
+
+/* Tooltip Arrow */
+.allow-info-icon:hover::before,
+.allow-info-icon.active::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #34495e;
+  z-index: 10000;
+  animation: tooltipFadeIn 0.2s ease-out;
+  pointer-events: none;
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Mobile — টুলটিপ ছোট */
+@media (max-width: 480px) {
+  .allow-info-icon:hover::after,
+  .allow-info-icon.active::after {
+    width: 200px;
+    font-size: 10px;
+    padding: 10px 12px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -2513,17 +2594,58 @@ function checkRowHasData(id) {
   // ============================================================
   
   // Allowance Info Popup
-  window.showAllowanceInfo = function(id) {
-    alert(
-      '✂️ Allowance কী?\n\n' +
-      'কোম্পানি কাগজে সবসময় কম মাপ লিখে।\n\n' +
-      '📝 উদাহরণ:\n' +
-      'ম্যাপে লেখা: 4\' × 3\' = 12 sqft\n' +
-      'আসলে পাওয়া: 4\'6" × 3\'3" = 14.625 sqft\n\n' +
-      '🎁 Extra: 2.625 sqft (21.88%)\n\n' +
-      'মানে — আপনি 12 sqft এর দামে 14.625 sqft মাল পান।'
-    );
+    // ============================================================
+  // ALLOWANCE INFO — Modern Tooltip (Hover + Touch)
+  // ============================================================
+  window.showAllowanceInfo = function(elOrId) {
+    // যদি element হয়
+    let iconEl = null;
+    
+    if (typeof elOrId === 'object' && elOrId.classList) {
+      iconEl = elOrId;
+    } else {
+      // পুরনো পদ্ধতি — id দিয়ে
+      const row = document.getElementById('product-row-' + elOrId);
+      if (row) iconEl = row.querySelector('.allow-info-icon');
+    }
+    
+    if (!iconEl) return;
+    
+    // Mobile-এ tap করলে
+    iconEl.classList.add('active');
+    setTimeout(() => {
+      iconEl.classList.remove('active');
+    }, 4000);
   };
+  
+  // ✅ Page load-এ সব icon-এ event listener যোগ
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.allow-info-icon').forEach(icon => {
+        icon.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          showAllowanceInfo(this);
+        });
+      });
+    }, 500);
+  });
+  
+  // ✅ Dynamic icon-এর জন্য MutationObserver
+  const allowIconObserver = new MutationObserver((mutations) => {
+    document.querySelectorAll('.allow-info-icon:not([data-listener])').forEach(icon => {
+      icon.setAttribute('data-listener', 'true');
+      icon.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        showAllowanceInfo(this);
+      });
+    });
+  });
+  
+  setTimeout(() => {
+    allowIconObserver.observe(document.body, { childList: true, subtree: true });
+  }, 1000);
   
     // ============================================================
   // DETAIL ROW FUNCTIONS (Details Mode-এর জন্য)
