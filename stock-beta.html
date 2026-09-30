@@ -213,6 +213,26 @@
   margin-top: 12px;
   font-size: 13px;
 }
+  /* ============================================================
+   INPUT FOCUS — Active Field Highlight
+   ============================================================ */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #1a73e8 !important;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+  background: #f0f7ff !important;
+  transition: all 0.15s;
+}
+
+/* Enter hint */
+.input-hint {
+  display: inline-block;
+  font-size: 10px;
+  color: #999;
+  margin-left: 4px;
+  opacity: 0.7;
+}
   /* Calc Box — Per Box Display */
 .calc-perbox-display {
   margin-bottom: 12px;
@@ -1406,6 +1426,59 @@
   };
   
   console.log('✅ Free Delivery Functions loaded');
+  
+   // ============================================================
+  // ENTER → NEXT FIELD NAVIGATION
+  // ============================================================
+  document.addEventListener('keydown', (e) => {
+    // শুধু Enter কী
+    if (e.key !== 'Enter') return;
+    
+    const target = e.target;
+    if (!target) return;
+    
+    // শুধু input/select/textarea
+    if (!['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
+    
+    // textarea হলে Enter কাজ করবে না (নতুন লাইন হবে)
+    if (target.tagName === 'TEXTAREA') return;
+    
+    // Checkbox/radio হলে Space/Click দিয়ে কাজ হবে
+    if (target.type === 'checkbox' || target.type === 'radio') return;
+    
+    e.preventDefault();
+    
+    // একই Row-এর সব input/select/textarea খুঁজি
+    const row = target.closest('.product-row') || target.closest('.card') || document.body;
+    
+    if (!row) return;
+    
+    const allInputs = Array.from(row.querySelectorAll(
+      'input:not([type="hidden"]):not([disabled]):not([readonly]), ' +
+      'select:not([disabled]), ' +
+      'textarea:not([disabled])'
+    )).filter(el => {
+      // দৃশ্যমান কিনা চেক
+      return el.offsetParent !== null;
+    });
+    
+    const currentIndex = allInputs.indexOf(target);
+    
+    if (currentIndex >= 0 && currentIndex < allInputs.length - 1) {
+      // পরের field-এ ফোকাস
+      const nextField = allInputs[currentIndex + 1];
+      nextField.focus();
+      
+      // Number input হলে text select
+      if (nextField.tagName === 'INPUT' && (nextField.type === 'number' || nextField.type === 'text')) {
+        setTimeout(() => nextField.select?.(), 50);
+      }
+      
+      console.log(`⏎ Enter → Next field`);
+    }
+  });
+  
+  console.log('✅ Enter Navigation loaded'); 
   
   // ============================================================
   // CONTAINER GST — Show/Hide + Preview
@@ -2828,6 +2901,14 @@ function checkRowHasData(id) {
   
   // ✅ Page load-এ সব icon-এ event listener যোগ
   document.addEventListener('DOMContentLoaded', () => {
+        // ✅ Mobile Keyboard — Next button hint
+    setTimeout(() => {
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+        if (!el.hasAttribute('enterkeyhint')) {
+          el.setAttribute('enterkeyhint', 'next');
+        }
+      });
+    }, 800);
     setTimeout(() => {
       document.querySelectorAll('.allow-info-icon').forEach(icon => {
         icon.addEventListener('click', function(e) {
