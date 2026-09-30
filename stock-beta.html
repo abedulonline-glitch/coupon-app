@@ -2098,9 +2098,6 @@ function checkRowHasData(id) {
     `;
   }
   
-  // ============================================================
-  // MARBLE TEMPLATE FIELDS
-  // ============================================================
    // ============================================================
   // MARBLE TEMPLATE FIELDS — F-3c (Button Position Fixed)
   // ============================================================
@@ -2234,11 +2231,11 @@ function checkRowHasData(id) {
         <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
         <div class="row-3">
           <div>
-            <label style="font-size:11px;">ওজন/sqft (kg)</label>
+            ওজন/sqft (kg)</label>
             <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
-            <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+            🟢 পাকা রেট/sqft</label>
             <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
           </div>
           <div>
@@ -2291,12 +2288,12 @@ function checkRowHasData(id) {
           <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
-          <label>🟢 পাকা রেট</label>
+          <label style="font-size:11px;">🟢 পাকা রেট <span class="rate-unit">/sqft</span></label>
           <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
         </div>
       </div>
       
-      <label>🟡 Cash রেট 🔒</label>
+     <label style="font-size:11px;">🟡 Cash রেট <span class="rate-unit">/sqft</span></label>
       <div class="optional-wrap">
         <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
       </div>
@@ -3349,19 +3346,26 @@ function checkRowHasData(id) {
     if (typeof updateSummary === 'function') updateSummary();
   };
   
-  window.selectRating = function(id, type, el) {
-    const row = document.getElementById('product-row-' + id);
-    if (!row) return;
-    row.dataset.rating = type;
-    
+ window.selectRating = function(id, type, el) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return;
+  row.dataset.rating = type;
+  
+  if (el && el.parentElement) {
     el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
     el.classList.add('selected');
-    
-    const unitText = type === 'sqft' ? 'sqft' : (type === 'box' ? 'box' : 'piece');
-    row.querySelectorAll('.unit-label').forEach(lbl => lbl.innerText = unitText);
-    
-    if (typeof recalcProduct === 'function') recalcProduct(id);
-  };
+  }
+  
+  // ✅ Dynamic Label আপডেট
+  const unitText = type === 'sqft' ? '/sqft' : (type === 'box' ? '/Box' : '/Piece');
+  row.querySelectorAll('.rate-unit').forEach(lbl => {
+    lbl.innerText = unitText;
+  });
+  
+  if (typeof recalcProduct === 'function') recalcProduct(id);
+  
+  console.log(`✅ Rating: ${type} — Label: ${unitText}`);
+};
   
     // ============================================================
   // SELECT MODE — Simple / Details Toggle
