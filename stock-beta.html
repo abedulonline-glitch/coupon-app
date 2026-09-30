@@ -589,12 +589,19 @@
         <input type="number" id="transportRate" placeholder="4800">
         
         <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
-       <select id="truckWeight" onchange="handleTruckWeightChange()">
-  <option value="">-- সিলেক্ট করুন --</option>
-</select>
-<input type="number" id="truckWeightCustom" placeholder="টন" step="0.01" 
-  style="margin-top:6px; display:none; background:#e8f0fe;"
-  oninput="updateSummary(); recalcAllProducts();">
+        <select id="truckWeight" onchange="updateSummary(); recalcAllProducts();">
+          <option value="">-- সিলেক্ট করুন --</option>
+          <optgroup label="🚛 লরি">
+            <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
+            <option value="45">৪৫ টন (৪৫,০০০ কেজি)</option>
+          </optgroup>
+          <optgroup label="📦 কনটেইনার">
+            <option value="30">৩০ টন (৩০,০০০ কেজি)</option>
+            <option value="31">৩১ টন (৩১,০০০ কেজি)</option>
+            <option value="32">৩২ টন (৩২,০০০ কেজি)</option>
+          </optgroup>
+          <option value="custom">✏️ Custom (নিজে লিখুন)</option>
+        </select>
         <input type="number" id="truckWeightCustom" placeholder="টন" step="0.01" 
           style="margin-top:6px; display:none; background:#e8f0fe;"
           oninput="updateSummary(); recalcAllProducts();">
@@ -1204,30 +1211,70 @@
     }
   };
   
+  // ============================================================
+  // TRUCK WEIGHT OPTIONS — Lorry vs Container
+  // ============================================================
+  window.updateTruckWeightOptions = function(transportType) {
+    const sel = document.getElementById('truckWeight');
+    if (!sel) return;
+    
+    const currentValue = sel.value;
+    
+    if (transportType === 'lorry') {
+      sel.innerHTML = `
+        <option value="">-- সিলেক্ট করুন --</option>
+        <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
+        <option value="45">৪৫ টন (৪৫,০০০ কেজি)</option>
+        <option value="custom">✏️ Custom</option>
+      `;
+    } else {
+      sel.innerHTML = `
+        <option value="">-- সিলেক্ট করুন --</option>
+        <option value="30">৩০ টন (৩০,০০০ কেজি)</option>
+        <option value="31">৩১ টন (৩১,০০০ কেজি)</option>
+        <option value="32">৩২ টন (৩২,০০০ কেজি)</option>
+        <option value="custom">✏️ Custom</option>
+      `;
+    }
+    
+    // পুরনো মান থাকলে সেটি রাখার চেষ্টা
+    if (currentValue && [...sel.options].some(o => o.value === currentValue)) {
+      sel.value = currentValue;
+    } else {
+      sel.value = '';
+    }
+    
+    // Custom input hide/show
+    const custom = document.getElementById('truckWeightCustom');
+    if (custom) {
+      custom.style.display = (sel.value === 'custom') ? 'block' : 'none';
+    }
+    
+    console.log(`✅ Truck weight options updated for: ${transportType}`);
+  };
+  
   // ==================== RADIO SELECTION ====================
  window.selectRadio = function(groupName, value, el) {
   if (!el || !el.parentElement) return;
-  
   el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   
-  // ✅ Transport পরিবর্তন হলে Truck weight dropdown আপডেট
+  // ✅ Transport পরিবর্তন হলে Truck Weight dropdown ফিল্টার
   if (groupName === 'transport') {
     if (typeof updateTruckWeightOptions === 'function') {
       updateTruckWeightOptions(value);
     }
   }
   
+  // ✅ Source পরিবর্তন হলে (Local/Import) — ভবিষ্যতে দরকার হলে
+  if (groupName === 'source') {
+    console.log('Source changed to:', value);
+  }
+  
+  // পণ্যের হিসাব আপডেট
+  if (typeof recalcAllProducts === 'function') recalcAllProducts();
   if (typeof updateSummary === 'function') updateSummary();
-}
-    
-    // Transport change → Truck weight dropdown
-    if (groupName === 'transport' && typeof updateTruckWeightOptions === 'function') {
-      updateTruckWeightOptions(value);
-    }
-    
-    if (typeof updateSummary === 'function') updateSummary();
-  };
+};
   
   // ==================== GSTIN VALIDATION ====================
   window.validateGstin = function(input) {
@@ -1343,7 +1390,14 @@
           updateSummary();
         }
       }
-      
+            // ✅ Truck Weight dropdown ফিল্টার — Default Lorry
+      setTimeout(() => {
+        if (typeof updateTruckWeightOptions === 'function') {
+          updateTruckWeightOptions('lorry');
+          console.log('✅ Truck Weight options filtered (Lorry)');
+        }
+      }, 200);
+     
       console.log('✅ Auth ready. Admin:', adminData.companyName || adminData.name);
       
     } catch (e) {
@@ -3376,45 +3430,36 @@ function checkRowHasData(id) {
     return tons * 1000;
   }
   
- window.updateTruckWeightOptions = function(transportType) {
-  const sel = document.getElementById('truckWeight');
-  const custom = document.getElementById('truckWeightCustom');
-  if (!sel) return;
-  
-  // ✅ Transport পরিবর্তন হলে weight RESET হবে
-  sel.value = '';
-  
-  if (transportType === 'lorry') {
-    sel.innerHTML = `
-      <option value="">-- সিলেক্ট করুন --</option>
-      <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
-      <option value="45">৪৫ টন (৪৫,০০০ কেজি)</option>
-      <option value="custom">✏️ Custom (নিজে লিখুন)</option>
-    `;
-  } else if (transportType === 'container') {
-    sel.innerHTML = `
-      <option value="">-- সিলেক্ট করুন --</option>
-      <option value="30">৩০ টন (৩০,০০০ কেজি)</option>
-      <option value="31">৩১ টন (৩১,০০০ কেজি)</option>
-      <option value="32">৩২ টন (৩২,০০০ কেজি)</option>
-      <option value="custom">✏️ Custom (নিজে লিখুন)</option>
-    `;
-  } else {
-    sel.innerHTML = '<option value="">-- প্রথমে Transport Method সিলেক্ট করুন --</option>';
-  }
-  
-  // Custom input লুকাও
-  if (custom) {
-    custom.style.display = 'none';
-    custom.value = '';
-  }
-  
-  // ✅ সব পণ্যের হিসাব আবার করো (নতুন weight দিয়ে)
-  if (typeof recalcAllProducts === 'function') recalcAllProducts();
-  if (typeof updateSummary === 'function') updateSummary();
-  
-  console.log(`✅ Truck weight options updated for: ${transportType}`);
-};
+  window.updateTruckWeightOptions = function(transportType) {
+    const sel = document.getElementById('truckWeight');
+    if (!sel) return;
+    
+    const currentValue = sel.value;
+    
+    if (transportType === 'lorry') {
+      sel.innerHTML = `
+        <option value="">-- সিলেক্ট করুন --</option>
+        <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
+        <option value="45">৪৫ টন (৪৫,০০০ কেজি)</option>
+        <option value="custom">✏️ Custom</option>
+      `;
+    } else {
+      sel.innerHTML = `
+        <option value="">-- সিলেক্ট করুন --</option>
+        <option value="30">৩০ টন (৩০,০০০ কেজি)</option>
+        <option value="31">৩১ টন (৩১,০০০ কেজি)</option>
+        <option value="32">৩২ টন (৩২,০০০ কেজি)</option>
+        <option value="custom">✏️ Custom</option>
+      `;
+    }
+    
+    const custom = document.getElementById('truckWeightCustom');
+    if (custom && currentValue === 'custom') {
+      custom.style.display = 'block';
+    } else if (custom) {
+      custom.style.display = 'none';
+    }
+  };
   
   window.handleTruckWeightChange = function() {
     const sel = document.getElementById('truckWeight');
