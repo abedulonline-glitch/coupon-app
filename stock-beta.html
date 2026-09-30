@@ -931,7 +931,7 @@
     <input type="number" id="sameLotBoxes" placeholder="100" 
       style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
     
-   <!-- ✅ Free Delivery Override (Per Product) 
+   <!-- ✅ Free Delivery Override (Per Product) -->
 <div style="background:#f1f8e9; padding:10px; border-radius:8px; margin-top:10px; margin-bottom:10px; border-left:3px solid #8bc34a;">
   <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#33691e; cursor:pointer; margin:0;">
     <input type="checkbox" class="p-free-delivery" 
@@ -939,7 +939,7 @@
       style="width:18px; height:18px; margin:0; cursor:pointer;">
     <span>🚚 এই পণ্যটি ফ্রি ডেলিভারি</span>
   </label>
-</div>-->
+</div>
     
     <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
       📸 ছবি ও ভিডিও
@@ -2128,16 +2128,6 @@ function checkRowHasData(id) {
   
   function getRowImageUpload() {
     return `
-     <!-- ✅ Free Delivery Override (Per Product) -->
-<div style="background:#f1f8e9; padding:10px; border-radius:8px; margin-top:10px; margin-bottom:10px; border-left:3px solid #8bc34a;">
-  <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#33691e; cursor:pointer; margin:0;">
-    <input type="checkbox" class="p-free-delivery" 
-      onchange="recalcProduct(${id})" 
-      style="width:18px; height:18px; margin:0; cursor:pointer;">
-    <span>🚚 এই পণ্যটি ফ্রি ডেলিভারি</span>
-  </label>
-</div>
-      
       <label>📸 ছবি ও ভিডিও</label>
       <div class="image-upload-section">
         <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
