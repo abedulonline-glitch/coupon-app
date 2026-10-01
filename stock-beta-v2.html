@@ -1511,3 +1511,650 @@ button {
     <span class="icon">⚙️</span><span>Settings</span>
   </div>
 </div>
+
+  <script type="module">
+  // ============================================================
+  // STOCK MANAGEMENT v2 — PART 4: FOUNDATION
+  // Imports + State + Language + Auth + Business Selection
+  // ============================================================
+  
+  console.log('🚀 Stock v2 loading... Part 4');
+
+  // ==================== IMPORTS ====================
+  import { db, auth } from './firebase-config-beta.js';
+  import { 
+    collection, doc, addDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+    query, where, orderBy, onSnapshot, serverTimestamp 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { 
+    onAuthStateChanged, signOut 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { 
+    t, setLanguage as i18nSetLanguage, getLanguage, initLanguage, 
+    applyTranslations, autoTagTranslations, autoTagPlaceholders, 
+    autoTranslateAll, startMutationObserver, LANGUAGES 
+  } from './i18n.js';
+
+  // ==================== GLOBAL STATE ====================
+  let adminId = null;
+  let adminData = null;
+  let currentBizType = null;
+  let currentBizTypeName = null;
+  let selectedBusiness = null;
+  let productCount = 0;
+  let currentCategories = [];
+  let optionalVisible = false;
+  let currentPickerProductId = null;
+  let sameLotTemplateRowId = null;
+  let sameLotAddedCount = 0;
+  let authChecked = false;
+  
+  // Role Defaults
+  let superRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
+  let adminRoleDefaults = { stocker: 5, wholesaler: 10, retailer: 15, consumer: 20, mistri: 25 };
+  let adminUseSuperDefaults = true;
+  
+  // ROLE_CONFIG
+  const ROLE_CONFIG = [
+    { id: 'stocker',    label: '🟢 Stocker',    color: '#0f9d58' },
+    { id: 'wholesaler', label: '🟡 Wholesaler', color: '#b06000' },
+    { id: 'retailer',   label: '🔵 Retailer',   color: '#1a73e8' },
+    { id: 'consumer',   label: '🟣 Consumer',   color: '#7b1fa2' },
+    { id: 'mistri',     label: '🔴 Mistri',     color: '#d93025' }
+  ];
+
+  // ==================== CONSTANTS ====================
+  const BIZ_TYPE_NAMES = {
+    hardware: '🔨 Hardware', paints: '🎨 Paints', medicine: '💊 Medicine',
+    restaurant: '🍽️ Restaurant', fruits: '🥬 Fruits & Veg', grocery: '🛒 Grocery',
+    marble: '🏛️ Marble & Tiles', clothing: '👕 Clothing', electronics: '📱 Electronics',
+    auto: '🚗 Auto Parts', jewellery: '💎 Jewellery', cosmetics: '🧴 Cosmetics'
+  };
+
+  const DEFAULT_CATEGORIES = {
+    hardware:   ['Tiles', 'Adhesive', 'Cement', 'Paint', 'Sanitary', 'Fittings', 'Tools', 'Others'],
+    paints:     ['Interior', 'Exterior', 'Primer', 'Thinner', 'Brush', 'Roller', 'Others'],
+    medicine:   ['Tablet', 'Syrup', 'Injection', 'Ointment', 'Drops', 'Bandage', 'Others'],
+    restaurant: ['Starter', 'Main Course', 'Dessert', 'Beverage', 'Combo', 'Others'],
+    fruits:     ['Fruits', 'Vegetables', 'Herbs', 'Dry Fruits', 'Others'],
+    grocery:    ['Rice & Dal', 'Oil & Ghee', 'Spices', 'Snacks', 'Beverages', 'Others'],
+    marble:     ['Marble', 'Granite', 'Tiles', 'Adhesive', 'Polish', 'Others'],
+    clothing:   ['Shirt', 'Pant', 'Saree', 'Kids', 'Accessories', 'Others'],
+    electronics:['Mobile', 'Laptop', 'TV', 'Accessories', 'Charger', 'Others'],
+    auto:       ['Engine Parts', 'Body Parts', 'Electricals', 'Tyres', 'Oil', 'Others'],
+    jewellery:  ['Gold', 'Silver', 'Diamond', 'Imitation', 'Stones', 'Others'],
+    cosmetics:  ['Skin Care', 'Hair Care', 'Makeup', 'Fragrance', 'Tools', 'Others']
+  };
+
+  // ==================== LANGUAGE SYSTEM ====================
+  function buildLangMenu() {
+    const list = document.getElementById('langList');
+    if (!list) return;
+    list.innerHTML = '';
+    const current = getLanguage();
+    LANGUAGES.forEach(lang => {
+      const isActive = lang.code === current;
+      const item = document.createElement('div');
+      item.className = 'lang-item' + (isActive ? ' active' : '');
+      item.innerHTML = `
+        <div class="flag-name">
+          <span class="flag">${lang.flag}</span>
+          <span>${lang.name}</span>
+        </div>
+        ${isActive ? '<span class="check">✓</span>' : ''}
+      `;
+      item.onclick = () => selectLanguage(lang);
+      list.appendChild(item);
+    });
+  }
+
+  function updateLangButton() {
+    const current = getLanguage();
+    const lang = LANGUAGES.find(l => l.code === current);
+    if (lang) {
+      const flagEl = document.getElementById('currentLangFlag');
+      const nameEl = document.getElementById('currentLangName');
+      if (flagEl) flagEl.innerText = lang.flag;
+      if (nameEl) nameEl.innerText = lang.name;
+    }
+  }
+
+  window.toggleLangMenu = function(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('langMenu');
+    if (!menu) return;
+    buildLangMenu();
+    menu.style.display = 'block';
+  };
+
+  window.closeLangMenu = function(event) {
+    const menu = document.getElementById('langMenu');
+    if (menu) menu.style.display = 'none';
+  };
+
+  function selectLanguage(lang) {
+    if (i18nSetLanguage(lang.code)) {
+      updateLangButton();
+      closeLangMenu();
+      setTimeout(() => { autoTranslateAll(); }, 150);
+    }
+  }
+
+  function initLangButton() {
+    updateLangButton();
+  }
+
+  // ==================== BUSINESS SELECTION ====================
+  window.selectBusiness = function(type, el) {
+    selectedBusiness = type;
+    currentBizType = type;
+    currentBizTypeName = BIZ_TYPE_NAMES[type] || type;
+    
+    document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+    if (el) el.classList.add('selected');
+    
+    setTimeout(async () => {
+      document.getElementById('businessSelectorPage').classList.remove('active');
+      document.getElementById('mainAppPage').classList.add('active');
+      const nav = document.getElementById('bottomNav');
+      if (nav) nav.style.display = 'flex';
+      
+      document.getElementById('topbarTitle').innerText = '📦 ' + (BIZ_TYPE_NAMES[type] || 'Stock');
+      updateBizTypeBadge();
+      
+      // Reset product rows
+      productCount = 0;
+      const pl = document.getElementById('productsList');
+      if (pl) pl.innerHTML = '';
+      
+      await saveBusinessType(type);
+      
+      if (typeof loadCategories === 'function') {
+        await loadCategories(type);
+      }
+      
+      if (typeof updateTruckWeightOptions === 'function') {
+        updateTruckWeightOptions('lorry');
+      }
+      
+      console.log('✅ Business selected:', type);
+    }, 250);
+  };
+
+  function updateBizTypeBadge() {
+    const badge = document.getElementById('bizTypeBadge');
+    const managerBizType = document.getElementById('currentBizType');
+    const name = currentBizTypeName || '🏢 Business Type';
+    if (badge) {
+      badge.innerText = name;
+      badge.style.background = '#e6f4ea';
+      badge.style.color = '#0f9d58';
+    }
+    if (managerBizType) {
+      managerBizType.innerText = name;
+    }
+  }
+
+  async function saveBusinessType(type) {
+    if (!adminId) return;
+    try {
+      await updateDoc(doc(db, "admins", adminId), {
+        businessType: type,
+        businessTypeName: BIZ_TYPE_NAMES[type] || type,
+        updatedAt: serverTimestamp()
+      });
+      console.log('✅ Business Type saved:', type);
+    } catch (e) {
+      console.error('❌ Business Type save error:', e);
+    }
+  }
+
+  // ==================== CHANGE BUSINESS TYPE ====================
+  window.changeBusinessType = function() {
+    if (!confirm('ব্যবসার ধরন পরিবর্তন করলে আগের ক্যাটাগরিগুলো মুছে যাবে। নিশ্চিত?')) return;
+    
+    if (typeof closeCategoryModal === 'function') closeCategoryModal();
+    if (typeof closeStockSettings === 'function') closeStockSettings();
+    
+    document.getElementById('mainAppPage').classList.remove('active');
+    const nav = document.getElementById('bottomNav');
+    if (nav) nav.style.display = 'none';
+    document.getElementById('businessSelectorPage').classList.add('active');
+    
+    document.querySelectorAll('.business-card').forEach(c => c.classList.remove('selected'));
+    
+    productCount = 0;
+    const pl = document.getElementById('productsList');
+    if (pl) pl.innerHTML = '';
+    currentBizType = null;
+    currentBizTypeName = null;
+    currentCategories = [];
+  };
+
+  // ==================== TAB SWITCHING ====================
+  window.switchTab = function(tab, el) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    const tc = document.getElementById('tab-' + tab);
+    if (tc) tc.classList.add('active');
+    
+    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(t => t.classList.remove('active'));
+    
+    if (el) {
+      el.classList.add('active');
+      if (el.classList.contains('nav-item')) {
+        const tabs = document.querySelectorAll('.tabs .tab');
+        const idx = { add: 0, list: 1, dashboard: 2 }[tab];
+        if (idx !== undefined && tabs[idx]) tabs[idx].classList.add('active');
+      }
+    }
+  };
+
+  // ==================== FREE DELIVERY ====================
+  window.handleFreeDeliveryChange = function() {
+    const commonCheck = document.getElementById('freeDeliveryCommon')?.checked || false;
+    const transportWrapper = document.getElementById('transportSectionWrapper');
+    
+    if (transportWrapper) {
+      transportWrapper.style.display = commonCheck ? 'none' : 'block';
+    }
+    
+    if (typeof recalcAllProducts === 'function') recalcAllProducts();
+    if (typeof updateSummary === 'function') updateSummary();
+    
+    console.log(`🚚 Free Delivery (Common): ${commonCheck}`);
+  };
+
+  window.isProductFreeDelivery = function(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return false;
+    
+    const common = document.getElementById('freeDeliveryCommon')?.checked || false;
+    const productChk = row.querySelector('.p-free-delivery');
+    const productOverride = productChk?.checked || false;
+    
+    return common || productOverride;
+  };
+
+  // ==================== ENTER → NEXT FIELD ====================
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const target = e.target;
+    if (!target) return;
+    if (!['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
+    if (target.tagName === 'TEXTAREA') return;
+    if (target.type === 'checkbox' || target.type === 'radio') return;
+    
+    e.preventDefault();
+    
+    const row = target.closest('.product-row') || target.closest('.card') || document.body;
+    if (!row) return;
+    
+    const allInputs = Array.from(row.querySelectorAll(
+      'input:not([type="hidden"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled])'
+    )).filter(el => el.offsetParent !== null);
+    
+    const currentIndex = allInputs.indexOf(target);
+    if (currentIndex >= 0 && currentIndex < allInputs.length - 1) {
+      const nextField = allInputs[currentIndex + 1];
+      nextField.focus();
+      if (nextField.tagName === 'INPUT' && (nextField.type === 'number' || nextField.type === 'text')) {
+        setTimeout(() => nextField.select?.(), 50);
+      }
+    }
+  });
+
+  // ==================== NEGATIVE BLOCKER ====================
+  document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!target) return;
+    if (target.type !== 'number') return;
+    
+    const val = target.value;
+    if (val && (val.startsWith('-') || parseFloat(val) < 0)) {
+      const positiveVal = Math.abs(parseFloat(val));
+      target.value = isNaN(positiveVal) ? '' : positiveVal;
+      
+      target.style.transition = 'all 0.3s';
+      target.style.background = '#ffcdd2';
+      setTimeout(() => {
+        target.style.background = '';
+        target.style.transition = '';
+      }, 400);
+    }
+  });
+
+  document.addEventListener('paste', (e) => {
+    const target = e.target;
+    if (!target || target.type !== 'number') return;
+    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    if (pastedText && parseFloat(pastedText) < 0) {
+      e.preventDefault();
+      target.value = Math.abs(parseFloat(pastedText));
+    }
+  });
+
+  // ==================== AUTO UPPERCASE ====================
+  document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!target) return;
+    
+    if (target.id === 'supplierGst') {
+      const cursorPos = target.selectionStart;
+      target.value = target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (target.setSelectionRange) target.setSelectionRange(cursorPos, cursorPos);
+    }
+    
+    if (target.id === 'containerGstCustom') {
+      target.value = target.value.replace(/[^0-9.]/g, '');
+    }
+  });
+
+  // ==================== MOBILE KEYBOARD ====================
+  setTimeout(() => {
+    const numericClasses = ['p-pieces', 'p-boxes', 'd-qty', 'p-qty'];
+    const decimalClasses = [
+      'p-weight', 'p-pakka', 'p-optional', 'p-sqft', 'p-wt-sqft',
+      'p-allow-l', 'p-allow-w', 'd-l', 'd-w', 'd-al', 'd-aw'
+    ];
+    
+    numericClasses.forEach(cls => {
+      document.querySelectorAll('.' + cls).forEach(el => el.setAttribute('inputmode', 'numeric'));
+    });
+    decimalClasses.forEach(cls => {
+      document.querySelectorAll('.' + cls).forEach(el => el.setAttribute('inputmode', 'decimal'));
+    });
+    console.log('✅ Mobile Keyboard optimized');
+  }, 800);
+
+  // Dynamic fields
+  const keyboardObserver = new MutationObserver(() => {
+    const numericClasses = ['p-pieces', 'p-boxes', 'd-qty', 'p-qty'];
+    const decimalClasses = [
+      'p-weight', 'p-pakka', 'p-optional', 'p-sqft', 'p-wt-sqft',
+      'p-allow-l', 'p-allow-w', 'd-l', 'd-w', 'd-al', 'd-aw'
+    ];
+    numericClasses.forEach(cls => {
+      document.querySelectorAll('.' + cls + ':not([inputmode])').forEach(el => el.setAttribute('inputmode', 'numeric'));
+    });
+    decimalClasses.forEach(cls => {
+      document.querySelectorAll('.' + cls + ':not([inputmode])').forEach(el => el.setAttribute('inputmode', 'decimal'));
+    });
+  });
+  
+  setTimeout(() => {
+    keyboardObserver.observe(document.body, { childList: true, subtree: true });
+  }, 1500);
+
+  // ==================== CONTAINER GST ====================
+  window.handleContainerGstChange = function() {
+    const sel = document.getElementById('containerGstPercent');
+    const customInput = document.getElementById('containerGstCustom');
+    if (!sel) return;
+    
+    if (sel.value === 'custom') {
+      if (customInput) customInput.style.display = 'block';
+    } else {
+      if (customInput) customInput.style.display = 'none';
+    }
+    
+    updateContainerGstPreview();
+    
+    if (typeof recalcAllProducts === 'function') recalcAllProducts();
+    if (typeof updateSummary === 'function') updateSummary();
+  };
+
+  window.getContainerGstPercent = function() {
+    const sel = document.getElementById('containerGstPercent');
+    const customInput = document.getElementById('containerGstCustom');
+    if (!sel) return 0;
+    if (sel.value === 'custom') return parseFloat(customInput?.value) || 0;
+    return parseFloat(sel.value) || 0;
+  };
+
+  window.isContainerTransport = function() {
+    const groups = document.querySelectorAll('.radio-group');
+    for (const group of groups) {
+      const options = group.querySelectorAll('.radio-option');
+      const texts = Array.from(options).map(o => o.innerText.toLowerCase()).join(' ');
+      
+      if (texts.includes('লরি') || texts.includes('lorry')) {
+        const selected = group.querySelector('.radio-option.selected');
+        if (selected) {
+          const selText = selected.innerText.toLowerCase();
+          return selText.includes('container') || selText.includes('কনটেইনার');
+        }
+        return false;
+      }
+    }
+    return false;
+  };
+
+  function updateContainerGstPreview() {
+    const previewEl = document.getElementById('containerGstPreview');
+    if (!previewEl) return;
+    
+    const rate = parseFloat(document.getElementById('transportRate')?.value) || 0;
+    const gstPct = getContainerGstPercent();
+    
+    if (rate <= 0) {
+      previewEl.innerHTML = '💡 Transport Rate দিন';
+      return;
+    }
+    
+    if (gstPct <= 0) {
+      previewEl.innerHTML = `
+        📊 Rate: <b>₹${rate}</b>/টন<br>
+        GST: <b>0%</b><br>
+        📦 Actual Rate: <b>₹${rate.toFixed(2)}</b>/টন
+      `;
+      return;
+    }
+    
+    const taxFreeRate = rate / (1 + gstPct / 100);
+    const savingsPerKg = (rate - taxFreeRate) / 1000;
+    
+    previewEl.innerHTML = `
+      📊 Rate: <b>₹${rate}</b>/টন (Including GST ${gstPct}%)<br>
+      📦 Actual Rate: <b>₹${taxFreeRate.toFixed(2)}</b>/টন (₹${(taxFreeRate/1000).toFixed(4)}/kg)<br>
+      💰 <span style="color:#0f9d58;">সঞ্চয়: ₹${savingsPerKg.toFixed(4)}/kg</span>
+    `;
+  }
+
+  // ==================== TRUCK WEIGHT OPTIONS ====================
+  window.updateTruckWeightOptions = function(transportType) {
+    const sel = document.getElementById('truckWeight');
+    if (!sel) return;
+    
+    if (transportType === 'lorry') {
+      sel.innerHTML = `
+        <option value="">-- সিলেক্ট করুন --</option>
+        <option value="42">৪২ টন (৪২,০০০ কেজি)</option>
+        <option value="45">৪৫ টন (৪৫,০০০ কেজি)</option>
+        <option value="custom">✏️ Custom</option>
+      `;
+    } else {
+      sel.innerHTML = `
+        <option value="">-- সিলেক্ট করুন --</option>
+        <option value="30">৩০ টন (৩০,০০০ কেজি)</option>
+        <option value="31">৩১ টন (৩১,০০০ কেজি)</option>
+        <option value="32">৩২ টন (৩২,০০০ কেজি)</option>
+        <option value="custom">✏️ Custom</option>
+      `;
+    }
+    
+    const custom = document.getElementById('truckWeightCustom');
+    if (custom) custom.style.display = 'none';
+    
+    sel.value = '';
+  };
+
+  window.handleTruckWeightChange = function() {
+    const sel = document.getElementById('truckWeight');
+    const custom = document.getElementById('truckWeightCustom');
+    if (!sel || !custom) return;
+    
+    custom.style.display = (sel.value === 'custom') ? 'block' : 'none';
+    
+    if (typeof recalcAllProducts === 'function') recalcAllProducts();
+    if (typeof updateSummary === 'function') updateSummary();
+  };
+
+  // ==================== RADIO SELECTION ====================
+  window.selectRadio = function(groupName, value, el) {
+    if (!el || !el.parentElement) return;
+    el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    
+    if (groupName === 'transport') {
+      const wrapper = document.getElementById('containerGstWrapper');
+      
+      if (value === 'container') {
+        if (wrapper) wrapper.style.display = 'block';
+        if (typeof updateTruckWeightOptions === 'function') updateTruckWeightOptions('container');
+        updateContainerGstPreview();
+      } else {
+        if (wrapper) wrapper.style.display = 'none';
+        if (typeof updateTruckWeightOptions === 'function') updateTruckWeightOptions('lorry');
+      }
+    }
+    
+    if (typeof recalcAllProducts === 'function') recalcAllProducts();
+    if (typeof updateSummary === 'function') updateSummary();
+  };
+
+  // ==================== GSTIN VALIDATION ====================
+  window.validateGstin = function(input) {
+    let val = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    input.value = val;
+    
+    const helper = document.getElementById('gstinHelper');
+    if (!helper) return;
+    
+    if (val.length === 0) {
+      helper.style.color = '#999';
+      helper.innerText = 'ফরম্যাট: ২ সংখ্যা + ৫ অক্ষর + ৪ সংখ্যা + ৩ অক্ষর + ১ সংখ্যা/অক্ষর (১৫ অক্ষর)';
+      return;
+    }
+    
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    
+    if (gstRegex.test(val)) {
+      helper.style.color = '#0f9d58';
+      helper.innerText = '✅ সঠিক GSTIN';
+    } else if (val.length < 15) {
+      helper.style.color = '#b06000';
+      helper.innerText = `⚠️ ${15 - val.length} অক্ষর আরো দরকার`;
+    } else {
+      helper.style.color = '#d93025';
+      helper.innerText = '❌ ভুল ফরম্যাট';
+    }
+  };
+
+  // ==================== LOGOUT ====================
+  window.handleLogout = async function() {
+    if (!confirm('লগআউট করবেন?')) return;
+    try {
+      await signOut(auth);
+      window.location.href = 'beta.html';
+    } catch (e) {
+      alert('❌ ' + e.message);
+    }
+  };
+
+  // ==================== OPTIONAL TOGGLE ====================
+  window.toggleOptional = function() {
+    optionalVisible = !optionalVisible;
+    document.querySelectorAll('.p-optional, #optionalCost').forEach(input => {
+      input.type = optionalVisible ? 'number' : 'password';
+    });
+    const hint = document.getElementById('optionalHint');
+    if (hint) {
+      hint.innerText = optionalVisible 
+        ? '✅ Optional খরচ দৃশ্যমান' 
+        : '🔒 এই খরচ শুধু অ্যাডমিন দেখতে পাবেন';
+    }
+  };
+
+  // ==================== AUTH CHECK ====================
+  onAuthStateChanged(auth, async (user) => {
+    if (!authChecked) {
+      authChecked = true;
+      await new Promise(r => setTimeout(r, 500));
+    }
+    
+    if (!user) {
+      window.location.href = 'beta.html';
+      return;
+    }
+    
+    adminId = user.uid;
+    console.log('✅ User logged in:', user.email);
+    
+    try {
+      const snap = await getDoc(doc(db, "admins", adminId));
+      if (!snap.exists()) {
+        alert('অ্যাডমিন ডেটা পাওয়া যায়নি');
+        window.location.href = 'beta.html';
+        return;
+      }
+      
+      adminData = snap.data();
+      console.log('✅ Admin Data:', adminData.companyName || adminData.name);
+      
+      if (adminData.language) {
+        i18nSetLanguage(adminData.language);
+      }
+      
+      // Business Type আগে সেট থাকলে সরাসরি Main App
+      if (adminData.businessType) {
+        currentBizType = adminData.businessType;
+        currentBizTypeName = BIZ_TYPE_NAMES[adminData.businessType] || adminData.businessTypeName;
+        selectedBusiness = adminData.businessType;
+        
+        document.getElementById('businessSelectorPage').classList.remove('active');
+        document.getElementById('mainAppPage').classList.add('active');
+        const nav = document.getElementById('bottomNav');
+        if (nav) nav.style.display = 'flex';
+        document.getElementById('topbarTitle').innerText = '📦 ' + currentBizTypeName;
+        updateBizTypeBadge();
+        
+        if (typeof loadCategories === 'function') {
+          await loadCategories(currentBizType);
+        }
+        
+        if (typeof loadRoleDefaults === 'function') {
+          await loadRoleDefaults();
+        }
+      }
+      
+      // Free Delivery Initial Check
+      if (typeof handleFreeDeliveryChange === 'function') {
+        handleFreeDeliveryChange();
+      }
+      
+      // Truck Weight default Lorry
+      setTimeout(() => {
+        if (typeof updateTruckWeightOptions === 'function') {
+          updateTruckWeightOptions('lorry');
+        }
+      }, 200);
+      
+      console.log('✅ Auth ready. Admin:', adminData.companyName || adminData.name);
+      
+    } catch (e) {
+      console.error('❌ Auth error:', e);
+    }
+  });
+
+  // ==================== INIT ====================
+  initLanguage();
+  initLangButton();
+  
+  setTimeout(() => {
+    if (typeof autoTranslateAll === 'function') autoTranslateAll();
+    if (typeof startMutationObserver === 'function') startMutationObserver();
+  }, 500);
+  
+  console.log('✅ Part 4 loaded');
+</script>
