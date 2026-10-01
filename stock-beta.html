@@ -4126,21 +4126,42 @@ function checkRowHasData(id) {
     }
     
     // Total Quantity
-    let totalQty = 0;
-    let qtyUnit = 'box';
-    
-    if (bizType === 'marble') {
-      if (rating === 'sqft') { totalQty = sqftPerBox * boxes; qtyUnit = 'sqft'; }
-      else if (rating === 'box') { totalQty = boxes; qtyUnit = 'box'; }
-      else { totalQty = pieces * boxes; qtyUnit = 'piece'; }
-    } else if (bizType === 'grocery' || bizType === 'fruits') {
-      const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
-      totalQty = qty * boxes;
-      qtyUnit = row.dataset.unit || 'kg';
-    } else {
-      totalQty = boxes;
-      qtyUnit = 'box';
-    }
+   let totalQty = 0;
+let qtyUnit = 'box';
+
+if (bizType === 'marble') {
+  if (rating === 'sqft') { totalQty = sqftPerBox * boxes; qtyUnit = 'sqft'; }
+  else if (rating === 'box') { totalQty = boxes; qtyUnit = 'box'; }
+  else { totalQty = pieces * boxes; qtyUnit = 'piece'; }
+} else if (bizType === 'tiles') {
+  // ✅ Tiles এর জন্য আলাদা হিসাব (এটাই নতুন যোগ হচ্ছে)
+  if (rating === 'sqft') {
+    totalQty = sqftPerBox * boxes;
+    qtyUnit = 'sqft';
+  } else if (rating === 'box') {
+    totalQty = boxes;
+    qtyUnit = 'box';
+  } else {
+    totalQty = pieces * boxes;
+    qtyUnit = 'piece';
+  }
+} else if (bizType === 'grocery' || bizType === 'fruits') {
+  const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
+  totalQty = qty * boxes;
+  qtyUnit = row.dataset.unit || 'kg';
+} else {
+  // General — rating না থাকলে box ধরি, থাকলে সেই অনুযায়ী
+  if (rating === 'sqft') {
+    totalQty = sqftPerBox * boxes;
+    qtyUnit = 'sqft';
+  } else if (rating === 'piece') {
+    totalQty = pieces * boxes;
+    qtyUnit = 'piece';
+  } else {
+    totalQty = boxes;
+    qtyUnit = 'box';
+  }
+}
     
     const pakkaAmount = totalQty * pakkaRate;
     const cashAmount = totalQty * cashRate;
