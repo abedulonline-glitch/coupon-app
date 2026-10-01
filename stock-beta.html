@@ -4109,21 +4109,224 @@ function checkRowHasData(id) {
     const row = document.getElementById('product-row-' + id);
     if (!row) return;
     
-    const bizType = row.dataset.type || 'hardware';
+    const bizType = row.dataset.type || 'general';
     const rating = row.dataset.rating || 'box';
     const mode = row.dataset.mode || 'simple';
     
+    // ============================================================
+    // ✅ MARBLE/GRANITE — আলাদা হিসাব
+    // ============================================================
+    if (bizType === 'marble') {
+      recalcMarbleProductV2(id, row);
+      return;
+    }
+    
+    // ============================================================
+    // ✅ TILES + GENERAL + সব অন্য
+    // ============================================================
+    recalcStandardProductV2(id, row, bizType);
+  };
+  
+  // ============================================================
+  // MARBLE CALCULATION — v2
+  // ============================================================
+  function recalcMarbleProductV2(id, row) {
+    const mode = row.dataset.mode || 'simple';
+    const allowChecked = row.querySelector('.p-allow-check')?.checked || false;
+    
+    // ✅ মোট Paper ও Actual বের করি
+    let totalPaper = 0;
+    let totalActual = 0;
+    let totalQty = 0;
+    
+    const parseRow = (tr) => {
+      const l = parseFloat(tr.querySelector('.d-l')?.value) || 0;
+      const w = parseFloat(tr.querySelector('.d-w')?.value) || 0;
+      const q = parseFloat(tr.querySelector('.d-qty')?.value) || 0;
+      const al = allowChecked ? (parseFloat(tr.querySelector('.d-al')?.value) || 0) : 0;
+      const aw = allowChecked ? (parseFloat(tr.querySelector('.d-aw')?.value) || 0) : 0;
+      
+      // ইঞ্চি → ফুট
+      const lFt = l / 12;
+      const wFt = w / 12;
+      const alFt = al / 12;
+      const awFt = aw / 12;
+      
+      return {
+        paper: (lFt * wFt) * q,
+        actual: ((lFt + alFt) * (wFt + awFt)) * q,
+        qty: q
+      };
+    };
+    
+    if (mode === 'simple') {
+      const simpleSection = document.getElementById('marble-simple-' + id);
+      if (simpleSection) {
+        simpleSection.querySelectorAll('tbody tr').forEach(tr => {
+          const r = parseRow(tr);
+          totalPaper += r.paper;
+          totalActual += r.actual;
+          totalQty += r.qty;
+        });
+      }
+    } else {
+      const detailsTbody = document.getElementById('details-tbody-' + id);
+      if (detailsTbody) {
+        detailsTbody.querySelectorAll('tr').forEach(tr => {
+          const r = parseRow(tr);
+          totalPaper += r.paper;
+          totalActual += r.actual;
+          totalQty += r.qty;
+        });
+      }
+    }
+    
+    const extra = totalActual - totalPaper;
+    const extraPct = totalPaper > 0 ? (extra / totalPaper) * 100 : 0;
+    const savingsPct = totalActual > 0 ? (extra / totalActual) * 100 : 0;
+    
+    // ✅ Rates
+    const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
+    const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
+    const wtPerSqft = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
+    
+    let gstPct = 0;
+    const gstSel = row.querySelector('.p-gst');
+    if (gstSel) gstPct = parseFloat(gstSel.value) || 0;
+    
+    // ✅ Total Weight = Actual × wt/sqft
+    const totalWeight = totalActual * wtPerSqft;
+    // ✅ Transport-এর জন্য Paper weight
+    const paperWeightForTransport = totalPaper * wtPerSqft;
+    
+    // ✅ Amounts
+    const pakkaAmount = totalPaper * pakkaRate;
+    const cashAmount = totalPaper * cashRate;
+    const gstAmount = pakkaAmount * (gstPct / 100);
+    const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
+    
+    // ✅ Transport
+    const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
+    let effectiveTransportRate = transportRate;
+    if (typeof isContainerTransport === 'function' && isContainerTransport()) {
+      const cGst = typeof getContainerGstPercent === 'function' ? getContainerGstPercent() : 0;
+      if (cGst > 0) effectiveTransportRate = transportRate / (1 + cGst / 100);
+    }
+    
+    let thisTransport = 0;
+    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+      thisTransport = 0;
+    } else {
+      thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
+    }
+    
+    // ✅ Extra খরচ
+    const truckWeightKg = typeof getTruckWeightKg === 'function' ? getTruckWeightKg() : 0;
+    const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
+    const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
+    const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
+    const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
+    const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
+    
+    const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
+    let thisExtra = 0;
+    if (truckWeightKg > 0) {
+      thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
+    }
+    
+    const totalLanding = pakkaCashGst + thisExtra + thisTransport;
+    
+    // ✅ Per sqft
+    const pakkaGstTransport = pakkaAmount + gstAmount + thisTransport;
+    const perPaperSqft = totalPaper > 0 ? pakkaGstTransport / totalPaper : 0;
+    const perPaperSqftNoTax = totalPaper > 0 ? (pakkaAmount + thisTransport) / totalPaper : 0;
+    const perActualSqft = totalActual > 0 ? pakkaGstTransport / totalActual : 0;
+    
+    // ✅ Display
+    const box = document.getElementById('calc-box-' + id);
+    if (!box) return;
+    
+    const setText = (sel, val) => {
+      let el = box.querySelector(sel) || row.querySelector(sel);
+      if (el) el.innerText = val;
+    };
+    
+    setText('.calc-total-paper', totalPaper.toFixed(2));
+    setText('.calc-total-actual', totalActual.toFixed(2));
+    setText('.calc-per-sqft', '₹' + perPaperSqft.toFixed(2));
+    setText('.calc-per-sqft-no-tax', '₹' + perPaperSqftNoTax.toFixed(2));
+    setText('.calc-per-actual-sqft', '₹' + perActualSqft.toFixed(2));
+    setText('.calc-qty', `${totalQty} slab · ${totalPaper.toFixed(2)} sqft`);
+    setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
+    setText('.calc-cash', '₹' + cashAmount.toFixed(2));
+    setText('.calc-gst', '₹' + gstAmount.toFixed(2));
+    setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
+    setText('.calc-total', '₹' + totalLanding.toFixed(2));
+    setText('.calc-total-no-tax', '₹' + (totalLanding - gstAmount).toFixed(2));
+    
+    // Transport — Free Delivery হলে
+    const transportEl = box.querySelector('.calc-transport-share');
+    if (transportEl) {
+      if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+        transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
+      } else {
+        transportEl.innerText = '₹' + thisTransport.toFixed(2);
+      }
+    }
+    
+    // Measurement Benefit
+    const measureBenefit = perPaperSqft - perActualSqft;
+    const benefitEl = box.querySelector('.calc-measure-benefit');
+    if (benefitEl) {
+      if (measureBenefit > 0) {
+        benefitEl.innerText = '₹' + measureBenefit.toFixed(2) + '/sqft';
+      } else {
+        benefitEl.innerText = '—';
+      }
+    }
+    
+    // Weight Share
+    const shareEl = box.querySelector('.calc-weight-share');
+    if (shareEl) {
+      if (truckWeightKg > 0) {
+        shareEl.innerText = `${((totalWeight / truckWeightKg) * 100).toFixed(2)}% (${totalWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
+      } else {
+        shareEl.innerText = '⚠️ Truck weight দিন';
+      }
+    }
+    
+    // Benefit Box
+    const benefitBox = box.querySelector('.benefit-box');
+    if (benefitBox) {
+      if (extra > 0) {
+        benefitBox.style.display = 'block';
+        setText('.calc-paper', totalPaper.toFixed(2) + ' sqft');
+        setText('.calc-actual', totalActual.toFixed(2) + ' sqft');
+        setText('.calc-extra', extra.toFixed(2) + ' sqft');
+        setText('.calc-extra-pct', extraPct.toFixed(2) + '% extra');
+        setText('.calc-savings-pct', savingsPct.toFixed(2) + '% saved');
+        setText('.calc-real-rate', '₹' + perActualSqft.toFixed(2));
+      } else {
+        benefitBox.style.display = 'none';
+      }
+    }
+    
+    if (typeof recalcRoleRate === 'function') recalcRoleRate(id);
+    if (typeof updateSummary === 'function') updateSummary();
+  }
+  
+  // ============================================================
+  // STANDARD CALCULATION — v2 (Tiles + General)
+  // ============================================================
+  function recalcStandardProductV2(id, row, bizType) {
+    const rating = row.dataset.rating || 'box';
+    
     const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
     const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
-       const weightBox = parseFloat(row.querySelector('.p-weight')?.value) || 0;
-    const weightSqft = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
-    const weight = weightBox; // Tiles/General
+    const weight = parseFloat(row.querySelector('.p-weight')?.value) || 0;
     const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
     const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
     const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-    const size = row.querySelector('.p-size')?.value || '';
-    const allowL = parseFloat(row.querySelector('.p-allow-l')?.value) || 0;
-    const allowW = parseFloat(row.querySelector('.p-allow-w')?.value) || 0;
     
     let gstPct = 0;
     const gstSelectEl = row.querySelector('.p-gst');
@@ -4137,151 +4340,84 @@ function checkRowHasData(id) {
       }
     }
     
-    // Total Quantity
-   let totalQty = 0;
-let qtyUnit = 'box';
-
-if (bizType === 'marble') {
-  if (rating === 'sqft') { totalQty = sqftPerBox * boxes; qtyUnit = 'sqft'; }
-  else if (rating === 'box') { totalQty = boxes; qtyUnit = 'box'; }
-  else { totalQty = pieces * boxes; qtyUnit = 'piece'; }
-} else if (bizType === 'tiles') {
-  // ✅ Tiles এর জন্য আলাদা হিসাব (এটাই নতুন যোগ হচ্ছে)
-  if (rating === 'sqft') {
-    totalQty = sqftPerBox * boxes;
-    qtyUnit = 'sqft';
-  } else if (rating === 'box') {
-    totalQty = boxes;
-    qtyUnit = 'box';
-  } else {
-    totalQty = pieces * boxes;
-    qtyUnit = 'piece';
-  }
-} else if (bizType === 'grocery' || bizType === 'fruits') {
-  const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
-  totalQty = qty * boxes;
-  qtyUnit = row.dataset.unit || 'kg';
-} else {
-  // General — rating না থাকলে box ধরি, থাকলে সেই অনুযায়ী
-  if (rating === 'sqft') {
-    totalQty = sqftPerBox * boxes;
-    qtyUnit = 'sqft';
-  } else if (rating === 'piece') {
-    totalQty = pieces * boxes;
-    qtyUnit = 'piece';
-  } else {
-    totalQty = boxes;
-    qtyUnit = 'box';
-  }
-}
+    // Total Qty
+    let totalQty = 0;
+    let qtyUnit = 'box';
+    let totalWeight = weight * boxes;
+    
+    if (bizType === 'grocery' || bizType === 'fruits') {
+      const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
+      totalQty = qty * boxes;
+      qtyUnit = row.dataset.unit || 'kg';
+    } else if (rating === 'sqft') {
+      totalQty = sqftPerBox * boxes;
+      qtyUnit = 'sqft';
+    } else if (rating === 'piece') {
+      totalQty = pieces * boxes;
+      qtyUnit = 'piece';
+    } else {
+      totalQty = boxes;
+      qtyUnit = 'box';
+    }
     
     const pakkaAmount = totalQty * pakkaRate;
     const cashAmount = totalQty * cashRate;
     const gstAmount = pakkaAmount * (gstPct / 100);
     const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
     
-       // ✅ Marble হলে — Actual sqft × wt/sqft
-    let thisProductWeight = 0;
-    if (bizType === 'marble') {
-      // Simple Mode — টেবিল থেকে
-      let marbleActual = 0;
-      const simpleSection = document.getElementById('marble-simple-' + id);
-      const detailsTbody = document.getElementById('details-tbody-' + id);
-      const allowChk = row.querySelector('.p-allow-check')?.checked || false;
-      
-      const parseRow = (tr) => {
-        const l = parseFloat(tr.querySelector('.d-l')?.value) || 0;
-        const w = parseFloat(tr.querySelector('.d-w')?.value) || 0;
-        const q = parseFloat(tr.querySelector('.d-qty')?.value) || 0;
-        const al = allowChk ? (parseFloat(tr.querySelector('.d-al')?.value) || 0) : 0;
-        const aw = allowChk ? (parseFloat(tr.querySelector('.d-aw')?.value) || 0) : 0;
-        const lFt = l / 12;
-        const wFt = w / 12;
-        const alFt = al / 12;
-        const awFt = aw / 12;
-        return ((lFt + alFt) * (wFt + awFt)) * q;
-      };
-      
-      if (mode === 'simple' && simpleSection) {
-        simpleSection.querySelectorAll('tbody tr').forEach(tr => {
-          marbleActual += parseRow(tr);
-        });
-      } else if (detailsTbody) {
-        detailsTbody.querySelectorAll('tr').forEach(tr => {
-          marbleActual += parseRow(tr);
-        });
-      }
-      
-      thisProductWeight = marbleActual * weightSqft;
-    } else {
-      thisProductWeight = weightBox * boxes;
+    // Transport
+    const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
+    let effectiveTransportRate = transportRate;
+    if (typeof isContainerTransport === 'function' && isContainerTransport()) {
+      const cGst = typeof getContainerGstPercent === 'function' ? getContainerGstPercent() : 0;
+      if (cGst > 0) effectiveTransportRate = transportRate / (1 + cGst / 100);
     }
-    const truckWeightKg = getTruckWeightKg();
     
+    let thisTransport = 0;
+    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+      thisTransport = 0;
+    } else {
+      thisTransport = (effectiveTransportRate * totalWeight) / 1000;
+    }
+    
+    // Extra
+    const truckWeightKg = typeof getTruckWeightKg === 'function' ? getTruckWeightKg() : 0;
     const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
     const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
     const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
     const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
     const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
-    const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
     
     const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
-    
-    let perKgExtra = 0;
     let thisExtra = 0;
     if (truckWeightKg > 0) {
-            const thisTotalWeight = bizType === 'marble' 
-        ? (thisProductWeight > 0 ? thisProductWeight : weightSqft * 100 * (boxes || 1))
-        : thisProductWeight;
-      thisExtra = (totalExtraLump / truckWeightKg) * thisProductWeight;
+      thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
     }
     
-       // ✅ Container হলে Tax-ছাড়া rate ব্যবহার
-    let effectiveTransportRate = transportRate;
-    if (isContainerTransport()) {
-      const gstPct = getContainerGstPercent();
-      if (gstPct > 0) {
-        effectiveTransportRate = transportRate / (1 + gstPct / 100);
-      }
-    }
-       // ✅ Free Delivery চেক
-    let thisTransport = 0;
-    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
-      thisTransport = 0;
-    } else {
-      thisTransport = (effectiveTransportRate * thisProductWeight) / 1000;
-    }
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
-    
-    // Benefit (Marble)
-    let paperSize = 0, actualSize = 0, extra = 0, extraPct = 0, savingsPct = 0, realRate = 0, showBenefit = false;
-    
-    if (bizType === 'marble' && mode === 'details' && size) {
-      const parsed = parseSize(size);
-      if (parsed && parsed.l > 0 && parsed.w > 0) {
-        const paperL = Math.max(0, parsed.l - (allowL / 12));
-        const paperW = Math.max(0, parsed.w - (allowW / 12));
-        paperSize = paperL * paperW * boxes * pieces;
-        actualSize = parsed.l * parsed.w * boxes * pieces;
-        extra = actualSize - paperSize;
-        if (paperSize > 0) extraPct = (extra / paperSize) * 100;
-        if (actualSize > 0) savingsPct = (extra / actualSize) * 100;
-        if (actualSize > 0) realRate = totalLanding / actualSize;
-        showBenefit = true;
-      }
-    }
+    const perBox = boxes > 0 ? totalLanding / boxes : 0;
+    const perBoxNoTax = boxes > 0 ? (totalLanding - gstAmount) / boxes : 0;
     
     // Display
     const box = document.getElementById('calc-box-' + id);
     if (!box) return;
     
-    const qtyEl = box.querySelector('.calc-qty');
-    if (qtyEl) qtyEl.innerText = `${totalQty.toFixed(2)} ${qtyUnit}`;
-    box.querySelector('.calc-pakka').innerText = '₹' + pakkaAmount.toFixed(2);
-    box.querySelector('.calc-cash').innerText = '₹' + cashAmount.toFixed(2);
-    box.querySelector('.calc-gst').innerText = '₹' + gstAmount.toFixed(2);
+    const setText = (sel, val) => {
+      let el = box.querySelector(sel) || row.querySelector(sel);
+      if (el) el.innerText = val;
+    };
     
-       const transportEl = box.querySelector('.calc-transport-share');
+    setText('.calc-qty', `${totalQty.toFixed(2)} ${qtyUnit}`);
+    setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
+    setText('.calc-cash', '₹' + cashAmount.toFixed(2));
+    setText('.calc-gst', '₹' + gstAmount.toFixed(2));
+    setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
+    setText('.calc-total', '₹' + totalLanding.toFixed(2));
+    setText('.calc-per-box', '₹' + perBox.toFixed(2));
+    setText('.calc-per-box-no-tax', '₹' + perBoxNoTax.toFixed(2));
+    setText('.calc-total-no-tax', '₹' + (totalLanding - gstAmount).toFixed(2));
+    
+    const transportEl = box.querySelector('.calc-transport-share');
     if (transportEl) {
       if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
         transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
@@ -4290,49 +4426,14 @@ if (bizType === 'marble') {
       }
     }
     
-    const extraEl = box.querySelector('.calc-extra-share');
-    if (extraEl) extraEl.innerText = '₹' + thisExtra.toFixed(2);
-    
     const shareEl = box.querySelector('.calc-weight-share');
-    if (shareEl) {
-      if (truckWeightKg > 0) {
-        shareEl.innerText = `${((thisProductWeight / truckWeightKg) * 100).toFixed(2)}% (${thisProductWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
-      } else {
-        shareEl.innerText = '⚠️ Truck weight দিন';
-      }
+    if (shareEl && truckWeightKg > 0) {
+      shareEl.innerText = `${((totalWeight / truckWeightKg) * 100).toFixed(2)}% (${totalWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
     }
     
-    box.querySelector('.calc-total').innerText = '₹' + totalLanding.toFixed(2);
-    
-    const perBoxEl = box.querySelector('.calc-per-box');
-    if (perBoxEl) perBoxEl.innerText = '₹' + (boxes > 0 ? totalLanding / boxes : 0).toFixed(2);
-    
-    const perBoxNoTaxEl = box.querySelector('.calc-per-box-no-tax');
-    if (perBoxNoTaxEl) {
-      const landingNoTax = totalLanding - gstAmount;
-      perBoxNoTaxEl.innerText = '₹' + (boxes > 0 ? landingNoTax / boxes : 0).toFixed(2);
-    }
-    
-    const benefitBox = box.querySelector('.benefit-box');
-    if (benefitBox) {
-      if (showBenefit) {
-        benefitBox.style.display = 'block';
-        box.querySelector('.calc-paper').innerText = paperSize.toFixed(2) + ' sqft';
-        box.querySelector('.calc-actual').innerText = actualSize.toFixed(2) + ' sqft';
-        box.querySelector('.calc-extra').innerText = extra.toFixed(2) + ' sqft';
-        box.querySelector('.calc-extra-pct').innerText = extraPct.toFixed(2) + '% extra';
-        box.querySelector('.calc-savings-pct').innerText = savingsPct.toFixed(2) + '% saved';
-        box.querySelector('.calc-real-rate').innerText = '₹' + realRate.toFixed(2);
-      } else {
-        benefitBox.style.display = 'none';
-      }
-    }
-    
-    // Role Rate recalc
-    recalcRoleRate(id);
-    
-    updateSummary();
-  };
+    if (typeof recalcRoleRate === 'function') recalcRoleRate(id);
+    if (typeof updateSummary === 'function') updateSummary();
+  }
   
   // ==================== ROLE RATE FALLBACK ====================
   function getCategoryRoleRates(categoryValue) {
