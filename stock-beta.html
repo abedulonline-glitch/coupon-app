@@ -213,26 +213,6 @@
   margin-top: 12px;
   font-size: 13px;
 }
-  /* ============================================================
-   INPUT FOCUS — Active Field Highlight
-   ============================================================ */
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #1a73e8 !important;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
-  background: #f0f7ff !important;
-  transition: all 0.15s;
-}
-
-/* Enter hint */
-.input-hint {
-  display: inline-block;
-  font-size: 10px;
-  color: #999;
-  margin-left: 4px;
-  opacity: 0.7;
-}
   /* Calc Box — Per Box Display */
 .calc-perbox-display {
   margin-bottom: 12px;
@@ -683,35 +663,21 @@ textarea:focus {
             <input type="date" id="purchaseDate">
           </div>
         </div>
-      <!-- ✅ Free Delivery Checkbox — Invoice ও Source এর মাঝে -->
-<div style="margin:14px 0; background:#e8f5e9; padding:14px; border-radius:10px; border-left:4px solid #4caf50;">
-  <label style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:700; color:#2e7d32; cursor:pointer; margin:0;">
-    <input type="checkbox" id="freeDeliveryCommon" 
-      onchange="handleFreeDeliveryChange()" 
-      style="width:22px; height:22px; margin:0; cursor:pointer;">
-    <span>🚚 ফ্রি ডেলিভারি (মহাজন দিচ্ছে)</span>
-  </label>
-  <div style="font-size:11px; color:#558b2f; margin-top:6px; padding-left:32px;">
-    ✅ চেক করলে পরিবহন সংক্রান্ত সব ফিল্ড লুকিয়ে যাবে
-  </div>
-</div>
-        
-       <!-- ✅ Transport Wrapper — Free Delivery হলে লুকাবে -->
-               <div id="transportSectionWrapper"> 
         
         <label>উৎস <span class="required">*</span></label>
         <div class="radio-group">
           <div class="radio-option selected" onclick="selectRadio('source', 'local', this)">🏠 Local</div>
           <div class="radio-option" onclick="selectRadio('source', 'import', this)">✈️ Import</div>
         </div>
-    <label>পরিবহন পদ্ধতি <span class="required">*</span></label>
+        
+        <label>পরিবহন পদ্ধতি <span class="required">*</span></label>
         <div class="radio-group">
           <div class="radio-option selected" onclick="selectRadio('transport', 'lorry', this)">🚛 লরি</div>
           <div class="radio-option" onclick="selectRadio('transport', 'container', this)">📦 কনটেইনার</div>
         </div>
         
                <label>পরিবহন রেট (₹/টন)</label>
-     <div id="containerGstWrapper" style="display:none; margin-top:10px; background:#e3f2fd; padding:12px; border-radius:8px; border-left:3px solid #2196f3;">
+        <div id="containerGstWrapper" style="display:none; margin-top:10px; background:#e3f2fd; padding:12px; border-radius:8px; border-left:3px solid #2196f3;">
   <label style="font-size:12px; font-weight:700; color:#1976d2; display:block; margin-bottom:6px;">
     📦 Container GST % (Tax Benefit)
   </label>
@@ -732,7 +698,7 @@ textarea:focus {
     <!-- JS দিয়ে প্রিভিউ -->
   </div>
 </div>
-        <input type="number" min="0" id="transportRate" placeholder="4800">
+        <input type="number" id="transportRate" placeholder="4800">
         
         <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
         <select id="truckWeight" onchange="updateSummary(); recalcAllProducts();">
@@ -748,13 +714,11 @@ textarea:focus {
           </optgroup>
           <option value="custom">✏️ Custom (নিজে লিখুন)</option>
         </select>
-        <input type="number" min="0" id="truckWeightCustom" placeholder="টন" step="0.01" 
+        <input type="number" id="truckWeightCustom" placeholder="টন" step="0.01" 
           style="margin-top:6px; display:none; background:#e8f0fe;"
           oninput="updateSummary(); recalcAllProducts();">
         <div class="helper">💡 এই ওজনের অনুপাতে Loading/Unloading/Insurance ভাগ হবে</div>
-     </div>
-<!-- ✅ Transport Wrapper End -->
-               </div>
+      </div>
 
       <!-- Additional Costs (Whole Bill) -->
       <div class="card">
@@ -766,22 +730,22 @@ textarea:focus {
         <div class="row-2">
           <div>
             <label>🟢 লোডিং (₹)</label>
-            <input type="number" min="0" id="loadingCost" placeholder="যেমন: 10000" style="background: #e6f4ea;">
+            <input type="number" id="loadingCost" placeholder="যেমন: 10000" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟢 আনলোডিং (₹)</label>
-            <input type="number" min="0" id="unloadingCost" placeholder="যেমন: 12000" style="background: #e6f4ea;">
+            <input type="number" id="unloadingCost" placeholder="যেমন: 12000" style="background: #e6f4ea;">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>🟢 ইন্সুরেন্স (₹)</label>
-            <input type="number" min="0" id="insuranceCost" placeholder="যেমন: 1500" style="background: #e6f4ea;">
+            <input type="number" id="insuranceCost" placeholder="যেমন: 1500" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟢 অন্যান্য (₹)</label>
-            <input type="number" min="0" id="otherPakka" placeholder="যেমন: 300" style="background: #e6f4ea;">
+            <input type="number" id="otherPakka" placeholder="যেমন: 300" style="background: #e6f4ea;">
           </div>
         </div>
         
@@ -791,7 +755,7 @@ textarea:focus {
   <span onclick="editOptionalLabel()" style="font-size:11px; color:#1a73e8; cursor:pointer; text-decoration:underline; margin-left:6px;">✏️ নাম পরিবর্তন</span>
       </label>
         <div class="optional-wrap">
-          <input type="number" min="0" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
+          <input type="number" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
           <span class="optional-icon" onclick="toggleOptional()">👁️</span>
         </div>
        <div class="optional-hint" id="optionalHint">🔒 শুধু অ্যাডমিন দেখতে পারবেন (নগদ খরচ)</div>
@@ -953,16 +917,6 @@ textarea:focus {
     </label>
     <input type="number" id="sameLotBoxes" placeholder="100" 
       style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
-    
-   <!-- ✅ Free Delivery Override (Per Product) -->
-<div style="background:#f1f8e9; padding:10px; border-radius:8px; margin-top:10px; margin-bottom:10px; border-left:3px solid #8bc34a;">
-  <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#33691e; cursor:pointer; margin:0;">
-    <input type="checkbox" class="p-free-delivery" 
-      onchange="recalcProduct(${id})" 
-      style="width:18px; height:18px; margin:0; cursor:pointer;">
-    <span>🚚 এই পণ্যটি ফ্রি ডেলিভারি</span>
-  </label>
-</div>
     
     <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
       📸 ছবি ও ভিডিও
@@ -1369,183 +1323,7 @@ textarea:focus {
     }
   };
   
-  // ============================================================
-  // FREE DELIVERY — Common + Product Level
-  // ============================================================
-  
-  // Common checkbox change
-  // ============================================================
-  // FREE DELIVERY — Hide/Show Transport Section
-  // ============================================================
-  window.handleFreeDeliveryChange = function() {
-    const commonCheck = document.getElementById('freeDeliveryCommon')?.checked || false;
-    const transportWrapper = document.getElementById('transportSectionWrapper');
-    
-    if (transportWrapper) {
-      if (commonCheck) {
-        // ✅ Free Delivery — Transport Section লুকাও
-        transportWrapper.style.display = 'none';
-        console.log('🚚 Free Delivery ON — Transport section hidden');
-      } else {
-        // ✅ Paid Delivery — Transport Section দেখাও
-        transportWrapper.style.display = 'block';
-        console.log('💰 Free Delivery OFF — Transport section shown');
-      }
-    }
-    
-    // সব Product recalc
-    if (typeof recalcAllProducts === 'function') recalcAllProducts();
-    if (typeof updateSummary === 'function') updateSummary();
-  };
-  
-  // কোনো Product ফ্রি ডেলিভারি কি না
-  window.isProductFreeDelivery = function(id) {
-    const row = document.getElementById('product-row-' + id);
-    if (!row) return false;
-    
-    // Common checked?
-    const common = document.getElementById('freeDeliveryCommon')?.checked || false;
-    
-    // Product override checked?
-    const productChk = row.querySelector('.p-free-delivery');
-    const productOverride = productChk?.checked || false;
-    
-    // Logic:
-    // - Common ON + Product OFF → Free (Common apply)
-    // - Common ON + Product ON → Free
-    // - Common OFF + Product ON → Free (only this)
-    // - Common OFF + Product OFF → Not Free
-    
-    if (common) {
-      // Common ON — চেক করি Product override বন্ধ করেছে কি না
-      // (এই মুহূর্তে Simple — Common ON মানে সব Free)
-      return true;
-    }
-    
-    return productOverride;
-  };
-  
-  console.log('✅ Free Delivery Functions loaded');
-  
    // ============================================================
-  // ENTER → NEXT FIELD NAVIGATION
-  // ============================================================
-  document.addEventListener('keydown', (e) => {
-    // শুধু Enter কী
-    if (e.key !== 'Enter') return;
-    
-    const target = e.target;
-    if (!target) return;
-    
-    // শুধু input/select/textarea
-    if (!['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
-    
-    // textarea হলে Enter কাজ করবে না (নতুন লাইন হবে)
-    if (target.tagName === 'TEXTAREA') return;
-    
-    // Checkbox/radio হলে Space/Click দিয়ে কাজ হবে
-    if (target.type === 'checkbox' || target.type === 'radio') return;
-    
-    e.preventDefault();
-    
-    // একই Row-এর সব input/select/textarea খুঁজি
-    const row = target.closest('.product-row') || target.closest('.card') || document.body;
-    
-    if (!row) return;
-    
-    const allInputs = Array.from(row.querySelectorAll(
-      'input:not([type="hidden"]):not([disabled]):not([readonly]), ' +
-      'select:not([disabled]), ' +
-      'textarea:not([disabled])'
-    )).filter(el => {
-      // দৃশ্যমান কিনা চেক
-      return el.offsetParent !== null;
-    });
-    
-    const currentIndex = allInputs.indexOf(target);
-    
-    if (currentIndex >= 0 && currentIndex < allInputs.length - 1) {
-      // পরের field-এ ফোকাস
-      const nextField = allInputs[currentIndex + 1];
-      nextField.focus();
-      
-      // Number input হলে text select
-      if (nextField.tagName === 'INPUT' && (nextField.type === 'number' || nextField.type === 'text')) {
-        setTimeout(() => nextField.select?.(), 50);
-      }
-      
-      console.log(`⏎ Enter → Next field`);
-    }
-  });
-  
-  console.log('✅ Enter Navigation loaded'); 
-  
-  // ============================================================
-  // NEGATIVE ENTRY BLOCKER
-  // ============================================================
-  document.addEventListener('input', (e) => {
-    const target = e.target;
-    if (!target) return;
-    
-    // শুধু numeric input
-    if (target.type !== 'number') return;
-    
-    const val = target.value;
-    
-    // যদি negative হয়
-    if (val && (val.startsWith('-') || parseFloat(val) < 0)) {
-      // সাথে সাথে positive করে দাও
-      const positiveVal = Math.abs(parseFloat(val));
-      target.value = isNaN(positiveVal) ? '' : positiveVal;
-      
-      // সতর্কতা flash
-      target.style.transition = 'all 0.3s';
-      target.style.background = '#ffcdd2';
-      setTimeout(() => {
-        target.style.background = '';
-        target.style.transition = '';
-      }, 400);
-      
-      console.log('⚠️ Negative value blocked:', val);
-    }
-  });
-  
-  // ✅ Paste-এও ব্লক
-  document.addEventListener('paste', (e) => {
-    const target = e.target;
-    if (!target || target.type !== 'number') return;
-    
-    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-    if (pastedText && parseFloat(pastedText) < 0) {
-      e.preventDefault();
-      target.value = Math.abs(parseFloat(pastedText));
-      console.log('⚠️ Negative paste blocked');
-    }
-  });
-  
-  console.log('✅ Negative Blocker loaded');
-  
-   // ✅ text-type numeric fields-এর জন্য
-  document.addEventListener('input', (e) => {
-    const target = e.target;
-    if (!target) return;
-    
-    // যে ফিল্ডে numeric মান প্রত্যাশিত
-    const numericClasses = [
-      'd-l', 'd-w', 'd-qty', 'd-al', 'd-aw',
-      'p-weight', 'p-pieces', 'p-boxes', 'p-pakka', 'p-optional', 'p-sqft',
-      'p-qty', 'p-wt-sqft', 'p-allow-l', 'p-allow-w'
-    ];
-    
-    const hasNumericClass = numericClasses.some(cls => target.classList.contains(cls));
-    if (!hasNumericClass) return;
-    
-    const val = target.value;
-    if (val && val.startsWith('-')) {
-      target.value = val.replace(/^-+/, '');
-    }
-  });
-  // ============================================================
   // CONTAINER GST — Show/Hide + Preview
   // ============================================================
   window.handleContainerGstChange = function() {
@@ -1816,12 +1594,7 @@ window.selectRadio = function(groupName, value, el) {
           updateSummary();
         }
       }
-               // ✅ Free Delivery Initial Check
-      if (typeof handleFreeDeliveryChange === 'function') {
-        handleFreeDeliveryChange();
-      }  
-      
-  // ✅ Truck Weight dropdown ফিল্টার — Default Lorry
+            // ✅ Truck Weight dropdown ফিল্টার — Default Lorry
       setTimeout(() => {
         if (typeof updateTruckWeightOptions === 'function') {
           updateTruckWeightOptions('lorry');
@@ -2375,11 +2148,11 @@ function checkRowHasData(id) {
             </thead>
             <tbody>
               <tr>
-                <td><input type="number" min="0" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
-                <td><input type="number" min="0" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
-                <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                <td><input type="number" min="0" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
+                <td><input type="number" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td><input type="number" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
+                <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
               </tr>
             </tbody>
           </table>
@@ -2401,15 +2174,15 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             <label style="font-size:11px;">ওজন/sqft (kg)</label>
-            <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-            <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
           </div>
           <div>
             <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-            <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
           </div>
         </div>
       </div>
@@ -2459,15 +2232,15 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             ওজন/sqft (kg)</label>
-            <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             🟢 পাকা রেট/sqft</label>
-            <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
           </div>
           <div>
             <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-            <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
           </div>
         </div>
       </div>
@@ -2497,32 +2270,32 @@ function checkRowHasData(id) {
         </div>
         <div>
           <label>পিস/বক্স</label>
-          <input type="number" min="0" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
+          <input type="number" class="p-pieces" placeholder="2" value="1" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>sqft/বক্স</label>
-          <input type="number" min="0" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" class="p-sqft" placeholder="15.55" step="0.01" oninput="recalcProduct(${id})">
         </div>
       </div>
       
       <div class="row-3">
         <div>
           <label>ওজন/বক্স (kg)</label>
-          <input type="number" min="0" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>বক্স</label>
-          <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label style="font-size:11px;">🟢 পাকা রেট <span class="rate-unit">/sqft</span></label>
-          <input type="number" min="0" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          <input type="number" class="p-pakka" placeholder="15" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
         </div>
       </div>
       
      <label style="font-size:11px;">🟡 Cash রেট <span class="rate-unit">/sqft</span></label>
       <div class="optional-wrap">
-        <input type="number" min="0" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+        <input type="number" class="p-optional" placeholder="12" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
       </div>
       
       ${getCalcBox(id)}
@@ -2544,28 +2317,28 @@ function checkRowHasData(id) {
         </div>
         <div>
           <label>পিস/বক্স</label>
-          <input type="number" min="0" class="p-pieces" placeholder="12" value="1" oninput="recalcProduct(${id})">
+          <input type="number" class="p-pieces" placeholder="12" value="1" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>ওজন/বক্স (kg)</label>
-          <input type="number" min="0" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
         </div>
       </div>
       
       <div class="row-2">
         <div>
           <label>বক্স</label>
-          <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+          <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
           <label>🟢 পাকা রেট</label>
-          <input type="number" min="0" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
         </div>
       </div>
       
       <label>🟡 Cash রেট 🔒</label>
       <div class="optional-wrap">
-        <input type="number" min="0" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+        <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
       </div>
       
       ${getCalcBox(id)}
@@ -2820,11 +2593,11 @@ function checkRowHasData(id) {
               </thead>
               <tbody id="simple-tbody-${id}">
                 <tr>
-                  <td><input type="number" min="0" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
-                  <td><input type="number" min="0" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
-                  <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                  <td class="allow-cell" style="display:none;"><input type="number" min="0" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                  <td><input type="number" min="0" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td><input type="number" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
                 </tr>
               </tbody>
             </table>
@@ -2833,15 +2606,15 @@ function checkRowHasData(id) {
           <div class="row-3" style="margin-top:12px;">
             <div>
               <label style="font-size:11px;">ওজন/sqft (kg)</label>
-              <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
             </div>
             <div>
               <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-              <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
             </div>
             <div>
               <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
             </div>
           </div>
           
@@ -2891,15 +2664,15 @@ function checkRowHasData(id) {
           <div class="row-3" style="margin-top:12px;">
             <div>
               <label style="font-size:11px;">ওজন/sqft (kg)</label>
-              <input type="number" min="0" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
             </div>
             <div>
               <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-              <input type="number" min="0" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+              <input type="number" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
             </div>
             <div>
               <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" min="0" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+              <input type="number" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
             </div>
           </div>
           
@@ -2966,14 +2739,6 @@ function checkRowHasData(id) {
   
   // ✅ Page load-এ সব icon-এ event listener যোগ
   document.addEventListener('DOMContentLoaded', () => {
-        // ✅ Mobile Keyboard — Next button hint
-    setTimeout(() => {
-      document.querySelectorAll('input, select, textarea').forEach(el => {
-        if (!el.hasAttribute('enterkeyhint')) {
-          el.setAttribute('enterkeyhint', 'next');
-        }
-      });
-    }, 800);
     setTimeout(() => {
       document.querySelectorAll('.allow-info-icon').forEach(icon => {
         icon.addEventListener('click', function(e) {
@@ -3107,15 +2872,15 @@ function checkRowHasData(id) {
     
     const rowHtml = `
       <tr data-row-id="${rowNum}">
-        <td><input type="number" min="0" class="d-l" placeholder="60" step="0.01" value="${prefillL}" oninput="recalcProduct(${productId})"></td>
-        <td><input type="number" min="0" class="d-w" placeholder="48" step="0.01" value="${prefillW}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" class="d-l" placeholder="60" step="0.01" value="${prefillL}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" class="d-w" placeholder="48" step="0.01" value="${prefillW}" oninput="recalcProduct(${productId})"></td>
         <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
-          <input type="number" min="0" class="d-al" placeholder="6" step="0.01" value="${prefillAL}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
+          <input type="number" class="d-al" placeholder="6" step="0.01" value="${prefillAL}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
         </td>
         <td class="allow-cell" style="display:${allowChecked ? 'table-cell' : 'none'};">
-          <input type="number" min="0" class="d-aw" placeholder="3" step="0.01" value="${prefillAW}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
+          <input type="number" class="d-aw" placeholder="3" step="0.01" value="${prefillAW}" oninput="recalcProduct(${productId})" style="background:#fff3e0;">
         </td>
-        <td><input type="number" min="0" class="d-qty" placeholder="10" value="${prefillQty}" oninput="recalcProduct(${productId})"></td>
+        <td><input type="number" class="d-qty" placeholder="10" value="${prefillQty}" oninput="recalcProduct(${productId})"></td>
         <td style="text-align:center;">
           <button type="button" onclick="removeDetailRow(${productId}, this)" 
             style="padding:4px 8px; background:#d93025; color:white; border:none; border-radius:4px; font-size:11px; cursor:pointer;">
@@ -3274,18 +3039,18 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>ওজন/বক্স (kg)</label>
-            <input type="number" min="0" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-3">
           <div>
             <label>বক্স</label>
-            <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" min="0" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>MRP</label>
@@ -3295,7 +3060,7 @@ function checkRowHasData(id) {
         
         <label>🟡 Cash রেট</label>
         <div class="optional-wrap">
-          <input type="number" min="0" class="p-optional" placeholder="20" step="0.01" oninput="recalcProduct(${id})">
+          <input type="number" class="p-optional" placeholder="20" step="0.01" oninput="recalcProduct(${id})">
           <span class="optional-icon" onclick="toggleOptional()">👁️</span>
         </div>
         
@@ -3322,27 +3087,27 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             <label>পরিমাণ/প্যাক</label>
-            <input type="number" min="0" class="p-qty" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-qty" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>মোট প্যাক</label>
-            <input type="number" min="0" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+            <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>ওজন/প্যাক (kg)</label>
-            <input type="number" min="0" class="p-weight" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-weight" placeholder="1" step="0.01" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" min="0" class="p-pakka" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="50" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" min="0" class="p-optional" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" class="p-optional" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3378,15 +3143,15 @@ function checkRowHasData(id) {
         <div class="row-3">
           <div>
             <label>পিস</label>
-            <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>ওজন/পিস (kg)</label>
-            <input type="number" min="0" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-weight" placeholder="0.5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" min="0" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
         </div>
         
@@ -3398,7 +3163,7 @@ function checkRowHasData(id) {
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" min="0" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3423,23 +3188,23 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>পরিমাণ</label>
-            <input type="number" min="0" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
+            <input type="number" class="p-boxes" placeholder="50" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" min="0" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="150" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>ওজন/পোর্শন (kg)</label>
-            <input type="number" min="0" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" min="0" class="p-optional" placeholder="10" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" class="p-optional" placeholder="10" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3475,18 +3240,18 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>পিস</label>
-            <input type="number" min="0" class="p-boxes" placeholder="10" oninput="recalcProduct(${id})">
+            <input type="number" class="p-boxes" placeholder="10" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>ওজন/পিস (kg)</label>
-            <input type="number" min="0" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-weight" placeholder="0.3" step="0.01" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-3">
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" min="0" class="p-pakka" placeholder="15000" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="15000" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>MRP</label>
@@ -3495,7 +3260,7 @@ function checkRowHasData(id) {
           <div>
             <label>🟡 Cash</label>
             <div class="optional-wrap">
-              <input type="number" min="0" class="p-optional" placeholder="500" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" class="p-optional" placeholder="500" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -3520,23 +3285,23 @@ function checkRowHasData(id) {
           </div>
           <div>
             <label>ওজন/বক্স (kg)</label>
-            <input type="number" min="0" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
+            <input type="number" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
             <label>বক্স</label>
-            <input type="number" min="0" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
+            <input type="number" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
         </div>
         
         <div class="row-2">
           <div>
             <label>🟢 পাকা রেট</label>
-            <input type="number" min="0" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
+            <input type="number" class="p-pakka" placeholder="500" step="0.01" oninput="recalcProduct(${id})" style="background: #e6f4ea;">
           </div>
           <div>
             <label>🟡 Cash রেট</label>
             <div class="optional-wrap">
-              <input type="number" min="0" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
+              <input type="number" class="p-optional" placeholder="50" step="0.01" oninput="recalcProduct(${id})">
               <span class="optional-icon" onclick="toggleOptional()">👁️</span>
             </div>
           </div>
@@ -4082,13 +3847,7 @@ function checkRowHasData(id) {
         effectiveTransportRate = transportRate / (1 + gstPct / 100);
       }
     }
-       // ✅ Free Delivery চেক
-    let thisTransport = 0;
-    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
-      thisTransport = 0;
-    } else {
-      thisTransport = (effectiveTransportRate * thisProductWeight) / 1000;
-    }
+    const thisTransport = (effectiveTransportRate * thisProductWeight) / 1000;
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
     // Benefit (Marble)
@@ -4119,14 +3878,8 @@ function checkRowHasData(id) {
     box.querySelector('.calc-cash').innerText = '₹' + cashAmount.toFixed(2);
     box.querySelector('.calc-gst').innerText = '₹' + gstAmount.toFixed(2);
     
-       const transportEl = box.querySelector('.calc-transport-share');
-    if (transportEl) {
-      if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
-        transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
-      } else {
-        transportEl.innerText = '₹' + thisTransport.toFixed(2);
-      }
-    }
+    const transportEl = box.querySelector('.calc-transport-share');
+    if (transportEl) transportEl.innerText = '₹' + thisTransport.toFixed(2);
     
     const extraEl = box.querySelector('.calc-extra-share');
     if (extraEl) extraEl.innerText = '₹' + thisExtra.toFixed(2);
@@ -4740,13 +4493,7 @@ function checkRowHasData(id) {
         effectiveTransportRate = transportRate / (1 + gstPct / 100);
       }
     }
-        // ✅ Free Delivery চেক
-    let thisTransport = 0;
-    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
-      thisTransport = 0;
-    } else {
-      thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
-    }
+    const thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
     
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
     
@@ -4790,14 +4537,7 @@ function checkRowHasData(id) {
     setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
     setText('.calc-cash', '₹' + cashAmount.toFixed(2));
     setText('.calc-gst', '₹' + gstAmount.toFixed(2));
-       if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
-      const transportEl = box.querySelector('.calc-transport-share');
-      if (transportEl) {
-        transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
-      }
-    } else {
-      setText('.calc-transport-share', '₹' + thisTransport.toFixed(2));
-    }
+    setText('.calc-transport-share', '₹' + thisTransport.toFixed(2));
     setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
     setText('.calc-total', '₹' + totalLanding.toFixed(2));
         // ✅ Landing without Tax
