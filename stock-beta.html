@@ -4312,6 +4312,16 @@ function checkRowHasData(id) {
     }
     
     if (typeof recalcRoleRate === 'function') recalcRoleRate(id);
+       console.log('🔍 Marble Debug:', {
+      totalPaper,
+      totalActual,
+      wtPerSqft,
+      paperWeightForTransport,
+      totalWeight,
+      transportRate,
+      effectiveTransportRate,
+      thisTransport
+    });
     if (typeof updateSummary === 'function') updateSummary();
   }
   
