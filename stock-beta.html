@@ -4785,6 +4785,8 @@ function checkRowHasData(id) {
     const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
     const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
     const wtPerSqft = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
+        // ✅ Marble-এ totalWeight = totalActual × wtPerSqft
+    const marbleTotalWeight = totalActual * wtPerSqft;
     
     let gstPct = 0;
     const gstSel = row.querySelector('.p-gst');
@@ -4796,7 +4798,7 @@ function checkRowHasData(id) {
     // ✅ Extra cost-এর জন্য Actual weight
     const actualWeightForExtra = totalActual * wtPerSqft;
     // Display-এ ব্যবহারের জন্য
-    const totalWeight = actualWeightForExtra;
+     const totalWeight = totalActual * wtPerSqft;
     
     const pakkaAmount = totalPaper * pakkaRate;
     const cashAmount = totalPaper * cashRate;
