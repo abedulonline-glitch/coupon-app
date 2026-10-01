@@ -1400,33 +1400,26 @@ textarea:focus {
   };
   
   // কোনো Product ফ্রি ডেলিভারি কি না
-  window.isProductFreeDelivery = function(id) {
-    const row = document.getElementById('product-row-' + id);
-    if (!row) return false;
-    
-    // Common checked?
-    const common = document.getElementById('freeDeliveryCommon')?.checked || false;
-    
-    // Product override checked?
-    const productChk = row.querySelector('.p-free-delivery');
-    const productOverride = productChk?.checked || false;
-    
-    // Logic:
-    // - Common ON + Product OFF → Free (Common apply)
-    // - Common ON + Product ON → Free
-    // - Common OFF + Product ON → Free (only this)
-    // - Common OFF + Product OFF → Not Free
-    
-    if (common) {
-      // Common ON — চেক করি Product override বন্ধ করেছে কি না
-      // (এই মুহূর্তে Simple — Common ON মানে সব Free)
-      return true;
-    }
-    
-    return productOverride;
-  };
+window.isProductFreeDelivery = function(id) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return false;
   
-  console.log('✅ Free Delivery Functions loaded');
+  // Common checkbox
+  const common = document.getElementById('freeDeliveryCommon')?.checked || false;
+  
+  // Product override checkbox
+  const productChk = row.querySelector('.p-free-delivery');
+  const productOverride = productChk?.checked || false;
+  
+  // Logic:
+  // Common ON → সব Free
+  // Common OFF + Product ON → শুধু এই Product Free
+  // Common OFF + Product OFF → Not Free
+  
+  return common || productOverride;
+};
+  
+ // console.log('✅ Free Delivery Functions loaded');
   
    // ============================================================
   // ENTER → NEXT FIELD NAVIGATION
@@ -1673,19 +1666,34 @@ textarea:focus {
   };
   
   // Container সিলেক্ট করা কি না
-  window.isContainerTransport = function() {
-    // transport radio এর selected value থেকে
-    const transportGroup = document.querySelectorAll('input[type="hidden"][name="transport"]');
-    // অথবা সরাসরি radio থেকে
-    const radios = document.querySelectorAll('.radio-group');
-    for (const group of radios) {
+window.isContainerTransport = function() {
+  // ✅ Transport radio group সরাসরি খুঁজি
+  const transportRadios = document.querySelectorAll('input[name="transport"], .transport-radio');
+  
+  // যদি name="transport" থাকে
+  for (const radio of transportRadios) {
+    if (radio.checked && radio.value === 'container') return true;
+  }
+  
+  // অথবা selected radio-তে "লরি/কনটেইনার" দুটোর মধ্যে একটি
+  const allGroups = document.querySelectorAll('.radio-group');
+  for (const group of allGroups) {
+    const options = group.querySelectorAll('.radio-option');
+    const texts = Array.from(options).map(o => o.innerText.toLowerCase()).join(' ');
+    
+    // শুধু সেই group চেক করি যাতে "লরি" ও "কনটেইনার" শব্দ দুটোই আছে
+    if (texts.includes('লরি') || texts.includes('lorry')) {
       const selected = group.querySelector('.radio-option.selected');
-      if (selected && selected.innerText.toLowerCase().includes('container')) {
-        return true;
+      if (selected) {
+        const selText = selected.innerText.toLowerCase();
+        return selText.includes('container') || selText.includes('কনটেইনার');
       }
+      return false;
     }
-    return false;
-  };
+  }
+  
+  return false;
+}; 
   
   // Container GST Preview — Common Info-তে
   function updateContainerGstPreview() {
@@ -4190,11 +4198,18 @@ window.selectRating = function(id, type, el) {
       if (cGst > 0) effectiveTransportRate = transportRate / (1 + cGst / 100);
     }
     
+       // ✅ Free Delivery চেক
     let thisTransport = 0;
-    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+    const isFreeDelivery = typeof isProductFreeDelivery === 'function' 
+      ? isProductFreeDelivery(id) 
+      : false;
+    
+    if (isFreeDelivery) {
       thisTransport = 0;
+      console.log(`🚚 Marble #${id}: Free Delivery — Transport = 0`);
     } else {
       thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
+      console.log(`💰 Marble #${id}: Transport = ₹${thisTransport.toFixed(2)} (Paper Weight: ${paperWeightForTransport} kg × ₹${effectiveTransportRate}/টন)`);
     }
     
     // Extra
@@ -4206,9 +4221,11 @@ window.selectRating = function(id, type, el) {
     const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
     
     const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
+        // ✅ Extra খরচ (ওজনের অনুপাতে)
     let thisExtra = 0;
-    if (truckWeightKg > 0) {
+    if (truckWeightKg > 0 && totalExtraLump > 0) {
       thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
+      console.log(`💰 Marble #${id}: Extra = ₹${thisExtra.toFixed(2)} (${totalExtraLump} / ${truckWeightKg} × ${totalWeight})`);
     }
     
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
@@ -4325,11 +4342,18 @@ window.selectRating = function(id, type, el) {
       if (cGst > 0) effectiveTransportRate = transportRate / (1 + cGst / 100);
     }
     
+       // ✅ Free Delivery চেক
     let thisTransport = 0;
-    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+    const isFreeDelivery = typeof isProductFreeDelivery === 'function' 
+      ? isProductFreeDelivery(id) 
+      : false;
+    
+    if (isFreeDelivery) {
       thisTransport = 0;
+      console.log(`🚚 Marble #${id}: Free Delivery — Transport = 0`);
     } else {
-      thisTransport = (effectiveTransportRate * totalWeight) / 1000;
+      thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
+      console.log(`💰 Marble #${id}: Transport = ₹${thisTransport.toFixed(2)} (Paper Weight: ${paperWeightForTransport} kg × ₹${effectiveTransportRate}/টন)`);
     }
     
     // Extra
@@ -4341,9 +4365,11 @@ window.selectRating = function(id, type, el) {
     const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
     
     const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
+        // ✅ Extra খরচ (ওজনের অনুপাতে)
     let thisExtra = 0;
-    if (truckWeightKg > 0) {
+    if (truckWeightKg > 0 && totalExtraLump > 0) {
       thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
+      console.log(`💰 Marble #${id}: Extra = ₹${thisExtra.toFixed(2)} (${totalExtraLump} / ${truckWeightKg} × ${totalWeight})`);
     }
     
     const totalLanding = pakkaCashGst + thisExtra + thisTransport;
