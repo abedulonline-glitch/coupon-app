@@ -1667,14 +1667,20 @@ button {
       const pl = document.getElementById('productsList');
       if (pl) pl.innerHTML = '';
       
-      await saveBusinessType(type);
+            await saveBusinessType(type);
       
       if (typeof loadCategories === 'function') {
         await loadCategories(type);
       }
       
-      if (typeof updateTruckWeightOptions === 'function') {
-        updateTruckWeightOptions('lorry');
+      // ✅ Add first product row
+      if (typeof addProductRow === 'function' && productCount === 0) {
+        addProductRow();
+      }
+      
+      // ✅ Initialize Truck Weight + Free Delivery
+      if (typeof _initializeStockApp === 'function') {
+        await _initializeStockApp();
       }
       
       console.log('✅ Business selected:', type);
@@ -2119,26 +2125,20 @@ button {
         document.getElementById('topbarTitle').innerText = '📦 ' + currentBizTypeName;
         updateBizTypeBadge();
         
-        if (typeof loadCategories === 'function') {
+                if (typeof loadCategories === 'function') {
           await loadCategories(currentBizType);
         }
         
-        if (typeof loadRoleDefaults === 'function') {
-          await loadRoleDefaults();
+        // Add first product row
+        if (typeof addProductRow === 'function' && productCount === 0) {
+          addProductRow();
         }
       }
       
-      // Free Delivery Initial Check
-      if (typeof handleFreeDeliveryChange === 'function') {
-        handleFreeDeliveryChange();
+      // ✅ Initialize Stock App (সব setup)
+      if (typeof _initializeStockApp === 'function') {
+        await _initializeStockApp();
       }
-      
-      // Truck Weight default Lorry
-      setTimeout(() => {
-        if (typeof updateTruckWeightOptions === 'function') {
-          updateTruckWeightOptions('lorry');
-        }
-      }, 200);
       
       console.log('✅ Auth ready. Admin:', adminData.companyName || adminData.name);
       
@@ -3942,4 +3942,417 @@ console.log('✅ Part 2 loaded');
   });
 
   console.log('✅ Part 4 loaded — CALCULATION ENGINE ready'); 
+ 
+    // ============================================================
+  // STOCK MANAGEMENT v2 — PART 5: ROLE SECTION + SETTINGS + VAULT
+  // ============================================================
+  
+  console.log('🚀 Stock v2 loading... Part 5 — FINAL');
+
+  // ==================== ROLE RATES SECTION HTML ====================
+  function getRoleRatesSection(id) {
+    let rowsHtml = '';
+    ROLE_CONFIG.forEach(role => {
+      rowsHtml += `
+        <div class="role-row">
+          <span class="role-label" style="color:${role.color};">${role.label}</span>
+          <input type="number" class="p-role-input" data-role="${role.id}" 
+            placeholder="₹" step="0.01" 
+            oninput="recalcRoleRate(${id})">
+          <span class="role-preview" data-preview="${role.id}">—</span>
+        </div>
+      `;
+    });
+    
+    return `
+      <div class="role-rates-section" data-row-id="${id}">
+        <div class="role-rates-header" onclick="toggleRoleRates(${id})">
+          <span>🎯 Role Rates (গ্রাহকের রেট)</span>
+          <span class="role-arrow" id="role-arrow-${id}">▼</span>
+        </div>
+        <div class="role-rates-body" id="role-body-${id}">
+          <div class="role-landing-info">
+            💡 Landing Cost: <b class="role-landing-amount">₹0</b> 
+            <br>
+            <span style="font-size:10px;">খালি রাখলে Global % ব্যবহার হবে</span>
+          </div>
+          ${rowsHtml}
+          <button type="button" onclick="autoFillRoleRates(${id})" class="role-autofill-btn">
+            ⚡ Global % থেকে Auto-fill
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  window.toggleRoleRates = function(id) {
+    const body = document.getElementById('role-body-' + id);
+    const arrow = document.getElementById('role-arrow-' + id);
+    if (!body || !arrow) return;
+    
+    if (body.classList.contains('open')) {
+      body.classList.remove('open');
+      arrow.classList.remove('open');
+    } else {
+      body.classList.add('open');
+      arrow.classList.add('open');
+    }
+  };
+
+  // ==================== OVERRIDE addProductRow (Inject Role Section) ====================
+  const _originalAddProductRow = window.addProductRow;
+  window.addProductRow = function() {
+    _originalAddProductRow();
+    
+    const row = document.getElementById('product-row-' + productCount);
+    if (row) {
+      const imageSection = row.querySelector('.image-upload-section');
+      if (imageSection) {
+        imageSection.insertAdjacentHTML('beforebegin', getRoleRatesSection(productCount));
+      }
+    }
+  };
+
+  // ==================== OVERRIDE addSameLotItem (Inject Role Section) ====================
+  const _originalAddSameLotItem = window.addSameLotItem;
+  window.addSameLotItem = function() {
+    _originalAddSameLotItem();
+    
+    const newId = productCount;
+    const row = document.getElementById('product-row-' + newId);
+    if (row && !row.querySelector('.role-rates-section')) {
+      const imageSection = row.querySelector('.image-upload-section');
+      if (imageSection) {
+        imageSection.insertAdjacentHTML('beforebegin', getRoleRatesSection(newId));
+      }
+    }
+  };
+
+  // ==================== ROLE DEFAULTS LOAD ====================
+  async function loadSuperRoleDefaults() {
+    try {
+      const snap = await getDoc(doc(db, "super_settings", "role_defaults"));
+      if (snap.exists()) {
+        const data = snap.data();
+        superRoleDefaults = {
+          stocker: data.stocker ?? 5,
+          wholesaler: data.wholesaler ?? 10,
+          retailer: data.retailer ?? 15,
+          consumer: data.consumer ?? 20,
+          mistri: data.mistri ?? 25
+        };
+      }
+      updateSuperDefaultsDisplay();
+    } catch (e) {
+      console.log('Super defaults load error:', e);
+      updateSuperDefaultsDisplay();
+    }
+  }
+
+  function updateSuperDefaultsDisplay() {
+    const el = document.getElementById('superDefaultsDisplay');
+    if (el) {
+      el.innerText = `Stocker ${superRoleDefaults.stocker}% · Whole ${superRoleDefaults.wholesaler}% · Retail ${superRoleDefaults.retailer}% · Consumer ${superRoleDefaults.consumer}% · Mistri ${superRoleDefaults.mistri}%`;
+    }
+  }
+
+  async function loadAdminRoleDefaults() {
+    if (!adminId) return;
+    try {
+      const snap = await getDoc(doc(db, "admins", adminId));
+      if (snap.exists()) {
+        const data = snap.data();
+        const rd = data.roleDefaults;
+        if (rd) {
+          adminUseSuperDefaults = rd.useSuperAdmin !== false;
+          adminRoleDefaults = {
+            stocker: rd.stocker ?? 5,
+            wholesaler: rd.wholesaler ?? 10,
+            retailer: rd.retailer ?? 15,
+            consumer: rd.consumer ?? 20,
+            mistri: rd.mistri ?? 25
+          };
+        } else {
+          adminUseSuperDefaults = true;
+        }
+      }
+    } catch (e) {
+      console.log('Admin role defaults load error:', e);
+    }
+  }
+
+  async function loadRoleDefaults() {
+    await loadSuperRoleDefaults();
+    await loadAdminRoleDefaults();
+    console.log('✅ Role defaults ready');
+  }
+
+  window.onToggleSuperDefaults = function() {
+    const chk = document.getElementById('useSuperAdminRolePct');
+    const inputs = document.getElementById('adminRolePctInputs');
+    if (!chk || !inputs) return;
+    inputs.style.display = chk.checked ? 'none' : 'block';
+  };
+
+  window.saveRoleDefaults = async function() {
+    if (!adminId) return;
+    
+    const statusEl = document.getElementById('roleDefaultsStatus');
+    const chk = document.getElementById('useSuperAdminRolePct');
+    const useSuper = chk ? chk.checked : true;
+    
+    const roleDefaults = {
+      useSuperAdmin: useSuper,
+      stocker: parseFloat(document.getElementById('adminPctStocker')?.value) || 5,
+      wholesaler: parseFloat(document.getElementById('adminPctWholesaler')?.value) || 10,
+      retailer: parseFloat(document.getElementById('adminPctRetailer')?.value) || 15,
+      consumer: parseFloat(document.getElementById('adminPctConsumer')?.value) || 20,
+      mistri: parseFloat(document.getElementById('adminPctMistri')?.value) || 25
+    };
+    
+    if (statusEl) statusEl.innerHTML = '<div style="color:#666; font-size:12px;">⏳ সেভ হচ্ছে...</div>';
+    
+    try {
+      await updateDoc(doc(db, "admins", adminId), {
+        roleDefaults: roleDefaults,
+        roleDefaultsUpdatedAt: serverTimestamp()
+      });
+      
+      adminUseSuperDefaults = useSuper;
+      adminRoleDefaults = {
+        stocker: roleDefaults.stocker,
+        wholesaler: roleDefaults.wholesaler,
+        retailer: roleDefaults.retailer,
+        consumer: roleDefaults.consumer,
+        mistri: roleDefaults.mistri
+      };
+      
+      if (statusEl) statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ সেভ হয়েছে!</div>';
+      
+      document.querySelectorAll('.product-row').forEach(row => {
+        const id = row.id.replace('product-row-', '');
+        recalcRoleRate(parseInt(id));
+      });
+      
+      setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 2500);
+    } catch (e) {
+      console.error(e);
+      if (statusEl) statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">❌ ' + e.message + '</div>';
+    }
+  };
+
+  // ==================== STOCK SETTINGS ====================
+  window.openStockSettings = async function() {
+    document.getElementById('stockSettingsModal').style.display = 'block';
+    
+    if (typeof loadRoleDefaults === 'function') {
+      await loadRoleDefaults();
+    }
+    
+    updateStockSettings();
+  };
+
+  window.closeStockSettings = function() {
+    document.getElementById('stockSettingsModal').style.display = 'none';
+  };
+
+  function updateStockSettings() {
+    const bizEl = document.getElementById('settingsBizType');
+    if (bizEl) bizEl.innerText = currentBizTypeName || '-';
+    
+    const companyEl = document.getElementById('settingsCompanyName');
+    if (companyEl) companyEl.innerText = adminData?.companyName || '-';
+    
+    const adminEl = document.getElementById('settingsAdminName');
+    if (adminEl) adminEl.innerText = adminData?.name || '-';
+    
+    const vaultStatus = document.getElementById('vaultStatus');
+    const hasVault = localStorage.getItem('stock_vault_password');
+    if (vaultStatus) {
+      if (hasVault) {
+        vaultStatus.style.background = '#e6f4ea';
+        vaultStatus.style.color = '#0f9d58';
+        vaultStatus.innerText = '✅ Vault Password সেট করা আছে';
+      } else {
+        vaultStatus.style.background = '#fef7e0';
+        vaultStatus.style.color = '#b06000';
+        vaultStatus.innerText = '⚠️ এখনো Vault Password সেট করা হয়নি';
+      }
+    }
+    
+    const chk = document.getElementById('useSuperAdminRolePct');
+    if (chk) {
+      chk.checked = adminUseSuperDefaults;
+      if (typeof onToggleSuperDefaults === 'function') onToggleSuperDefaults();
+    }
+    
+    ['stocker', 'wholesaler', 'retailer', 'consumer', 'mistri'].forEach(role => {
+      const el = document.getElementById('adminPct' + role.charAt(0).toUpperCase() + role.slice(1));
+      if (el) el.value = adminRoleDefaults[role];
+    });
+    
+    if (typeof updateSuperDefaultsDisplay === 'function') updateSuperDefaultsDisplay();
+  }
+
+  // ==================== VAULT PASSWORD ====================
+  window.openVaultPasswordSetup = function() {
+    document.getElementById('vaultSetupModal').style.display = 'block';
+    document.getElementById('vaultSaveStatus').innerHTML = '';
+    const savedPhone = localStorage.getItem('stock_vault_phone') || '';
+    document.getElementById('vaultPhone').value = savedPhone;
+    previewVaultPassword();
+  };
+
+  window.closeVaultSetup = function() {
+    document.getElementById('vaultSetupModal').style.display = 'none';
+  };
+
+  window.previewVaultPassword = function() {
+    const method = document.getElementById('vaultMethod').value;
+    const phone = document.getElementById('vaultPhone').value.trim();
+    const customWrap = document.getElementById('vaultCustomWrap');
+    const preview = document.getElementById('vaultPreview');
+    
+    if (method === 'custom') {
+      customWrap.style.display = 'block';
+      preview.innerText = '🔒 কাস্টম পাসওয়ার্ড ব্যবহার করুন';
+      return;
+    }
+    customWrap.style.display = 'none';
+    
+    if (!phone || phone.length < 4) {
+      preview.innerText = '🔒 ফোন নাম্বার দিন';
+      return;
+    }
+    
+    let password = '';
+    if (method === 'last4') password = phone.slice(-4);
+    else if (method === 'last6') password = phone.slice(-6);
+    else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+    else if (method === 'first4') password = phone.slice(0, 4);
+    
+    preview.innerHTML = `🔒 পাসওয়ার্ড: <b>${password}</b>`;
+  };
+
+  window.saveVaultPassword = async function() {
+    const phone = document.getElementById('vaultPhone').value.trim();
+    const method = document.getElementById('vaultMethod').value;
+    const status = document.getElementById('vaultSaveStatus');
+    
+    if (!phone || phone.length < 10) {
+      status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ সঠিক ১০ ডিজিটের নাম্বার দিন</div>';
+      return;
+    }
+    
+    let password = '';
+    if (method === 'last4') password = phone.slice(-4);
+    else if (method === 'last6') password = phone.slice(-6);
+    else if (method === 'mid4') password = phone.slice(Math.floor(phone.length/2) - 2, Math.floor(phone.length/2) + 2);
+    else if (method === 'first4') password = phone.slice(0, 4);
+    else if (method === 'custom') {
+      password = document.getElementById('vaultCustomPwd').value.trim();
+      if (!password || password.length < 4) {
+        status.innerHTML = '<div style="color:#d93025; font-size:13px;">⚠️ কমপক্ষে ৪ অক্ষর</div>';
+        return;
+      }
+    }
+    
+    const hashed = simpleHash(password);
+    localStorage.setItem('stock_vault_password', hashed);
+    localStorage.setItem('stock_vault_phone', phone);
+    localStorage.setItem('stock_vault_method', method);
+    
+    if (adminId) {
+      try {
+        await updateDoc(doc(db, "admins", adminId), {
+          vaultPhone: phone,
+          vaultMethod: method,
+          vaultUpdatedAt: serverTimestamp()
+        });
+      } catch (e) { console.log('Vault backup error:', e); }
+    }
+    
+    status.innerHTML = '<div style="color:#0f9d58; font-size:13px;">✅ পাসওয়ার্ড সেভ হয়েছে!</div>';
+    setTimeout(() => { closeVaultSetup(); updateStockSettings(); }, 1500);
+  };
+
+  function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return 'vault_' + Math.abs(hash).toString(36);
+  }
+
+  // ==================== CLEAR ALL CATEGORIES ====================
+  window.clearAllCategories = async function() {
+    if (!confirm(`"${currentBizTypeName}"-এর সব ক্যাটাগরি মুছে ফেলবেন?`)) return;
+    if (!confirm('⚠️ নিশ্চিত?')) return;
+    
+    try {
+      const q = query(
+        collection(db, "categories"),
+        where("adminId", "==", adminId),
+        where("businessType", "==", currentBizType)
+      );
+      const snap = await getDocs(q);
+      
+      for (const d of snap.docs) {
+        await deleteDoc(doc(db, "categories", d.id));
+      }
+      
+      alert(`✅ ${snap.size}টি ক্যাটাগরি মুছে ফেলা হয়েছে`);
+      closeStockSettings();
+      await loadCategories(currentBizType);
+    } catch (e) { alert('❌ ' + e.message); }
+  };
+
+  // ==================== EDIT OPTIONAL LABEL ====================
+  window.editOptionalLabel = function() {
+    const currentLabel = document.getElementById('optionalLabelText')?.innerText || '🟡 Cash (Optional) খরচ (₹)';
+    const newLabel = prompt('নতুন নাম দিন:', currentLabel.replace('🟡 ', '').replace(' খরচ (₹)', ''));
+    
+    if (newLabel && newLabel.trim()) {
+      const labelEl = document.getElementById('optionalLabelText');
+      if (labelEl) labelEl.innerText = '🟡 ' + newLabel.trim() + ' খরচ (₹)';
+      
+      if (adminId) {
+        updateDoc(doc(db, "admins", adminId), {
+          optionalLabel: newLabel.trim()
+        }).catch(e => console.log('Label save error:', e));
+      }
+      console.log('✅ Optional label updated:', newLabel);
+    }
+  };
+
+  // ==================== INITIAL LOAD CHECK ====================
+  window._initializeStockApp = async function() {
+    console.log('🚀 Initializing Stock App...');
+    
+    // Free Delivery initial check
+    if (typeof handleFreeDeliveryChange === 'function') {
+      handleFreeDeliveryChange();
+    }
+    
+    // Truck Weight default Lorry
+    setTimeout(() => {
+      if (typeof updateTruckWeightOptions === 'function') {
+        updateTruckWeightOptions('lorry');
+      }
+    }, 200);
+    
+    // Load Role Defaults
+    if (typeof loadRoleDefaults === 'function') {
+      await loadRoleDefaults();
+    }
+    
+    console.log('✅ Stock App initialized');
+  };
+
+  // ==================== FINAL LOG ====================
+  console.log('✅ Part 5 loaded — ROLE + SETTINGS + VAULT ready');
+  console.log('🎉 Stock Management v2 — COMPLETE!');
+  console.log('📋 Sections loaded: Foundation, Category, Templates, Calculation, Role, Settings, Vault');
   </script>
