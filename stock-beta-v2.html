@@ -1181,3 +1181,333 @@ button {
 
 </div>
 <!-- Container End -->
+
+<!-- ============ CATEGORY MANAGER MODAL ============ -->
+<div id="categoryModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:14px; max-width:520px; margin:20px auto; padding:20px; position:relative;">
+
+    <span onclick="closeCategoryModal()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+
+    <h3 style="color:#1a73e8; margin-bottom:16px; font-size:18px;">⚙️ Category Manager</h3>
+
+    <!-- Business Type Info -->
+    <div style="background:#e8f0fe; padding:12px; border-radius:8px; margin-bottom:16px;">
+      <div style="font-size:12px; color:#666;">বর্তমান ব্যবসার ধরন</div>
+      <div id="currentBizType" style="font-size:16px; font-weight:700; color:#1a73e8; margin-top:4px;">-</div>
+      <button onclick="changeBusinessType()" style="margin-top:8px; padding:6px 12px; background:#1a73e8; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer;">
+        🔄 পরিবর্তন করুন
+      </button>
+    </div>
+
+    <!-- Search -->
+    <input type="text" id="catManagerSearch" placeholder="🔍 ক্যাটাগরি খুঁজুন..."
+      oninput="filterManagerCategories(this.value)"
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:10px;">
+
+    <!-- Categories List -->
+    <div id="categoryList" style="max-height:280px; overflow-y:auto; border:1px solid #eee; border-radius:8px; margin-bottom:16px;">
+      <div style="text-align:center; padding:20px; color:#999; font-size:13px;">লোড হচ্ছে...</div>
+    </div>
+
+    <!-- Add New Category -->
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:5px;">নতুন ক্যাটাগরি যোগ করুন</label>
+    <div style="display:flex; gap:8px;">
+      <input type="text" id="newCategoryName" placeholder="যেমন: Vitrified Tiles"
+        style="flex:1; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+      <button onclick="addNewCategory()" style="padding:11px 16px; background:#0f9d58; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">
+        ➕ যোগ
+      </button>
+    </div>
+    <div id="categoryStatus" style="margin-top:10px;"></div>
+
+  </div>
+</div>
+
+<!-- ============ CATEGORY PICKER MODAL ============ -->
+<div id="categoryPickerModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10000; padding:20px;">
+  <div style="background:white; border-radius:14px; max-width:480px; margin:30px auto; padding:16px; max-height: 85vh; display: flex; flex-direction: column;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="color:#1a73e8; font-size:16px;">📂 ক্যাটাগরি সিলেক্ট করুন</h3>
+      <span onclick="closeCategoryPicker()" style="font-size:24px; color:#666; cursor:pointer;">&times;</span>
+    </div>
+
+    <input type="text" id="catSearchInput" placeholder="🔍 খুঁজুন..."
+      oninput="filterCategoryPicker(this.value)"
+      style="padding:12px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:10px;">
+
+    <div id="catPickerList" style="flex:1; overflow-y:auto; border:1px solid #eee; border-radius:8px;">
+      <!-- JS Populates -->
+    </div>
+
+    <div style="margin-top:12px; padding-top:12px; border-top:1px solid #eee;">
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="pickerNewCat" placeholder="নতুন ক্যাটাগরি..."
+          style="flex:1; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+        <button onclick="addCategoryFromPicker()" style="padding:11px 16px; background:#0f9d58; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer;">➕</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ SAME LOT QUICK ADD MODAL ============ -->
+<div id="sameLotModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:10001;" onclick="closeSameLotModal(event)">
+  <div id="sameLotSheet" style="position:absolute; bottom:0; left:0; right:0; background:white; border-radius:20px 20px 0 0; padding:16px 18px 20px; max-height:85vh; overflow-y:auto; animation:slideUpSheet 0.25s ease-out;" onclick="event.stopPropagation()">
+
+    <div style="width:44px; height:4px; background:#ddd; border-radius:4px; margin:0 auto 14px;"></div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:17px; color:#0f9d58; font-weight:700;">🔄 Same Lot — Quick Add</h3>
+        <p id="sameLotTemplateInfo" style="font-size:11px; color:#666; margin-top:3px;">Template: -</p>
+      </div>
+      <span onclick="closeSameLotModal()" style="font-size:26px; color:#999; cursor:pointer; padding:0 4px;">&times;</span>
+    </div>
+
+    <div id="sameLotCounter" style="background:#e6f4ea; color:#0f9d58; padding:8px; border-radius:8px; font-size:12px; font-weight:600; text-align:center; margin-bottom:14px;">
+      এ পর্যন্ত যোগ হয়েছে: 0
+    </div>
+
+    <div style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:11px; color:#666; margin-bottom:12px; line-height:1.6;">
+      ℹ️ <b>যা কপি হবে:</b> ক্যাটাগরি, সাইজ, ওজন, পাকা/Cash রেট, GST, HSN
+      <br>
+      📝 <b>শুধু আপনি দেবেন:</b> নাম, বক্স সংখ্যা, ছবি
+    </div>
+
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      পণ্যের নাম / ডিজাইন <span style="color:#d93025;">*</span>
+    </label>
+    <input type="text" id="sameLotName" placeholder="যেমন: Vitrified Green 4x2"
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      বক্স সংখ্যা <span style="color:#d93025;">*</span>
+    </label>
+    <input type="number" id="sameLotBoxes" placeholder="100"
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      📸 ছবি ও ভিডিও
+    </label>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:14px;">
+      <div onclick="alert('Phase 3C-এ কাজ করবে')"
+        style="padding:10px 6px; border:2px dashed #dadce0; border-radius:8px; text-align:center; cursor:pointer;">
+        <div style="font-size:20px;">📷</div>
+        <div style="font-size:10px; color:#666; margin-top:2px;">ক্যামেরা</div>
+      </div>
+      <div onclick="alert('Phase 3C-এ কাজ করবে')"
+        style="padding:10px 6px; border:2px dashed #dadce0; border-radius:8px; text-align:center; cursor:pointer;">
+        <div style="font-size:20px;">🖼️</div>
+        <div style="font-size:10px; color:#666; margin-top:2px;">গ্যালারি</div>
+      </div>
+      <div onclick="alert('Phase 3C-এ কাজ করবে')"
+        style="padding:10px 6px; border:2px dashed #dadce0; border-radius:8px; text-align:center; cursor:pointer;">
+        <div style="font-size:20px;">🎥</div>
+        <div style="font-size:10px; color:#666; margin-top:2px;">ভিডিও</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px;">
+      <button onclick="closeSameLotModal()"
+        style="padding:12px; background:#f0f2f5; color:#666; border:none; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;">
+        ❌ বন্ধ
+      </button>
+      <button onclick="addSameLotItem()"
+        style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer;">
+        ✅ যোগ করুন
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ STOCK SETTINGS MODAL ============ -->
+<div id="stockSettingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:14px; max-width:520px; margin:20px auto; padding:20px; position:relative;">
+
+    <span onclick="closeStockSettings()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+
+    <h3 style="color:#1a73e8; margin-bottom:16px; font-size:18px;">⚙️ Stock Settings</h3>
+
+    <!-- Section 1: Business Type -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin-bottom:8px;">🏢 ব্যবসার ধরন</h4>
+      <div style="background:#e8f0fe; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div id="settingsBizType" style="font-size:14px; font-weight:700; color:#1a73e8;">-</div>
+          <div style="font-size:11px; color:#666; margin-top:2px;">বর্তমান Business Type</div>
+        </div>
+        <button onclick="closeStockSettings(); changeBusinessType();" style="padding:6px 12px; background:#1a73e8; color:white; border:none; border-radius:6px; font-size:12px; cursor:pointer;">
+          🔄 পরিবর্তন
+        </button>
+      </div>
+    </div>
+
+    <!-- Section 2: Role Defaults -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">💰 Role Default Markup</h4>
+      <p style="font-size:11px; color:#666; margin-bottom:8px;">
+        যদি প্রোডাক্টে আলাদা রেট না দেন, এই % থেকে হিসাব হবে
+      </p>
+
+      <div style="background:#e8f0fe; padding:10px; border-radius:8px; margin-bottom:10px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer; margin:0;">
+          <input type="checkbox" id="useSuperAdminRolePct"
+            onchange="onToggleSuperDefaults()"
+            style="width:auto; margin:0;">
+          <span>👑 Super Admin-এর % ব্যবহার করি</span>
+        </label>
+      </div>
+
+      <div id="adminRolePctInputs" style="display:none;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>
+            <label style="font-size:11px; color:#555;">🟢 Stocker %</label>
+            <input type="number" id="adminPctStocker" placeholder="5" step="0.1"
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#555;">🟡 Wholesaler %</label>
+            <input type="number" id="adminPctWholesaler" placeholder="10" step="0.1"
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#555;">🔵 Retailer %</label>
+            <input type="number" id="adminPctRetailer" placeholder="15" step="0.1"
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:#555;">🟣 Consumer %</label>
+            <input type="number" id="adminPctConsumer" placeholder="20" step="0.1"
+              style="padding:8px; font-size:13px;">
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label style="font-size:11px; color:#555;">🔴 Mistri %</label>
+            <input type="number" id="adminPctMistri" placeholder="25" step="0.1"
+              style="padding:8px; font-size:13px;">
+          </div>
+        </div>
+      </div>
+
+      <div id="superDefaultsPreview" style="background:#f8f9fa; padding:10px; border-radius:8px; font-size:11px; color:#666; margin-top:10px; line-height:1.6;">
+        👑 <b>Super Admin ডিফল্ট:</b> <span id="superDefaultsDisplay">লোড হচ্ছে...</span>
+      </div>
+
+      <button onclick="saveRoleDefaults()"
+        style="width:100%; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; margin-top:10px;">
+        💾 Role Defaults সেভ করুন
+      </button>
+      <div id="roleDefaultsStatus" style="margin-top:8px;"></div>
+    </div>
+
+    <!-- Section 3: Vault Password -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🔐 Vault Password</h4>
+      <p style="font-size:11px; color:#666; margin-bottom:8px;">
+        Cash / Optional খরচ দেখতে এই পাসওয়ার্ড লাগবে
+      </p>
+      <div id="vaultStatus" style="background:#fef7e0; padding:10px; border-radius:8px; font-size:12px; color:#b06000; margin-bottom:10px;">
+        ⚠️ এখনো Vault Password সেট করা হয়নি
+      </div>
+      <button onclick="openVaultPasswordSetup()" style="width:100%; padding:11px; background:#7b1fa2; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+        🔐 Vault Password সেট করুন
+      </button>
+    </div>
+
+    <!-- Section 4: Language -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🌐 ভাষা</h4>
+      <p style="font-size:11px; color:#666; margin-bottom:8px;">
+        উপরে Topbar-এ Dropdown থেকে পরিবর্তন করুন
+      </p>
+    </div>
+
+    <!-- Section 5: Company Info -->
+    <div class="settings-section">
+      <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🏢 কোম্পানির তথ্য</h4>
+      <div style="background:#f8f9fa; padding:12px; border-radius:8px; font-size:13px;">
+        <div style="margin-bottom:6px;"><b>Company:</b> <span id="settingsCompanyName">-</span></div>
+        <div><b>Admin:</b> <span id="settingsAdminName">-</span></div>
+      </div>
+    </div>
+
+    <!-- Section 6: Danger Zone -->
+    <div class="settings-section" style="margin-top:20px; padding-top:16px; border-top:1px solid #eee;">
+      <h4 style="font-size:14px; color:#d93025; margin-bottom:8px;">⚠️ বিপদজনক</h4>
+      <button onclick="clearAllCategories()" style="width:100%; padding:11px; background:#fce8e6; color:#d93025; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; margin-bottom:8px;">
+        🗑️ এই Business Type-এর সব ক্যাটাগরি মুছুন
+      </button>
+      <button onclick="window.location.href='beta.html'" style="width:100%; padding:11px; background:#f0f2f5; color:#666; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+        ← Coupon App-এ ফিরে যান
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ VAULT PASSWORD SETUP MODAL ============ -->
+<div id="vaultSetupModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:10000; overflow-y:auto; padding:20px;">
+  <div style="background:white; border-radius:14px; max-width:480px; margin:40px auto; padding:20px; position:relative;">
+
+    <span onclick="closeVaultSetup()" style="position:absolute; top:10px; right:18px; font-size:28px; font-weight:bold; color:#666; cursor:pointer;">&times;</span>
+
+    <h3 style="color:#7b1fa2; margin-bottom:8px; font-size:18px;">🔐 Vault Password সেটআপ</h3>
+    <p style="font-size:12px; color:#666; margin-bottom:16px;">
+      Cash / Optional খরচ দেখতে এই পাসওয়ার্ড লাগবে
+    </p>
+
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      📱 আপনার অন্য ফোন নাম্বার
+    </label>
+    <input type="tel" id="vaultPhone" placeholder="9876543210" maxlength="10"
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+
+    <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+      🔑 পাসওয়ার্ড পদ্ধতি
+    </label>
+    <select id="vaultMethod" onchange="previewVaultPassword()"
+      style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-bottom:12px;">
+      <option value="last4">শেষ ৪ ডিজিট</option>
+      <option value="last6" selected>শেষ ৬ ডিজিট</option>
+      <option value="mid4">মাঝের ৪ ডিজিট</option>
+      <option value="first4">প্রথম ৪ ডিজিট</option>
+      <option value="custom">কাস্টম পাসওয়ার্ড</option>
+    </select>
+
+    <div id="vaultPreview" style="background:#f3e8fd; padding:10px; border-radius:8px; font-size:13px; color:#7b1fa2; margin-bottom:12px; text-align:center; font-weight:600;">
+      🔒 পাসওয়ার্ড: **--**
+    </div>
+
+    <div id="vaultCustomWrap" style="display:none; margin-bottom:12px;">
+      <label style="display:block; font-size:12px; color:#555; font-weight:600; margin-bottom:6px;">
+        🔑 কাস্টম পাসওয়ার্ড
+      </label>
+      <input type="text" id="vaultCustomPwd" placeholder="আপনার পাসওয়ার্ড"
+        style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px;">
+    </div>
+
+    <button onclick="saveVaultPassword()"
+      style="width:100%; padding:13px; background:#7b1fa2; color:white; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer;">
+      💾 পাসওয়ার্ড সেভ করুন
+    </button>
+    <div id="vaultSaveStatus" style="margin-top:10px;"></div>
+
+  </div>
+</div>
+
+<!-- ============ BOTTOM NAV ============ -->
+<div class="bottom-nav" id="bottomNav" style="display: none;">
+  <div class="nav-item active" onclick="switchTab('add', this)">
+    <span class="icon">➕</span><span>Add</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('list', this)">
+    <span class="icon">📋</span><span>List</span>
+  </div>
+  <div class="nav-item" onclick="switchTab('dashboard', this)">
+    <span class="icon">📊</span><span>Dashboard</span>
+  </div>
+  <div class="nav-item" onclick="openStockSettings()">
+    <span class="icon">⚙️</span><span>Settings</span>
+  </div>
+</div>
