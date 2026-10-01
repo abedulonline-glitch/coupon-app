@@ -2236,7 +2236,7 @@ async function createDefaultCategories(bizType) {
     
     try {
       const existing = await getDoc(catRef);
-      if (existing.exists()) continue;
+      if (existing.exists()) return;
       
       await setDoc(catRef, {
         adminId: adminId,
@@ -3863,7 +3863,7 @@ console.log('✅ Part 2 loaded');
         totalCash += totalPaper * cashRate;
         totalGST += (totalPaper * pakkaRate) * (gstPct / 100);
         totalWeight += marbleWeight;
-        continue;
+        return;
       }
       
       // ✅ Common — Tiles/General
