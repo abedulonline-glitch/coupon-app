@@ -1535,7 +1535,7 @@ textarea:focus {
     const numericClasses = [
       'd-l', 'd-w', 'd-qty', 'd-al', 'd-aw',
       'p-weight', 'p-pieces', 'p-boxes', 'p-pakka', 'p-optional', 'p-sqft',
-      'p-qty', 'p-wt-sqft', 'p-allow-l', 'p-wt-sqft'
+      'p-qty', 'p-wt-sqft', 'p-allow-l', 'p-allow-w'
     ];
     
     const hasNumericClass = numericClasses.some(cls => target.classList.contains(cls));
@@ -1590,7 +1590,7 @@ textarea:focus {
       const numericClasses = ['p-pieces', 'p-boxes', 'd-qty', 'p-qty'];
       const decimalClasses = [
         'p-weight', 'p-pakka', 'p-optional', 'p-sqft', 'p-wt-sqft',
-        'p-allow-l', 'p-wt-sqft', 'd-l', 'd-w', 'd-al', 'd-aw'
+        'p-allow-l', 'p-allow-w', 'd-l', 'd-w', 'd-al', 'd-aw'
       ];
       
       numericClasses.forEach(cls => {
@@ -1616,7 +1616,7 @@ textarea:focus {
     const numericClasses = ['p-pieces', 'p-boxes', 'd-qty', 'p-qty'];
     const decimalClasses = [
       'p-weight', 'p-pakka', 'p-optional', 'p-sqft', 'p-wt-sqft',
-      'p-allow-l', 'p-wt-sqft', 'd-l', 'd-w', 'd-al', 'd-aw'
+      'p-allow-l', 'p-allow-w', 'd-l', 'd-w', 'd-al', 'd-aw'
     ];
     
     numericClasses.forEach(cls => {
@@ -2490,20 +2490,21 @@ function checkRowHasData(id) {
         </div>
         
         <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
-       <div class="row-3">
-  <div>
-    <label style="font-size:11px;">ওজন/sqft (kg)</label>
-    <input type="number" min="0" inputmode="decimal" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
-  </div>
-  <div>
-    <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-    <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
-  </div>
-  <div>
-    <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-    <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-  </div>
-</div>
+        <div class="row-3">
+          <div>
+            <label style="font-size:11px;">ওজন/sqft (kg)</label>
+            <input type="number" min="0" inputmode="decimal" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+            <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          </div>
+          <div>
+            <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+            <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+          </div>
+        </div>
+      </div>
       
       <!-- ═══ Details Mode ═══ -->
       <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
@@ -2548,19 +2549,25 @@ function checkRowHasData(id) {
         
         <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
         <div class="row-3">
-  <div>
-    <label style="font-size:11px;">ওজন/sqft (kg)</label>
-    <input type="number" min="0" inputmode="decimal" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
-  </div>
-  <div>
-    <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-    <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
-  </div>
-  <div>
-    <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-    <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-  </div>
-</div>
+          <div>
+            ওজন/sqft (kg)</label>
+            <input type="number" min="0" inputmode="decimal" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+          </div>
+          <div>
+            🟢 পাকা রেট/sqft</label>
+            <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+          </div>
+          <div>
+            <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+            <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+          </div>
+        </div>
+      </div>
+      
+      ${getMarbleCalcBox(id)}
+      ${getRowImageUpload()}
+    `;
+  }
   
   // ============================================================
   // TILES TEMPLATE FIELDS
@@ -2751,20 +2758,22 @@ function checkRowHasData(id) {
             <b class="calc-total-paper" style="color:#1a73e8; font-size:16px;">0</b>
           </div>
           <!-- ✅ Combined Per sqft — Paper + Actual (Vault-এ লুকানোর জন্য একসাথে) -->
-         <div class="per-sqft-combined" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:12px 14px; border-radius:10px; margin-bottom:8px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-    <span style="font-size:12px;">📊 প্রতি sqft (Paper):</span>
-    <b class="calc-per-sqft" style="color:#1a73e8; font-size:16px;">₹0</b>
-  </div>
-  <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
-    <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
-    <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
-  </div>
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-    <span style="font-size:11px; color:#0f9d58;">📈 মেজারমেন্ট বেনিফিট:</span>
-    <b class="calc-measure-benefit" style="color:#0f9d58; font-size:13px; background:#c8e6c9; padding:2px 8px; border-radius:10px;">₹0/sqft</b>
-  </div>
-</div>
+          <div class="per-sqft-combined" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:12px 14px; border-radius:10px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:12px;">📊 প্রতি sqft (Paper):</span>
+              <b class="calc-per-sqft" style="color:#1a73e8; font-size:16px;">₹0</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
+             <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
+              <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
+              <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+              <span style="font-size:11px; color:#0f9d58;">📈 মেজারমেন্ট বেনিফিট:</span>
+              <b class="calc-measure-benefit" style="color:#0f9d58; font-size:13px; background:#c8e6c9; padding:2px 8px; border-radius:10px;">₹0/sqft</b>
+            </div>
+            </div>
+          </div>
           
           <!-- Tax ছাড়া Paper-based (আলাদা থাকবে) -->
           <div class="calc-row" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
@@ -2844,6 +2853,179 @@ function checkRowHasData(id) {
     `;
   }
    
+   // ============================================================
+  // MARBLE/GRANITE TEMPLATE — F-2a (Final)
+  // ============================================================
+  
+  function isMarbleOrGraniteCategory(catValue) {
+    if (!catValue) return false;
+    const cat = catValue.toLowerCase();
+    return cat.includes('marble') || cat.includes('granite');
+  }
+  
+  function getMarbleTemplate(id) {
+    return `
+      <div class="product-row" id="product-row-${id}" data-type="marble" data-mode="simple">
+        ${getRowHeader(id)}
+        ${getRowCommonFields(id)}
+        
+        <!-- ═══ Lot Name ═══ -->
+        <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:12px; border-left:3px solid #0f9d58;">
+          <label style="font-size:12px; font-weight:700; color:#0f9d58; display:block; margin-bottom:6px;">
+            📋 Lot Name
+          </label>
+          <input type="text" class="p-lot-name" placeholder="যেমন: Arna A0001" 
+            oninput="recalcProduct(${id})" style="padding:10px; font-size:14px;">
+        </div>
+        
+        <!-- ═══ হিসাবের ধরন ═══ -->
+        <div id="mode-section-${id}" style="display:none; background:#e8f0fe; padding:12px; border-radius:8px; margin-bottom:12px;">
+          <label style="font-size:12px; font-weight:700; color:#1a73e8;">🎯 হিসাবের ধরন</label>
+          <div class="radio-group">
+            <div class="radio-option selected" onclick="selectMode(${id}, 'simple', this)">📋 Simple</div>
+            <div class="radio-option" onclick="selectMode(${id}, 'details', this)">📐 Details</div>
+          </div>
+        </div>
+        
+        <!-- ═══ Allowance ═══ -->
+        <div id="allowance-section-${id}" style="display:none; background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
+            <input type="checkbox" class="p-allow-check" onchange="toggleAllowance(${id}, this.checked)" style="width:auto; margin:0;">
+            <span>✂️ Allowance</span>
+            <span class="allow-info-icon" data-info="allowance" 
+              style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:#ffc107; color:#000; border-radius:50%; font-size:12px; font-weight:bold; cursor:help; margin-left:4px; position:relative;">!</span>
+          </label>
+        </div>
+        
+        <!-- ═══ Simple Mode ═══ -->
+        <div class="marble-simple-mode" id="marble-simple-${id}">
+          <div class="detail-table-wrapper">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th>Length (in)</th>
+                  <th>Width (in)</th>
+                  <th class="allow-col" style="display:none;">L-Allow (in)</th>
+                  <th class="allow-col" style="display:none;">W-Allow (in)</th>
+                  <th>Qty</th>
+                </tr>
+              </thead>
+              <tbody id="simple-tbody-${id}">
+                <tr>
+                  <td><input type="number" min="0" inputmode="decimal" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td><input type="number" min="0" inputmode="decimal" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" min="0" inputmode="decimal" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td class="allow-cell" style="display:none;"><input type="number" min="0" inputmode="decimal" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
+                  <td><input type="number" min="0" inputmode="numeric" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="row-3" style="margin-top:12px;">
+            <div>
+              <label style="font-size:11px;">ওজন/sqft (kg)</label>
+              <input type="number" min="0" inputmode="decimal" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            </div>
+            <div>
+              <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+              <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            </div>
+            <div>
+              <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+              <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            </div>
+          </div>
+          
+          <div class="row-2" style="margin-top:8px;">
+            <div>
+              <label style="font-size:11px;">GST %</label>
+              <select class="p-gst" onchange="recalcProduct(${id})">
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18" selected>18%</option>
+                <option value="28">28%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ═══ Details Mode ═══ -->
+        <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
+          <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <button type="button" onclick="addDetailRow(${id}, false)" 
+              style="flex:1; padding:10px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+              ➕ Add New Row
+            </button>
+            <button type="button" onclick="addDetailRow(${id}, true)" 
+              style="flex:1; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+              📋 Copy Last Row
+            </button>
+          </div>
+          
+          <div class="detail-table-wrapper">
+            <table class="detail-table">
+              <thead>
+                <tr>
+                  <th>Length (in)</th>
+                  <th>Width (in)</th>
+                  <th class="allow-col" style="display:none;">L-Allow (in)</th>
+                  <th class="allow-col" style="display:none;">W-Allow (in)</th>
+                  <th>Qty</th>
+                  <th>X</th>
+                </tr>
+              </thead>
+              <tbody id="details-tbody-${id}"></tbody>
+            </table>
+          </div>
+          
+          <div class="row-3" style="margin-top:12px;">
+            <div>
+              <label style="font-size:11px;">ওজন/sqft (kg)</label>
+              <input type="number" min="0" inputmode="decimal" class="p-allow-w" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+            </div>
+            <div>
+              <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+              <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+            </div>
+            <div>
+              <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+              <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+            </div>
+          </div>
+          
+          <div class="row-2" style="margin-top:8px;">
+            <div>
+              <label style="font-size:11px;">GST %</label>
+              <select class="p-gst" onchange="recalcProduct(${id})">
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="12">12%</option>
+                <option value="18" selected>18%</option>
+                <option value="28">28%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ═══ Lot Buttons ═══ -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+          <button type="button" onclick="addNewMarbleLot(${id})" 
+            style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ➕ Add New Lot
+          </button>
+          <button type="button" onclick="finishMarbleLot(${id})" 
+            style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+            ✅ Finish Lot
+          </button>
+        </div>
+        
+        ${getMarbleCalcBox(id)}
+        ${getRowImageUpload()}
+      </div>
+    `;
+  }
   
    // ============================================================
   // MARBLE SUPPORT FUNCTIONS
@@ -3889,43 +4071,28 @@ function checkRowHasData(id) {
   };
   
   // ==================== LANDING COST PER UNIT ====================
- function getLandingCostPerUnit(id) {
-  const row = document.getElementById('product-row-' + id);
-  if (!row) return 0;
-  
-  const type = row.dataset.type || 'general';
-  
-  // ✅ Marble/Granite আলাদা হিসাব
-  if (type === 'marble') {
+  function getLandingCostPerUnit(id) {
+    const row = document.getElementById('product-row-' + id);
+    if (!row) return 0;
+    
+    const rating = row.dataset.rating || 'box';
+    const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
+    const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
     const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
     const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
     
     let gstPct = 0;
     const gstSel = row.querySelector('.p-gst');
-    if (gstSel) gstPct = parseFloat(gstSel.value) || 0;
+    if (gstSel) {
+      if (gstSel.value === 'custom') {
+        gstPct = parseFloat(row.querySelector('.p-gst-custom')?.value) || 0;
+      } else {
+        gstPct = parseFloat(gstSel.value) || 0;
+      }
+    }
     
     return (pakkaRate + cashRate) * (1 + gstPct / 100);
   }
-  
-  // সাধারণ হিসাব
-  const rating = row.dataset.rating || 'box';
-  const pieces = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
-  const sqftPerBox = parseFloat(row.querySelector('.p-sqft')?.value) || 0;
-  const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
-  const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-  
-  let gstPct = 0;
-  const gstSel = row.querySelector('.p-gst');
-  if (gstSel) {
-    if (gstSel.value === 'custom') {
-      gstPct = parseFloat(row.querySelector('.p-gst-custom')?.value) || 0;
-    } else {
-      gstPct = parseFloat(gstSel.value) || 0;
-    }
-  }
-  
-  return (pakkaRate + cashRate) * (1 + gstPct / 100);
-}
   
   // ==================== RECALC PRODUCT ====================
   window.recalcProduct = function(id) {
@@ -3944,7 +4111,7 @@ function checkRowHasData(id) {
     const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
     const size = row.querySelector('.p-size')?.value || '';
     const allowL = parseFloat(row.querySelector('.p-allow-l')?.value) || 0;
-    const allowW = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
+    const allowW = parseFloat(row.querySelector('.p-allow-w')?.value) || 0;
     
     let gstPct = 0;
     const gstSelectEl = row.querySelector('.p-gst');
