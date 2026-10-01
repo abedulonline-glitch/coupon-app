@@ -2158,3 +2158,419 @@ button {
   
   console.log('✅ Part 4 loaded');
 </script>
+  // ============================================================
+// STOCK MANAGEMENT v2 — PART 2: CATEGORY SYSTEM + TEMPLATES
+// ============================================================
+
+console.log('🚀 Stock v2 loading... Part 2');
+
+// ==================== LOAD CATEGORIES ====================
+async function loadCategories(bizType) {
+  if (!adminId || !bizType) return;
+  
+  try {
+    const q = query(
+      collection(db, "categories"),
+      where("adminId", "==", adminId),
+      where("businessType", "==", bizType)
+    );
+    
+    const snap = await getDocs(q);
+    console.log(`📦 Found ${snap.size} categories for ${bizType}`);
+    
+    if (snap.empty) {
+      const lockKey = `_creating_cats_${adminId}_${bizType}`;
+      if (window[lockKey]) {
+        await new Promise(r => setTimeout(r, 1000));
+        return loadCategories(bizType);
+      }
+      
+      window[lockKey] = true;
+      await createDefaultCategories(bizType);
+      window[lockKey] = false;
+      
+      return loadCategories(bizType);
+    }
+    
+    // Duplicate check
+    const seen = new Set();
+    const duplicates = [];
+    const uniqueCats = [];
+    
+    snap.docs.forEach(d => {
+      const cat = { id: d.id, ...d.data() };
+      const nameLower = (cat.name || '').toLowerCase();
+      if (seen.has(nameLower)) {
+        duplicates.push(cat.id);
+      } else {
+        seen.add(nameLower);
+        uniqueCats.push(cat);
+      }
+    });
+    
+    if (duplicates.length > 0) {
+      console.log(`🗑️ Deleting ${duplicates.length} duplicate categories...`);
+      for (const dupId of duplicates) {
+        try { await deleteDoc(doc(db, "categories", dupId)); } catch (e) {}
+      }
+    }
+    
+    currentCategories = uniqueCats;
+    currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    renderCategories();
+    console.log(`✅ Loaded ${currentCategories.length} unique categories`);
+  } catch (e) {
+    console.error('❌ Load categories error:', e);
+  }
+}
+
+async function createDefaultCategories(bizType) {
+  const defaults = DEFAULT_CATEGORIES[bizType] || ['Others'];
+  console.log(`📝 Creating ${defaults.length} default categories...`);
+  
+  for (const name of defaults) {
+    const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const catId = `${adminId}_${bizType}_${safeName}`;
+    const catRef = doc(db, "categories", catId);
+    
+    try {
+      const existing = await getDoc(catRef);
+      if (existing.exists()) continue;
+      
+      await setDoc(catRef, {
+        adminId: adminId,
+        businessType: bizType,
+        name: name,
+        isDefault: true,
+        createdAt: serverTimestamp()
+      });
+    } catch (e) {
+      console.error(`Error creating ${name}:`, e);
+    }
+  }
+  console.log(`✅ Default categories ready`);
+}
+
+// ==================== RENDER CATEGORIES ====================
+function renderCategories(catsList) {
+  try {
+    const cats = catsList || currentCategories || [];
+    const listEl = document.getElementById('categoryList');
+    if (!listEl) return;
+    
+    if (cats.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#999; font-size:13px;">কোনো ক্যাটাগরি নেই</div>';
+      return;
+    }
+    
+    let html = '';
+    cats.forEach(cat => {
+      html += `
+        <div class="category-item ${cat.isDefault ? 'default-cat' : ''}">
+          <div>
+            <span class="name">${cat.name || '-'}</span>
+            ${cat.isDefault ? '<span class="default-tag">Default</span>' : ''}
+          </div>
+          <button class="delete-btn" onclick="deleteCategory('${cat.id}')">🗑️</button>
+        </div>
+      `;
+    });
+    
+    listEl.innerHTML = html;
+  } catch (e) { console.error('renderCategories error:', e); }
+}
+
+window.filterManagerCategories = function(query) {
+  if (!query.trim()) {
+    renderCategories(currentCategories);
+    return;
+  }
+  const q = query.toLowerCase();
+  const filtered = currentCategories.filter(c => c.name.toLowerCase().includes(q));
+  renderCategories(filtered);
+};
+
+window.deleteCategory = async function(catId) {
+  const cat = currentCategories.find(c => c.id === catId);
+  if (!cat) return;
+  
+  if (cat.name === 'Others') {
+    alert('"Others" ক্যাটাগরি মুছে ফেলা যাবে না');
+    return;
+  }
+  
+  if (!confirm(`"${cat.name}" মুছে ফেলবেন?`)) return;
+  
+  try {
+    await deleteDoc(doc(db, "categories", catId));
+    await loadCategories(currentBizType);
+  } catch (e) { alert('❌ ' + e.message); }
+};
+
+window.addNewCategory = async function() {
+  const input = document.getElementById('newCategoryName');
+  const name = input.value.trim();
+  const statusEl = document.getElementById('categoryStatus');
+  
+  if (!name) {
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">⚠️ নাম দিন</div>';
+    return;
+  }
+  
+  if (currentCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">⚠️ আগেই আছে</div>';
+    return;
+  }
+  
+  try {
+    const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const catId = `${adminId}_${currentBizType}_${safeName}_${Date.now()}`;
+    
+    await setDoc(doc(db, "categories", catId), {
+      adminId: adminId,
+      businessType: currentBizType,
+      name: name,
+      isDefault: false,
+      createdAt: serverTimestamp()
+    });
+    
+    input.value = '';
+    statusEl.innerHTML = '<div style="color:#0f9d58; font-size:12px;">✅ যোগ হয়েছে</div>';
+    
+    await loadCategories(currentBizType);
+    setTimeout(() => statusEl.innerHTML = '', 2500);
+  } catch (e) {
+    statusEl.innerHTML = '<div style="color:#d93025; font-size:12px;">❌ ' + e.message + '</div>';
+  }
+};
+
+window.openCategoryModal = async function() {
+  document.getElementById('categoryModal').style.display = 'block';
+  updateBizTypeBadge();
+  await loadCategories(currentBizType);
+};
+
+window.closeCategoryModal = function() {
+  document.getElementById('categoryModal').style.display = 'none';
+  const statusEl = document.getElementById('categoryStatus');
+  if (statusEl) statusEl.innerHTML = '';
+};
+
+// ==================== CATEGORY PICKER ====================
+window.openCategoryPicker = function(productId) {
+  currentPickerProductId = productId;
+  const modal = document.getElementById('categoryPickerModal');
+  if (!modal) return;
+  
+  modal.style.display = 'block';
+  document.getElementById('catSearchInput').value = '';
+  document.getElementById('pickerNewCat').value = '';
+  renderCategoryPicker(currentCategories);
+  
+  setTimeout(() => document.getElementById('catSearchInput')?.focus(), 200);
+};
+
+window.closeCategoryPicker = function() {
+  const modal = document.getElementById('categoryPickerModal');
+  if (modal) modal.style.display = 'none';
+  currentPickerProductId = null;
+};
+
+function renderCategoryPicker(cats) {
+  const list = document.getElementById('catPickerList');
+  if (!list) return;
+  
+  if (!cats || cats.length === 0) {
+    list.innerHTML = '<div class="cat-picker-item empty">কোনো ক্যাটাগরি নেই</div>';
+    return;
+  }
+  
+  const currentVal = currentPickerProductId 
+    ? document.querySelector(`#product-row-${currentPickerProductId} .p-category`)?.value 
+    : '';
+  
+  let html = '';
+  cats.forEach(cat => {
+    const val = cat.name.toLowerCase().replace(/\s+/g, '_');
+    const selected = val === currentVal ? 'selected' : '';
+    html += `
+      <div class="cat-picker-item ${selected}" onclick="pickCategory('${cat.name.replace(/'/g, "\\'")}', '${val}')">
+        <span>${cat.name}</span>
+        ${cat.isDefault ? '<span class="default-tag">Default</span>' : ''}
+      </div>
+    `;
+  });
+  list.innerHTML = html;
+}
+
+window.filterCategoryPicker = function(query) {
+  if (!query.trim()) {
+    renderCategoryPicker(currentCategories);
+    return;
+  }
+  const q = query.toLowerCase();
+  const filtered = currentCategories.filter(c => c.name.toLowerCase().includes(q));
+  renderCategoryPicker(filtered);
+};
+
+window.pickCategory = function(name, value) {
+  const productId = currentPickerProductId;
+  if (!productId) { closeCategoryPicker(); return; }
+  
+  const row = document.getElementById('product-row-' + productId);
+  if (!row) { closeCategoryPicker(); return; }
+  
+  const oldCategory = row.querySelector('.p-category')?.value || '';
+  const oldType = row.dataset.type || 'pending';
+  
+  if (oldCategory && oldCategory !== value && oldType !== 'pending') {
+    const hasData = checkRowHasData(productId);
+    if (hasData) {
+      if (!confirm(`⚠️ Category পরিবর্তন করলে আগের সব ডেটা মুছে যাবে।\n\n"${name}" সিলেক্ট করবেন?`)) {
+        closeCategoryPicker();
+        return;
+      }
+    }
+  }
+  
+  const hiddenInput = row.querySelector('.p-category');
+  const textInput = row.querySelector('.p-category-input');
+  if (hiddenInput) hiddenInput.value = value;
+  if (textInput) {
+    textInput.value = name;
+    textInput.style.color = '#202124';
+  }
+  
+  closeCategoryPicker();
+  
+  setTimeout(() => {
+    if (typeof loadProductTemplate === 'function') {
+      loadProductTemplate(productId, name);
+    }
+  }, 50);
+};
+
+function checkRowHasData(id) {
+  const row = document.getElementById('product-row-' + id);
+  if (!row) return false;
+  
+  const name = row.querySelector('.p-name')?.value?.trim();
+  const lotName = row.querySelector('.p-lot-name')?.value?.trim();
+  const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+  const qty = parseFloat(row.querySelector('.p-qty')?.value) || 0;
+  const dL = parseFloat(row.querySelector('.d-l')?.value) || 0;
+  
+  return !!(name || lotName || boxes > 0 || qty > 0 || dL > 0);
+}
+
+window.addCategoryFromPicker = async function() {
+  const input = document.getElementById('pickerNewCat');
+  const name = input.value.trim();
+  if (!name) return;
+  
+  if (currentCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    alert('এই ক্যাটাগরি আগেই আছে');
+    return;
+  }
+  
+  try {
+    const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const catId = `${adminId}_${currentBizType}_${safeName}_${Date.now()}`;
+    
+    await setDoc(doc(db, "categories", catId), {
+      adminId: adminId,
+      businessType: currentBizType,
+      name: name,
+      isDefault: false,
+      createdAt: serverTimestamp()
+    });
+    
+    const q = query(
+      collection(db, "categories"),
+      where("adminId", "==", adminId),
+      where("businessType", "==", currentBizType)
+    );
+    const snap = await getDocs(q);
+    currentCategories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    currentCategories.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    input.value = '';
+    renderCategoryPicker(currentCategories);
+    
+    const newVal = name.toLowerCase().replace(/\s+/g, '_');
+    pickCategory(name, newVal);
+  } catch (e) { alert('❌ ' + e.message); }
+};
+
+// ==================== TEMPLATE HELPERS ====================
+function getRowHeader(id) {
+  return `
+    <div class="product-row-header">
+      <span class="num">📦 পণ্য ${id}</span>
+      <span class="remove" onclick="removeProductRow(${id})">🗑️ মুছুন</span>
+    </div>
+  `;
+}
+
+function getProductInfoFields(id) {
+  return `
+    <label>পণ্যের নাম <span class="required">*</span></label>
+    <input type="text" class="p-name" placeholder="পণ্যের নাম" oninput="recalcProduct(${id})">
+    
+    <div class="row-2">
+      <div>
+        <label>ব্র্যান্ড</label>
+        <input type="text" class="p-brand" placeholder="ব্র্যান্ড">
+      </div>
+      <div>
+        <label>HSN Code <span class="required">*</span></label>
+        <input type="text" class="p-hsn" placeholder="HSN" maxlength="8">
+      </div>
+    </div>
+    
+    <label>GST %</label>
+    <select class="p-gst" onchange="recalcProduct(${id})">
+      <option value="0">0%</option>
+      <option value="5">5%</option>
+      <option value="12">12%</option>
+      <option value="18" selected>18%</option>
+      <option value="28">28%</option>
+      <option value="custom">✏️ Custom</option>
+    </select>
+    <input type="number" class="p-gst-custom" placeholder="GST %" 
+      style="margin-top:6px; display:none;" oninput="recalcProduct(${id})">
+  `;
+}
+
+function getRowImageUpload() {
+  return `
+    <label>📸 ছবি ও ভিডিও</label>
+    <div class="image-upload-section">
+      <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+        <div class="icon">📷</div>
+        <div class="label">মেইন ছবি <span class="required">*</span></div>
+      </div>
+      <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+        <div class="icon">🖼️</div>
+        <div class="label">গ্যালারি (৫টি)</div>
+      </div>
+      <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
+        <div class="icon">🎥</div>
+        <div class="label">ভিডিও (YouTube)</div>
+      </div>
+    </div>
+  `;
+}
+
+function parseSize(sizeStr) {
+  if (!sizeStr) return null;
+  const clean = sizeStr.replace(/['"`×xX*]/g, ' ').replace(/\s+/g, ' ').trim();
+  const parts = clean.split(' ').filter(p => p && !isNaN(parseFloat(p)));
+  if (parts.length >= 2) {
+    return { l: parseFloat(parts[0]), w: parseFloat(parts[1]) };
+  }
+  return null;
+}
+
+console.log('✅ Part 2 loaded');
