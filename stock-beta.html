@@ -2603,7 +2603,7 @@ function checkRowHasData(id) {
           <input type="number" min="0" inputmode="decimal" class="p-weight" placeholder="27" step="0.01" oninput="recalcProduct(${id})">
         </div>
         <div>
-          <label>বক্স</label>
+          <label>Quantity</label>
           <input type="number" min="0" inputmode="numeric" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
@@ -2646,7 +2646,7 @@ function checkRowHasData(id) {
       
       <div class="row-2">
         <div>
-          <label>বক্স</label>
+          <label>Quantity</label>
           <input type="number" min="0" inputmode="numeric" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
         </div>
         <div>
@@ -3372,7 +3372,7 @@ function checkRowHasData(id) {
         
         <div class="row-3">
           <div>
-            <label>বক্স</label>
+            <label>Quantity</label>
             <input type="number" min="0" inputmode="numeric" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
           <div>
@@ -3615,7 +3615,7 @@ function checkRowHasData(id) {
             <input type="number" min="0" inputmode="decimal" class="p-weight" placeholder="5" step="0.01" oninput="recalcProduct(${id})">
           </div>
           <div>
-            <label>বক্স</label>
+            <label>Quantity</label>
             <input type="number" min="0" inputmode="numeric" class="p-boxes" placeholder="100" oninput="recalcProduct(${id})">
           </div>
         </div>
@@ -3673,27 +3673,23 @@ function checkRowHasData(id) {
     if (typeof updateSummary === 'function') updateSummary();
   };
   
- window.selectRating = function(id, type, el) {
+window.selectRating = function(id, type, el) {
   const row = document.getElementById('product-row-' + id);
   if (!row) return;
-  row.dataset.rating = type;
+  row.dataset.rating = type;   // ✅ এই লাইন থাকতে হবে
   
   if (el && el.parentElement) {
     el.parentElement.querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
     el.classList.add('selected');
   }
   
-  // ✅ Dynamic Label আপডেট
   const unitText = type === 'sqft' ? '/sqft' : (type === 'box' ? '/Box' : '/Piece');
   row.querySelectorAll('.rate-unit').forEach(lbl => {
     lbl.innerText = unitText;
   });
   
   if (typeof recalcProduct === 'function') recalcProduct(id);
-  
-  console.log(`✅ Rating: ${type} — Label: ${unitText}`);
 };
-  
     // ============================================================
   // SELECT MODE — Simple / Details Toggle
   // ============================================================
