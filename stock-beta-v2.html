@@ -900,3 +900,284 @@ button {
 }
 </style>
 </head>
+<body>
+
+<!-- ============ TOPBAR ============ -->
+<div class="topbar">
+  <h2 id="topbarTitle">📦 Stock Management</h2>
+  <div class="topbar-right">
+    <div id="langBtn" onclick="toggleLangMenu(event)">
+      <span id="currentLangFlag">🇧🇩</span>
+      <span id="currentLangName">বাংলা</span>
+      <span style="font-size: 8px;">▼</span>
+    </div>
+    <div class="logout" onclick="handleLogout()">Logout</div>
+  </div>
+</div>
+
+<!-- ============ LANGUAGE MENU (Bottom Sheet) ============ -->
+<div id="langMenu" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;" onclick="closeLangMenu(event)">
+  <div style="position: absolute; bottom: 0; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; padding: 14px 0; max-height: 70vh; overflow-y: auto; animation: slideUp 0.25s ease-out;" onclick="event.stopPropagation()">
+    <div style="text-align: center; padding: 4px 0 14px; border-bottom: 1px solid #eee;">
+      <div style="width: 40px; height: 4px; background: #ddd; border-radius: 4px; margin: 0 auto 10px;"></div>
+      <div style="font-size: 14px; font-weight: 600; color: #202124;">🌐 ভাষা / Language</div>
+    </div>
+    <div id="langList" style="padding: 6px 0;"></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ============ BUSINESS SELECTOR ============ -->
+  <div id="businessSelectorPage" class="page active">
+    <div class="business-selector">
+      <h3>🏢 আপনার ব্যবসার ধরন সিলেক্ট করুন</h3>
+      <p class="helper" style="text-align: center; margin-bottom: 14px;">
+        একবার সিলেক্ট করলে পরে সেটিংস থেকে পরিবর্তন করতে পারবেন
+      </p>
+
+      <div class="business-grid">
+        <div class="business-card" data-biz="hardware" onclick="selectBusiness('hardware', this)">
+          <div class="icon">🔨</div><div class="name">Hardware</div>
+        </div>
+        <div class="business-card" data-biz="paints" onclick="selectBusiness('paints', this)">
+          <div class="icon">🎨</div><div class="name">Paints</div>
+        </div>
+        <div class="business-card" data-biz="medicine" onclick="selectBusiness('medicine', this)">
+          <div class="icon">💊</div><div class="name">Medicine</div>
+        </div>
+        <div class="business-card" data-biz="restaurant" onclick="selectBusiness('restaurant', this)">
+          <div class="icon">🍽️</div><div class="name">Restaurant</div>
+        </div>
+        <div class="business-card" data-biz="fruits" onclick="selectBusiness('fruits', this)">
+          <div class="icon">🥬</div><div class="name">Fruits & Veg</div>
+        </div>
+        <div class="business-card" data-biz="grocery" onclick="selectBusiness('grocery', this)">
+          <div class="icon">🛒</div><div class="name">Grocery</div>
+        </div>
+        <div class="business-card" data-biz="marble" onclick="selectBusiness('marble', this)">
+          <div class="icon">🏛️</div><div class="name">Marble & Tiles</div>
+        </div>
+        <div class="business-card" data-biz="clothing" onclick="selectBusiness('clothing', this)">
+          <div class="icon">👕</div><div class="name">Clothing</div>
+        </div>
+        <div class="business-card" data-biz="electronics" onclick="selectBusiness('electronics', this)">
+          <div class="icon">📱</div><div class="name">Electronics</div>
+        </div>
+        <div class="business-card" data-biz="auto" onclick="selectBusiness('auto', this)">
+          <div class="icon">🚗</div><div class="name">Auto Parts</div>
+        </div>
+        <div class="business-card" data-biz="jewellery" onclick="selectBusiness('jewellery', this)">
+          <div class="icon">💎</div><div class="name">Jewellery</div>
+        </div>
+        <div class="business-card" data-biz="cosmetics" onclick="selectBusiness('cosmetics', this)">
+          <div class="icon">🧴</div><div class="name">Cosmetics</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN APP ============ -->
+  <div id="mainAppPage" class="page">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('add', this)">➕ Add Stock</div>
+      <div class="tab" onclick="switchTab('list', this)">📋 Stock List</div>
+      <div class="tab" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
+    </div>
+
+    <!-- ============ ADD STOCK TAB ============ -->
+    <div id="tab-add" class="tab-content page active">
+
+      <!-- Common Info Card -->
+      <div class="card">
+        <h3>📋 সাপ্লায়ার ও কমন তথ্য</h3>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div id="bizTypeBadge" style="background:#e8f0fe; color:#1a73e8; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600;">
+            🏢 Business Type
+          </div>
+          <button onclick="openCategoryModal()" style="padding:6px 12px; background:#f0f2f5; color:#1a73e8; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+            ⚙️ Category Manager
+          </button>
+        </div>
+
+        <label>কোম্পানি / সাপ্লায়ার নাম <span class="required">*</span></label>
+        <input type="text" id="supplierName" placeholder="যেমন: Gujarat Tiles Pvt Ltd">
+
+        <label>সাপ্লায়ারের GST নাম্বার <span class="required">*</span></label>
+        <input type="text" id="supplierGst" placeholder="24AAAAA0000A1Z5" maxlength="15"
+          inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" autocomplete="off"
+          style="text-transform: uppercase; font-family: monospace; letter-spacing: 1px;"
+          oninput="validateGstin(this)">
+        <div class="helper" id="gstinHelper">ফরম্যাট: ২ সংখ্যা + ৫ অক্ষর + ৪ সংখ্যা + ৩ অক্ষর + ১ সংখ্যা/অক্ষর (১৫ অক্ষর)</div>
+
+        <div class="row-2">
+          <div>
+            <label>ইনভয়েস নং</label>
+            <input type="text" id="invoiceNo" placeholder="INV-2026-001">
+          </div>
+          <div>
+            <label>ক্রয় তারিখ</label>
+            <input type="date" id="purchaseDate">
+          </div>
+        </div>
+
+        <!-- Free Delivery Checkbox -->
+        <div style="margin:14px 0; background:#e8f5e9; padding:14px; border-radius:10px; border-left:4px solid #4caf50;">
+          <label style="display:flex; align-items:center; gap:10px; font-size:14px; font-weight:700; color:#2e7d32; cursor:pointer; margin:0;">
+            <input type="checkbox" id="freeDeliveryCommon"
+              onchange="handleFreeDeliveryChange()"
+              style="width:22px; height:22px; margin:0; cursor:pointer;">
+            <span>🚚 ফ্রি ডেলিভারি (মহাজন দিচ্ছে)</span>
+          </label>
+          <div style="font-size:11px; color:#558b2f; margin-top:6px; padding-left:32px;">
+            ✅ চেক করলে পরিবহন সংক্রান্ত সব ফিল্ড লুকিয়ে যাবে
+          </div>
+        </div>
+
+        <!-- Transport Wrapper -->
+        <div id="transportSectionWrapper">
+
+          <label>উৎস <span class="required">*</span></label>
+          <div class="radio-group">
+            <div class="radio-option selected" onclick="selectRadio('source', 'local', this)">🏠 Local</div>
+            <div class="radio-option" onclick="selectRadio('source', 'import', this)">✈️ Import</div>
+          </div>
+
+          <label>পরিবহন পদ্ধতি <span class="required">*</span></label>
+          <div class="radio-group">
+            <div class="radio-option selected" onclick="selectRadio('transport', 'lorry', this)">🚛 লরি</div>
+            <div class="radio-option" onclick="selectRadio('transport', 'container', this)">📦 কনটেইনার</div>
+          </div>
+
+          <label>পরিবহন রেট (₹/টন)</label>
+          <input type="number" min="0" id="transportRate" placeholder="4800">
+
+          <!-- Container GST Section -->
+          <div id="containerGstWrapper" style="display:none; margin-top:10px; background:#e3f2fd; padding:12px; border-radius:8px; border-left:3px solid #2196f3;">
+            <label style="font-size:12px; font-weight:700; color:#1976d2; display:block; margin-bottom:6px;">
+              📦 Container GST % (Tax Benefit)
+            </label>
+            <select id="containerGstPercent" onchange="handleContainerGstChange()"
+              style="width:100%; padding:10px; border:1px solid #90caf9; border-radius:8px; font-size:14px; background:white;">
+              <option value="0">0%</option>
+              <option value="5">5%</option>
+              <option value="12">12%</option>
+              <option value="18" selected>18% (ডিফল্ট)</option>
+              <option value="28">28%</option>
+              <option value="custom">✏️ Custom</option>
+            </select>
+            <input type="number" id="containerGstCustom" placeholder="GST %"
+              style="display:none; margin-top:6px; padding:10px; border:1px solid #90caf9; border-radius:8px; width:100%; background:white;"
+              oninput="handleContainerGstChange()">
+
+            <div id="containerGstPreview" style="margin-top:10px; background:white; padding:10px; border-radius:8px; font-size:12px; color:#555; line-height:1.6;">
+              💡 Transport Rate দিন
+            </div>
+          </div>
+
+          <label>🚛 ট্রাক / কনটেইনারের মোট ওজন <span class="required">*</span></label>
+          <select id="truckWeight" onchange="handleTruckWeightChange()">
+            <option value="">-- সিলেক্ট করুন --</option>
+          </select>
+          <input type="number" min="0" id="truckWeightCustom" placeholder="টন" step="0.01"
+            style="margin-top:6px; display:none; background:#e8f0fe;"
+            oninput="recalcAllProducts(); updateSummary();">
+          <div class="helper">💡 এই ওজনের অনুপাতে Loading/Unloading/Insurance ভাগ হবে</div>
+
+        </div>
+        <!-- Transport Wrapper End -->
+
+      </div>
+
+      <!-- Additional Costs Card -->
+      <div class="card">
+        <h3>💰 অতিরিক্ত খরচ (পুরো বিলের জন্য)</h3>
+        <p class="helper" style="margin-bottom: 10px;">
+          ⚠️ এই খরচগুলো একটি নির্দিষ্ট পণ্যের নয়, পুরো বিলের। ওজনের অনুপাতে প্রতিটি পণ্যে ভাগ হবে।
+        </p>
+
+        <div class="row-2">
+          <div>
+            <label>🟢 লোডিং (₹)</label>
+            <input type="number" min="0" id="loadingCost" placeholder="যেমন: 10000" style="background: #e6f4ea;">
+          </div>
+          <div>
+            <label>🟢 আনলোডিং (₹)</label>
+            <input type="number" min="0" id="unloadingCost" placeholder="যেমন: 12000" style="background: #e6f4ea;">
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div>
+            <label>🟢 ইন্সুরেন্স (₹)</label>
+            <input type="number" min="0" id="insuranceCost" placeholder="যেমন: 1500" style="background: #e6f4ea;">
+          </div>
+          <div>
+            <label>🟢 অন্যান্য (₹)</label>
+            <input type="number" min="0" id="otherPakka" placeholder="যেমন: 300" style="background: #e6f4ea;">
+          </div>
+        </div>
+
+        <label>
+          <span id="optionalLabelText">🟡 Cash (Optional) খরচ (₹)</span>
+          <span style="font-size:11px; color:#b06000;">(প্রাইভেট)</span>
+          <span onclick="editOptionalLabel()" style="font-size:11px; color:#1a73e8; cursor:pointer; text-decoration:underline; margin-left:6px;">✏️ নাম পরিবর্তন</span>
+        </label>
+        <div class="optional-wrap">
+          <input type="number" min="0" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
+          <span class="optional-icon" onclick="toggleOptional()">👁️</span>
+        </div>
+        <div class="optional-hint" id="optionalHint">🔒 শুধু অ্যাডমিন দেখতে পারবেন (নগদ খরচ)</div>
+      </div>
+
+      <!-- Products Card -->
+      <div class="card">
+        <h3>📦 পণ্যের তালিকা</h3>
+        <div id="productsList"></div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
+          <button onclick="addSameLot()"
+            style="padding: 12px 6px; background:#e6f4ea; color:#0f9d58; border:2px solid #0f9d58; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
+            🔄<br>Same Lot
+          </button>
+          <button onclick="addNewLot()"
+            style="padding: 12px 6px; background:#e8f0fe; color:#1a73e8; border:2px solid #1a73e8; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
+            ➕<br>New Lot
+          </button>
+          <button onclick="finishStockEntry()"
+            style="padding: 12px 6px; background:#0f9d58; color:white; border:2px solid #0f9d58; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
+            ✅<br>Finish
+          </button>
+        </div>
+      </div>
+
+    </div>
+    <!-- Add Stock Tab End -->
+
+    <!-- ============ STOCK LIST TAB ============ -->
+    <div id="tab-list" class="tab-content page">
+      <div class="card">
+        <h3>📋 Stock List</h3>
+        <div class="empty">
+          এখনো কোনো স্টক এন্ট্রি করা হয়নি<br>
+          <span style="font-size: 11px;">"Add Stock" ট্যাবে গিয়ে প্রথম এন্ট্রি করুন</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ DASHBOARD TAB ============ -->
+    <div id="tab-dashboard" class="tab-content page">
+      <div class="card">
+        <h3>📊 Dashboard</h3>
+        <div class="empty">এন্ট্রি করার পর এখানে পরিসংখ্যান দেখা যাবে</div>
+      </div>
+    </div>
+
+  </div>
+  <!-- Main App End -->
+
+</div>
+<!-- Container End -->
