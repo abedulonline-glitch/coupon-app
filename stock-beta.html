@@ -561,6 +561,134 @@ textarea:focus {
   }
 }
 
+/* ============================================================
+   OTHERS MODE — Timer Bar + Panic + Hide/Show (v3.0)
+   ============================================================ */
+
+/* ---- Allowance চেকবক্স Others Mode ON হলে দেখাবে ---- */
+body.others-mode-active .p-allow-check,
+body.others-mode-active .allow-info-icon {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+body:not(.others-mode-active) .p-allow-check {
+  display: none !important;
+}
+body:not(.others-mode-active) .allow-info-icon {
+  display: none !important;
+}
+
+/* ---- Per sqft Actual / Measurement Benefit / বিস্তারিত হিসাব ---- */
+body.others-mode-active .calc-per-sqft-actual,
+body.others-mode-active .calc-measurement-benefit,
+body.others-mode-active .benefit-box,
+body.others-mode-active .calc-details-shutter {
+  display: block !important;
+}
+body:not(.others-mode-active) .calc-per-sqft-actual,
+body:not(.others-mode-active) .calc-measurement-benefit,
+body:not(.others-mode-active) .benefit-box,
+body:not(.others-mode-active) .calc-details-shutter {
+  display: none !important;
+}
+
+/* ---- Timer Bar ---- */
+.others-timer-bar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #fff8e1, #ffecb3);
+  border-bottom: 2px solid #f9a825;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9998;
+  box-shadow: 0 4px 12px rgba(249, 168, 37, 0.25);
+  transition: all 0.3s;
+}
+.others-timer-bar.danger {
+  background: linear-gradient(135deg, #ffebee, #ffcdd2);
+  border-bottom-color: #d93025;
+  animation: pulseDanger 1s infinite;
+}
+@keyframes pulseDanger {
+  0%, 100% { box-shadow: 0 4px 12px rgba(217, 48, 37, 0.25); }
+  50%      { box-shadow: 0 4px 24px rgba(217, 48, 37, 0.55); }
+}
+.others-timer-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #b06000;
+  flex-shrink: 0;
+}
+.others-timer-bar.danger .others-timer-label { color: #d93025; }
+
+.others-progress-wrap {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+.others-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f9a825, #ffc107);
+  transition: width 1s linear;
+  border-radius: 10px;
+}
+.others-timer-bar.danger .others-progress-fill {
+  background: linear-gradient(90deg, #d93025, #e57373);
+}
+.others-timer-text {
+  font-size: 13px;
+  font-weight: bold;
+  color: #b06000;
+  min-width: 50px;
+  text-align: center;
+  font-family: monospace;
+}
+.others-timer-bar.danger .others-timer-text { color: #d93025; }
+
+.others-panic-btn {
+  background: #d93025;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.others-panic-btn:hover {
+  background: #b71c1c;
+  transform: scale(1.05);
+}
+.others-panic-btn:active { transform: scale(0.95); }
+
+.others-timer-adjust-btn {
+  background: none;
+  border: none;
+  color: #b06000;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 6px;
+  transition: all 0.2s;
+  user-select: none;
+}
+.others-timer-adjust-btn:hover {
+  color: #d93025;
+  transform: scale(1.2);
+}
+.others-timer-bar.danger .others-timer-adjust-btn { color: #d93025; }
 </style>
 </head>
 <body>
@@ -1094,6 +1222,55 @@ textarea:focus {
       </button>
     </div>
 
+   <!-- Section 3.5: Others Mode (Hidden Trigger System) -->
+<div class="settings-section">
+  <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🟡 Others Mode</h4>
+  <p style="font-size:11px; color:#666; margin-bottom:8px;">
+    Cash / Optional / Allowance ফিল্ড সাময়িকভাবে দেখানোর জন্য। Timer শেষ হলে স্বয়ংক্রিয় বন্ধ হবে।
+  </p>
+  
+  <div style="background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:10px; border-left:3px solid #f9a825;">
+    <label style="display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; color:#b06000; cursor:pointer; margin:0;">
+      <input type="checkbox" id="othersModeToggle" 
+        onchange="handleOthersModeToggle(this.checked)" 
+        style="width:20px; height:20px; margin:0; cursor:pointer;">
+      <span>🟡 Others Mode চালু করুন</span>
+    </label>
+    <div style="font-size:11px; color:#b06000; margin-top:6px; padding-left:30px;">
+      ⚠️ শুধু Settings থেকে নয়, হিডেন গেস্টার দিয়েও চালু করা যাবে
+    </div>
+  </div>
+  
+  <label style="font-size:11px; color:#555; font-weight:600;">⏱️ Timer সময় (মিনিট)</label>
+  <select id="othersModeTimer" 
+    style="width:100%; padding:8px; border:1px solid #dadce0; border-radius:8px; font-size:13px; margin-bottom:10px;">
+    <option value="15">১৫ মিনিট</option>
+    <option value="30" selected>৩০ মিনিট (ডিফল্ট)</option>
+    <option value="45">৪৫ মিনিট</option>
+    <option value="60">৬০ মিনিট</option>
+  </select>
+  
+  <label style="font-size:11px; color:#555; font-weight:600;">💤 নিষ্ক্রিয় থাকলে বন্ধ (সেকেন্ড)</label>
+  <select id="othersInactivityTimer" 
+    style="width:100%; padding:8px; border:1px solid #dadce0; border-radius:8px; font-size:13px; margin-bottom:10px;">
+    <option value="10">১০ সেকেন্ড</option>
+    <option value="15">১৫ সেকেন্ড</option>
+    <option value="30" selected>৩০ সেকেন্ড (ডিফল্ট)</option>
+    <option value="60">৬০ সেকেন্ড</option>
+    <option value="120">১২০ সেকেন্ড</option>
+  </select>
+  
+  <div style="background:#f0f2f5; padding:10px; border-radius:8px; font-size:11px; color:#666; margin-bottom:10px; line-height:1.6;">
+    <b>🔑 হিডেন গেস্টার:</b><br>
+    • <b>চালু করতে:</b> টাইটেলে ৩ বার ট্যাপ <i>অথবা</i> Topbar-এ ডাবল ট্যাপ<br>
+    • <b>বন্ধ করতে:</b> Panic Button ডাবল ট্যাপ <i>অথবা</i> টাইটেলে ৩ বার ট্যাপ
+  </div>
+  
+  <div id="othersModeStatus" style="margin-top:10px; padding:10px; border-radius:8px; font-size:12px; background:#f0f2f5; color:#666;">
+    ⚪ Others Mode বন্ধ আছে
+  </div>
+</div>
+    
     <!-- Section 4: Language -->
     <div class="settings-section">
       <h4 style="font-size:14px; color:#202124; margin:16px 0 8px;">🌐 ভাষা</h4>
@@ -4903,6 +5080,313 @@ function checkRowHasData(id) {
   console.log('✅ Part E loaded');
   console.log('🎉 Stock system fully ready!'); 
 
+// ============================================================
+// OTHERS MODE — Timer + Panic + Hidden Trigger System (v3.0)
+// ============================================================
+let othersModeActive = false;
+let othersTimerInterval = null;
+let othersTimeRemaining = 0; // seconds
+let othersTotalTime = 0;     // seconds
+let lastActivityTime = Date.now();
+let inactivityCheckInterval = null;
+let inactivityTimeoutSec = 30; // default
+
+const OTHERS_TIMER_KEY = 'others_mode_timer_mins';
+const OTHERS_INACTIVITY_KEY = 'others_mode_inactivity_sec';
+
+// Toggle from Settings Modal
+window.handleOthersModeToggle = function(checked) {
+  if (checked) {
+    // Vault Password যাচাই
+    const savedVaultHash = localStorage.getItem('stock_vault_password');
+    if (savedVaultHash) {
+      const inputPwd = prompt('🔐 Others Mode চালু করতে Vault Password দিন:');
+      if (inputPwd === null) {
+        const toggle = document.getElementById('othersModeToggle');
+        if (toggle) toggle.checked = false;
+        return;
+      }
+      const inputHash = simpleHash(inputPwd);
+      if (inputHash !== savedVaultHash) {
+        alert('❌ ভুল পাসওয়ার্ড!');
+        const toggle = document.getElementById('othersModeToggle');
+        if (toggle) toggle.checked = false;
+        return;
+      }
+    } else {
+      const confirmStart = confirm('⚠️ Vault Password সেট করা হয়নি। Others Mode চালু করতে চান?');
+      if (!confirmStart) {
+        const toggle = document.getElementById('othersModeToggle');
+        if (toggle) toggle.checked = false;
+        return;
+      }
+    }
+    startOthersMode();
+  } else {
+    stopOthersMode();
+  }
+};
+
+// Others Mode চালু
+window.startOthersMode = function() {
+  if (othersModeActive) return;
+  
+  othersModeActive = true;
+  document.body.classList.add('others-mode-active');
+  
+  const mins = parseInt(document.getElementById('othersModeTimer')?.value) || 
+               parseInt(localStorage.getItem(OTHERS_TIMER_KEY)) || 30;
+  inactivityTimeoutSec = parseInt(document.getElementById('othersInactivityTimer')?.value) || 
+                         parseInt(localStorage.getItem(OTHERS_INACTIVITY_KEY)) || 30;
+  
+  localStorage.setItem(OTHERS_TIMER_KEY, mins);
+  localStorage.setItem(OTHERS_INACTIVITY_KEY, inactivityTimeoutSec);
+  
+  othersTotalTime = mins * 60;
+  othersTimeRemaining = othersTotalTime;
+  
+  createTimerBar();
+  
+  othersTimerInterval = setInterval(() => {
+    othersTimeRemaining--;
+    updateTimerBar();
+    if (othersTimeRemaining <= 0) {
+      stopOthersMode();
+      console.log('⏱️ Others Mode auto-stopped (timer end)');
+    }
+  }, 1000);
+  
+  lastActivityTime = Date.now();
+  if (inactivityCheckInterval) clearInterval(inactivityCheckInterval);
+  inactivityCheckInterval = setInterval(() => {
+    const idle = (Date.now() - lastActivityTime) / 1000;
+    if (idle >= inactivityTimeoutSec && othersModeActive) {
+      stopOthersMode();
+      console.log(`💤 Others Mode auto-stopped (${inactivityTimeoutSec}s inactivity)`);
+    }
+  }, 2000);
+  
+  document.addEventListener('click', updateActivity, true);
+  document.addEventListener('keydown', updateActivity, true);
+  document.addEventListener('touchstart', updateActivity, true);
+  document.addEventListener('scroll', updateActivity, true);
+  
+  updateOthersStatusUI(true);
+  console.log(`✅ Others Mode started — Timer: ${mins} min, Inactivity: ${inactivityTimeoutSec}s`);
+};
+
+// Others Mode বন্ধ
+window.stopOthersMode = function() {
+  if (!othersModeActive) return;
+  
+  othersModeActive = false;
+  document.body.classList.remove('others-mode-active');
+  
+  if (othersTimerInterval) {
+    clearInterval(othersTimerInterval);
+    othersTimerInterval = null;
+  }
+  if (inactivityCheckInterval) {
+    clearInterval(inactivityCheckInterval);
+    inactivityCheckInterval = null;
+  }
+  
+  const bar = document.getElementById('othersTimerBar');
+  if (bar) bar.remove();
+  
+  document.removeEventListener('click', updateActivity, true);
+  document.removeEventListener('keydown', updateActivity, true);
+  document.removeEventListener('touchstart', updateActivity, true);
+  document.removeEventListener('scroll', updateActivity, true);
+  
+  const toggle = document.getElementById('othersModeToggle');
+  if (toggle) toggle.checked = false;
+  
+  updateOthersStatusUI(false);
+  console.log('🔴 Others Mode stopped');
+};
+
+// Activity update
+function updateActivity() {
+  lastActivityTime = Date.now();
+}
+
+// Timer Bar তৈরি (ম্যানুয়াল +/- সহ)
+function createTimerBar() {
+  const oldBar = document.getElementById('othersTimerBar');
+  if (oldBar) oldBar.remove();
+  
+  const bar = document.createElement('div');
+  bar.id = 'othersTimerBar';
+  bar.className = 'others-timer-bar';
+  bar.innerHTML = `
+    <span class="others-timer-label">🟡 Others ON</span>
+    <button class="others-timer-adjust-btn" onclick="adjustOthersTimer(-5)" title="-৫ মিনিট">−</button>
+    <div class="others-progress-wrap">
+      <div class="others-progress-fill" id="othersProgressFill" style="width: 100%;"></div>
+    </div>
+    <button class="others-timer-adjust-btn" onclick="adjustOthersTimer(5)" title="+৫ মিনিট">+</button>
+    <span class="others-timer-text" id="othersTimerText">--:--</span>
+    <button class="others-panic-btn" id="othersPanicBtn">🔴 PANIC</button>
+  `;
+  document.body.appendChild(bar);
+  
+  // Panic Button — Double Tap
+  let tapCount = 0;
+  let tapTimer = null;
+  const panicBtn = document.getElementById('othersPanicBtn');
+  panicBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    tapCount++;
+    if (tapCount === 1) {
+      tapTimer = setTimeout(() => { tapCount = 0; }, 600);
+    } else if (tapCount === 2) {
+      clearTimeout(tapTimer);
+      tapCount = 0;
+      stopOthersMode();
+      alert('🔴 Panic! Others Mode বন্ধ।');
+    }
+  });
+}
+
+// Timer Bar আপডেট
+function updateTimerBar() {
+  const fill = document.getElementById('othersProgressFill');
+  const text = document.getElementById('othersTimerText');
+  const bar = document.getElementById('othersTimerBar');
+  if (!fill || !text || !bar) return;
+  
+  const pct = (othersTimeRemaining / othersTotalTime) * 100;
+  fill.style.width = pct + '%';
+  
+  const m = Math.floor(othersTimeRemaining / 60);
+  const s = othersTimeRemaining % 60;
+  text.innerText = `${m}:${String(s).padStart(2, '0')}`;
+  
+  if (othersTimeRemaining <= 300) {
+    bar.classList.add('danger');
+  } else {
+    bar.classList.remove('danger');
+  }
+}
+
+// Progress Bar ম্যানুয়াল কন্ট্রোল
+window.adjustOthersTimer = function(minutes) {
+  if (!othersModeActive) return;
+  othersTimeRemaining = Math.max(60, othersTimeRemaining + (minutes * 60));
+  othersTotalTime = Math.max(othersTotalTime, othersTimeRemaining);
+  updateTimerBar();
+};
+
+// Status UI আপডেট
+function updateOthersStatusUI(active) {
+  const statusEl = document.getElementById('othersModeStatus');
+  if (!statusEl) return;
+  
+  if (active) {
+    statusEl.style.background = '#fff8e1';
+    statusEl.style.color = '#b06000';
+    const mins = Math.floor(othersTimeRemaining / 60);
+    statusEl.innerHTML = `🟢 <b>Others Mode চালু আছে</b> — Timer: ${mins} মিনিট বাকি`;
+  } else {
+    statusEl.style.background = '#f0f2f5';
+    statusEl.style.color = '#666';
+    statusEl.innerHTML = '⚪ Others Mode বন্ধ আছে';
+  }
+}
+
+// ============================================================
+// HIDDEN TRIGGER — Triple Tap on Title + Double Tap on Topbar
+// ============================================================
+(function initHiddenTriggers() {
+  let titleTapCount = 0;
+  let titleTapTimer = null;
+  let topbarTapCount = 0;
+  let topbarTapTimer = null;
+  
+  function getSecretPwd() {
+    const savedVaultHash = localStorage.getItem('stock_vault_password');
+    if (!savedVaultHash) {
+      return confirm('⚠️ Vault Password সেট করা হয়নি। Others Mode চালু করতে চান?');
+    }
+    const inputPwd = prompt('🔐 Vault Password দিন:');
+    if (inputPwd === null) return false;
+    return simpleHash(inputPwd) === savedVaultHash;
+  }
+  
+  function handleTripleTap() {
+    if (othersModeActive) {
+      // চালু থাকলে বন্ধ করব
+      stopOthersMode();
+      alert('🔴 Others Mode বন্ধ হয়েছে।');
+    } else {
+      // বন্ধ থাকলে চালু করব
+      if (getSecretPwd()) {
+        startOthersMode();
+        alert('✅ Others Mode চালু হয়েছে!');
+      } else {
+        alert('❌ ভুল পাসওয়ার্ড!');
+      }
+    }
+  }
+  
+  function handleDoubleTapTopbar() {
+    if (othersModeActive) {
+      stopOthersMode();
+      alert('🔴 Others Mode বন্ধ হয়েছে।');
+    } else {
+      if (getSecretPwd()) {
+        startOthersMode();
+        alert('✅ Others Mode চালু হয়েছে!');
+      } else {
+        alert('❌ ভুল পাসওয়ার্ড!');
+      }
+    }
+  }
+  
+  // ১. টাইটেলে ৩ বার ট্যাপ
+  document.addEventListener('DOMContentLoaded', () => {
+    const titleEl = document.getElementById('topbarTitle');
+    if (titleEl) {
+      titleEl.style.cursor = 'default';
+      titleEl.addEventListener('click', () => {
+        titleTapCount++;
+        if (titleTapCount === 1) {
+          titleTapTimer = setTimeout(() => { titleTapCount = 0; }, 800);
+        } else if (titleTapCount === 3) {
+          clearTimeout(titleTapTimer);
+          titleTapCount = 0;
+          handleTripleTap();
+        }
+      });
+    }
+    
+    // ২. Topbar-এ ডাবল ট্যাপ
+    const topbar = document.querySelector('.topbar');
+    if (topbar) {
+      topbar.addEventListener('click', (e) => {
+        // বাটন বা select-এ ক্লিক হলে ইগনোর
+        if (e.target.tagName === 'BUTTON' || 
+            e.target.tagName === 'SELECT' || 
+            e.target.tagName === 'INPUT' ||
+            e.target.closest('button') ||
+            e.target.closest('select')) return;
+        
+        topbarTapCount++;
+        if (topbarTapCount === 1) {
+          topbarTapTimer = setTimeout(() => { topbarTapCount = 0; }, 600);
+        } else if (topbarTapCount === 2) {
+          clearTimeout(topbarTapTimer);
+          topbarTapCount = 0;
+          handleDoubleTapTopbar();
+        }
+      });
+    }
+  });
+})();
+
+console.log('✅ Others Mode System v3.0 loaded (Hidden Trigger)');
 </script>
 
 <!--</body>-->
