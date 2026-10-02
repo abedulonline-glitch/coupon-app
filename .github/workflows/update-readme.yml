@@ -83,8 +83,7 @@ jobs:
           recent = os.environ.get('RECENT_COMMITS', '')
           
           auto_section = f"""
-
----
+-----
 
 <!-- AUTO:START -->
 ## 🤖 Auto-Generated Info
