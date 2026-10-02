@@ -83,7 +83,8 @@ jobs:
           recent = os.environ.get('RECENT_COMMITS', '')
           
           auto_section = f"""
------
+
+---
 
 <!-- AUTO:START -->
 ## 🤖 Auto-Generated Info
@@ -151,5 +152,3 @@ jobs:
           git add README.md
           git commit -m "docs: auto-update README [skip ci]"
           git push
-
-          
