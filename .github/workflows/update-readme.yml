@@ -3,6 +3,8 @@ name: 📝 Auto Update README
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'README.md'
   workflow_dispatch:
 
 permissions:
@@ -24,7 +26,6 @@ jobs:
         run: |
           echo "date=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
           
-          # File line counts
           STOCK_LINES=$(wc -l < stock-beta.html 2>/dev/null || echo 0)
           BETA_LINES=$(wc -l < beta.html 2>/dev/null || echo 0)
           SUPER_LINES=$(wc -l < super-beta.html 2>/dev/null || echo 0)
@@ -35,7 +36,6 @@ jobs:
           echo "super_lines=$SUPER_LINES" >> $GITHUB_OUTPUT
           echo "i18n_lines=$I18N_LINES" >> $GITHUB_OUTPUT
           
-          # Recent commits (last 5)
           git log -5 --pretty=format:"| %ad | %s | \`%h\` |" --date=short > /tmp/recent.txt
           echo "recent_commits<<EOF" >> $GITHUB_OUTPUT
           cat /tmp/recent.txt >> $GITHUB_OUTPUT
@@ -44,29 +44,20 @@ jobs:
       
       - name: 🧹 Remove Old Auto-Sections
         run: |
-          # Remove old auto-generated sections
           python3 << 'PYEOF'
           import re
-          
           with open('README.md', 'r', encoding='utf-8') as f:
               content = f.read()
-          
-          # Remove old AUTO sections
           patterns = [
               r'<!-- AUTO:START -->.*?<!-- AUTO:END -->',
               r'<!-- AUTO_STATS:START -->.*?<!-- AUTO_STATS:END -->',
               r'<!-- AUTO_RECENT:START -->.*?<!-- AUTO_RECENT:END -->',
           ]
-          
           for pattern in patterns:
               content = re.sub(pattern, '', content, flags=re.DOTALL)
-          
-          # Clean up multiple blank lines
           content = re.sub(r'\n{3,}', '\n\n', content)
-          
           with open('README.md', 'w', encoding='utf-8') as f:
               f.write(content)
-          
           print("✅ Old auto-sections removed")
           PYEOF
       
@@ -74,7 +65,6 @@ jobs:
         run: |
           python3 << 'PYEOF'
           import os
-          
           date = os.environ.get('DATE', 'N/A')
           stock_lines = os.environ.get('STOCK_LINES', '0')
           beta_lines = os.environ.get('BETA_LINES', '0')
@@ -115,16 +105,11 @@ jobs:
 **🤖 This section is auto-updated on every push.**
 <!-- AUTO:END -->
 """
-          
           with open('README.md', 'r', encoding='utf-8') as f:
               content = f.read()
-          
-          # Append auto section at the end
           content = content.rstrip() + '\n' + auto_section
-          
           with open('README.md', 'w', encoding='utf-8') as f:
               f.write(content)
-          
           print("✅ Auto-section added")
           PYEOF
         env:
@@ -150,5 +135,5 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add README.md
-          git commit -m "docs: auto-update README [skip ci]"
+          git commit -m "docs: auto-update README [skip ci] [skip pages]"
           git push
