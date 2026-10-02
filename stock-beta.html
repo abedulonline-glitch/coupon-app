@@ -579,20 +579,6 @@ body:not(.others-mode-active) .allow-info-icon {
   display: none !important;
 }
 
-/* ---- Per sqft Actual / Measurement Benefit / বিস্তারিত হিসাব ---- */
-body.others-mode-active .calc-per-sqft-actual,
-body.others-mode-active .calc-measurement-benefit,
-body.others-mode-active .benefit-box,
-body.others-mode-active .calc-details-shutter {
-  display: block !important;
-}
-body:not(.others-mode-active) .calc-per-sqft-actual,
-body:not(.others-mode-active) .calc-measurement-benefit,
-body:not(.others-mode-active) .benefit-box,
-body:not(.others-mode-active) .calc-details-shutter {
-  display: none !important;
-}
-
 /* ---- Timer Bar ---- */
 .others-timer-bar {
   position: fixed;
@@ -689,6 +675,47 @@ body:not(.others-mode-active) .calc-details-shutter {
   transform: scale(1.2);
 }
 .others-timer-bar.danger .others-timer-adjust-btn { color: #d93025; }
+
+/* ============================================================
+   OTHERS MODE — Allowance & Cash Hide/Show (v4.0 Fixed)
+   ============================================================ */
+
+/* ১. Allowance সেকশন — Others Mode বন্ধ থাকলে সম্পূর্ণ হাইড */
+body:not(.others-mode-active) .p-allow-check,
+body:not(.others-mode-active) .allow-info-icon,
+body:not(.others-mode-active) .allow-col {
+  display: none !important;
+}
+
+/* ২. Cash / Optional সেকশন — Others Mode বন্ধ থাকলে সম্পূর্ণ হাইড */
+body:not(.others-mode-active) .p-optional,
+body:not(.others-mode-active) .optional-wrap,
+body:not(.others-mode-active) .optional-hint {
+  display: none !important;
+}
+
+/* ৩. "বিস্তারিত হিসাব" শাটার বাটন — Others Mode বন্ধ থাকলে লুকানো */
+/* (শাটারের ভেতরের কন্টেন্ট display:none করা যাবে না, নাহলে max-height transition নষ্ট হবে) */
+body:not(.others-mode-active) .calc-shutter-toggle {
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* ৪. Per sqft Actual / Measurement Benefit — Others Mode চালু থাকলে দেখাবে */
+body.others-mode-active .calc-per-sqft-actual,
+body.others-mode-active .calc-measurement-benefit,
+body.others-mode-active .benefit-box {
+  display: block !important;
+}
+body:not(.others-mode-active) .calc-per-sqft-actual,
+body:not(.others-mode-active) .calc-measurement-benefit,
+body:not(.others-mode-active) .benefit-box {
+  display: none !important;
+}
 </style>
 </head>
 <body>
