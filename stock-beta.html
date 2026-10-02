@@ -677,20 +677,36 @@ body:not(.others-mode-active) .allow-info-icon {
 .others-timer-bar.danger .others-timer-adjust-btn { color: #d93025; }
 
 /* ============================================================
-   OTHERS MODE — Allowance & Cash Hide/Show (v4.0 Fixed)
+   OTHERS MODE — Corrected Hide/Show (v5.0)
    ============================================================ */
 
-/* ১. Allowance সেকশন — Others Mode বন্ধ থাকলে সম্পূর্ণ হাইড */
-body:not(.others-mode-active) .p-allow-check,
-body:not(.others-mode-active) .allow-info-icon,
-body:not(.others-mode-active) .allow-col {
+/* ১. Others Mode বন্ধ থাকলে Allowance পুরো সেকশন হাইড */
+body:not(.others-mode-active) .others-allowance-wrap {
   display: none !important;
 }
 
-/* ২. Cash / Optional সেকশন — Others Mode বন্ধ থাকলে সম্পূর্ণ হাইড */
-body:not(.others-mode-active) .p-optional,
+/* ২. Others Mode বন্ধ থাকলে Cash/Optional এর লেবেল, ইনপুট, হিন্ট সব হাইড */
+body:not(.others-mode-active) .others-cash-label,
 body:not(.others-mode-active) .optional-wrap,
 body:not(.others-mode-active) .optional-hint {
+  display: none !important;
+}
+
+/* ৩. Others Mode বন্ধ থাকলে Cash রেট/sqft পুরো বক্স হাইড */
+body:not(.others-mode-active) .others-cash-rate-wrap {
+  display: none !important;
+}
+
+/* ৪. Others Mode বন্ধ থাকলে "বিস্তারিত হিসাব" শাটারের বডি হাইড */
+/* (শাটারের বাটন আগেই হাইড করা আছে, এখন বডিও হাইড করছি) */
+body:not(.others-mode-active) .calc-details-shutter {
+  display: none !important;
+}
+
+/* ৫. Others Mode বন্ধ থাকলে "প্রতি sqft (Actual)" ও "মেজারমেন্ট বেনিফিট" হাইড */
+body:not(.others-mode-active) .calc-per-actual-sqft,
+body:not(.others-mode-active) .calc-measurement-benefit,
+body:not(.others-mode-active) .benefit-box {
   display: none !important;
 }
 
@@ -941,11 +957,11 @@ body:not(.others-mode-active) .benefit-box {
           </div>
         </div>
         
-      <label>
+      <label class="others-cash-label">
   <span id="optionalLabelText">🟡 Cash (Optional) খরচ (₹)</span>
   <span style="font-size:11px; color:#b06000;">(প্রাইভেট)</span>
   <span onclick="editOptionalLabel()" style="font-size:11px; color:#1a73e8; cursor:pointer; text-decoration:underline; margin-left:6px;">✏️ নাম পরিবর্তন</span>
-      </label>
+</label>
         <div class="optional-wrap">
           <input type="number" min="0" id="optionalCost" placeholder="যেমন: 5000" style="background: #fef7e0;">
           <span class="optional-icon" onclick="toggleOptional()">👁️</span>
@@ -1256,7 +1272,7 @@ body:not(.others-mode-active) .benefit-box {
     Cash / Optional / Allowance ফিল্ড সাময়িকভাবে দেখানোর জন্য। Timer শেষ হলে স্বয়ংক্রিয় বন্ধ হবে।
   </p>
   
-  <div style="background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:10px; border-left:3px solid #f9a825;">
+  <div class="others-allowance-wrap" style="background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
     <label style="display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; color:#b06000; cursor:pointer; margin:0;">
       <input type="checkbox" id="othersModeToggle" 
         onchange="handleOthersModeToggle(this.checked)" 
@@ -2644,7 +2660,7 @@ function checkRowHasData(id) {
       </div>
       
       <!-- ═══ Allowance ═══ -->
-      <div style="background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
+      <div class="others-allowance-wrap" style="background:#fff8e1; padding:12px; border-radius:8px; margin-bottom:12px; border-left:3px solid #f9a825;">
         <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#b06000; cursor:pointer; margin:0;">
           <input type="checkbox" class="p-allow-check" onchange="toggleAllowance(${id}, this.checked)" style="width:auto; margin:0;">
           <span>✂️ Allowance</span>
@@ -2700,10 +2716,10 @@ function checkRowHasData(id) {
             <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
             <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
           </div>
-          <div>
-            <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-            <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-          </div>
+        <div class="others-cash-rate-wrap">
+  <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+  <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+       </div>
         </div>
       </div>
       
@@ -2758,10 +2774,10 @@ function checkRowHasData(id) {
             🟢 পাকা রেট/sqft</label>
             <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
           </div>
-          <div>
-            <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-            <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-          </div>
+          <div class="others-cash-rate-wrap">
+  <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+  <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+</div>
         </div>
       </div>
       
@@ -3132,10 +3148,10 @@ function checkRowHasData(id) {
               <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
               <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
             </div>
-            <div>
-              <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-            </div>
+            <div class="others-cash-rate-wrap">
+  <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+  <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+</div>
           </div>
           
           <div class="row-2" style="margin-top:8px;">
@@ -3190,10 +3206,10 @@ function checkRowHasData(id) {
               <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
               <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
             </div>
-            <div>
-              <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-              <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-            </div>
+            <div class="others-cash-rate-wrap">
+  <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+  <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+</div>
           </div>
           
           <div class="row-2" style="margin-top:8px;">
