@@ -659,23 +659,62 @@ body:not(.others-mode-active) .allow-info-icon {
 }
 .others-panic-btn:active { transform: scale(0.95); }
 
-.others-timer-adjust-btn {
-  background: none;
-  border: none;
-  color: #b06000;
-  font-size: 18px;
-  font-weight: bold;
+/* ============================================================
+   OTHERS MODE — Slider Progress Bar (New)
+   ============================================================ */
+.others-progress-wrap {
+  position: relative;
+  touch-action: none;
   cursor: pointer;
-  padding: 0 6px;
-  transition: all 0.2s;
-  user-select: none;
 }
-.others-timer-adjust-btn:hover {
-  color: #d93025;
-  transform: scale(1.2);
-}
-.others-timer-bar.danger .others-timer-adjust-btn { color: #d93025; }
 
+.others-progress-knob {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border: 3px solid #f9a825;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  pointer-events: none;
+  transition: left 0.1s linear;
+  z-index: 2;
+}
+
+.others-timer-bar.danger .others-progress-knob {
+  border-color: #d93025;
+}
+
+.others-drag-tooltip {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #202124;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  display: none;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 9999;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.others-drag-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #202124 transparent transparent transparent;
+}
 /* ============================================================
    OTHERS MODE — Corrected Hide/Show (v5.0)
    ============================================================ */
@@ -5254,7 +5293,14 @@ function updateActivity() {
   lastActivityTime = Date.now();
 }
 
-// Timer Bar তৈরি (ম্যানুয়াল +/- সহ)
+// ============================================================
+// OTHERS MODE — Drag/Slider Timer System
+// ============================================================
+const OTHERS_MAX_TIME = 3600; // সর্বোচ্চ ৬০ মিনিট (সেকেন্ডে)
+let isDragging = false;
+let wasRunningBeforeDrag = false;
+
+// Timer Bar তৈরি (ম্যানুয়াল +/- বাদ, স্লাইডার সহ)
 function createTimerBar() {
   const oldBar = document.getElementById('othersTimerBar');
   if (oldBar) oldBar.remove();
@@ -5264,15 +5310,24 @@ function createTimerBar() {
   bar.className = 'others-timer-bar';
   bar.innerHTML = `
     <span class="others-timer-label">🟡 Others ON</span>
-    <button class="others-timer-adjust-btn" onclick="adjustOthersTimer(-5)" title="-৫ মিনিট">−</button>
-    <div class="others-progress-wrap">
+    <div class="others-progress-wrap" id="othersProgressWrap">
       <div class="others-progress-fill" id="othersProgressFill" style="width: 100%;"></div>
+      <div class="others-progress-knob" id="othersProgressKnob" style="left: calc(100% - 8px);"></div>
+      <div class="others-drag-tooltip" id="othersDragTooltip">30:00</div>
     </div>
-    <button class="others-timer-adjust-btn" onclick="adjustOthersTimer(5)" title="+৫ মিনিট">+</button>
     <span class="others-timer-text" id="othersTimerText">--:--</span>
     <button class="others-panic-btn" id="othersPanicBtn">🔴 PANIC</button>
   `;
   document.body.appendChild(bar);
+  
+  // Drag Event Listeners
+  const wrap = document.getElementById('othersProgressWrap');
+  wrap.addEventListener('mousedown', handleDragStart);
+  wrap.addEventListener('touchstart', handleDragStart, {passive: false});
+  document.addEventListener('mousemove', handleDragMove);
+  document.addEventListener('touchmove', handleDragMove, {passive: false});
+  document.addEventListener('mouseup', handleDragEnd);
+  document.addEventListener('touchend', handleDragEnd);
   
   // Panic Button — Double Tap
   let tapCount = 0;
@@ -5293,6 +5348,78 @@ function createTimerBar() {
   });
 }
 
+// Drag শুরু
+function handleDragStart(e) {
+  if (!othersModeActive) return;
+  isDragging = true;
+  wasRunningBeforeDrag = !!othersTimerInterval;
+  
+  // টাইমার সাময়িকভাবে বন্ধ
+  if (othersTimerInterval) {
+    clearInterval(othersTimerInterval);
+    othersTimerInterval = null;
+  }
+  
+  updateTimeFromDrag(e);
+}
+
+// Drag চলাকালীন
+function handleDragMove(e) {
+  if (!isDragging) return;
+  e.preventDefault(); // স্ক্রলিং বন্ধ করতে
+  updateTimeFromDrag(e);
+}
+
+// Drag শেষ
+function handleDragEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  
+  const tooltip = document.getElementById('othersDragTooltip');
+  if (tooltip) tooltip.style.display = 'none';
+  
+  // টাইমার পুনরায় চালু (যদি আগে চালু ছিল)
+  if (wasRunningBeforeDrag && othersModeActive) {
+    othersTimerInterval = setInterval(() => {
+      othersTimeRemaining--;
+      updateTimerBar();
+      if (othersTimeRemaining <= 0) {
+        stopOthersMode();
+      }
+    }, 1000);
+  }
+}
+
+// ড্র্যাগ থেকে সময় হিসাব
+function updateTimeFromDrag(e) {
+  const wrap = document.getElementById('othersProgressWrap');
+  const rect = wrap.getBoundingClientRect();
+  
+  let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  let x = clientX - rect.left;
+  x = Math.max(0, Math.min(x, rect.width)); // ০ থেকে width এর মধ্যে সীমাবদ্ধ
+  
+  let pct = x / rect.width;
+  let newTime = Math.round(pct * OTHERS_MAX_TIME);
+  
+  othersTimeRemaining = newTime;
+  othersTotalTime = OTHERS_MAX_TIME;
+  
+  updateTimerBar();
+  
+  // Tooltip আপডেট
+  const tooltip = document.getElementById('othersDragTooltip');
+  tooltip.style.display = 'block';
+  tooltip.style.left = `${x}px`;
+  const m = Math.floor(newTime / 60);
+  const s = newTime % 60;
+  tooltip.innerText = `${m}:${String(s).padStart(2, '0')}`;
+  
+  // Knob পজিশন আপডেট
+  const knob = document.getElementById('othersProgressKnob');
+  if (knob) knob.style.left = `calc(${pct * 100}% - 8px)`;
+}
+
 // Timer Bar আপডেট
 function updateTimerBar() {
   const fill = document.getElementById('othersProgressFill');
@@ -5306,7 +5433,11 @@ function updateTimerBar() {
   const m = Math.floor(othersTimeRemaining / 60);
   const s = othersTimeRemaining % 60;
   text.innerText = `${m}:${String(s).padStart(2, '0')}`;
+  // Knob পজিশন সিঙ্ক করুন
+const knob = document.getElementById('othersProgressKnob');
+if (knob) knob.style.left = `calc(${pct}% - 8px)`;
   
+ 
   if (othersTimeRemaining <= 300) {
     bar.classList.add('danger');
   } else {
