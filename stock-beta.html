@@ -771,6 +771,13 @@ body:not(.others-mode-active) .calc-measurement-benefit,
 body:not(.others-mode-active) .benefit-box {
   display: none !important;
 }
+
+/* ============================================================
+   ROLE RATES SECTION — Others Mode Hide/Show
+   ============================================================ */
+body:not(.others-mode-active) .role-rates-section {
+  display: none !important;
+}
 </style>
 </head>
 <body>
@@ -2977,8 +2984,7 @@ function checkRowHasData(id) {
         <span>📊 বিস্তারিত হিসাব দেখুন</span>
         <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
       </div>
-      
-      <!-- Detail Section (লুকানো) -->
+            <!-- Detail Section (লুকানো) -->
       <div class="calc-details-shutter" id="calc-details-${id}">
         <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
         <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
@@ -3001,6 +3007,10 @@ function checkRowHasData(id) {
           <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
         </div>
       </div>
+
+      <!-- ✅ NEW: Role Rates Section (এখানে বসানো হয়েছে) -->
+      ${getRoleRatesSection(id)}
+
     </div>
   `;
 }
