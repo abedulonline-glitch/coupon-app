@@ -2997,12 +2997,13 @@ function checkRowHasData(id) {
         </div>
       </div>
       
-      <!-- Shutter Toggle -->
+          <!-- Shutter Toggle -->
       <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
         <span>📊 বিস্তারিত হিসাব দেখুন</span>
         <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
       </div>
-            <!-- Detail Section (লুকানো) -->
+      
+      <!-- Detail Section (লুকানো) -->
       <div class="calc-details-shutter" id="calc-details-${id}">
         <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
         <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
@@ -3015,6 +3016,7 @@ function checkRowHasData(id) {
           <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
         </div>
         <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
+        
         <div class="benefit-box" style="display: none;">
           <div class="calc-divider"></div>
           <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
@@ -3023,22 +3025,23 @@ function checkRowHasData(id) {
           <div class="calc-row highlight-green"><span>📈 Extra %:</span><b class="calc-extra-pct">0%</b></div>
           <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
           <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
-       <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
-             <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
-              <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
-              <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-              <span style="font-size:11px; color:#0f9d58;">📈 মেজারমেন্ট বেনিফিট:</span>
-              <b class="calc-measure-benefit" style="color:#0f9d58; font-size:13px; background:#c8e6c9; padding:2px 8px; border-radius:10px;">₹0/sqft</b>
-             </div>
-            </div>
-      </div>
+          
+          <!-- ✅ এখানে আপনার নতুন যোগ করা প্রতি sqft (Actual) এবং মেজারমেন্ট বেনিফিট বসবে -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
+            <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
+            <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding-top:4px;">
+            <span style="font-size:12px;">📈 মেজারমেন্ট বেনিফিট:</span>
+            <b class="calc-measure-benefit" style="color:#0f9d58; font-size:14px;">—</b>
+          </div>
+        </div>
+      </div> <!-- ✅ calc-details-shutter এখানে ক্লোজ হলো -->
 
-      <!-- ✅ NEW: Role Rates Section (এখানে বসানো হয়েছে) -->
+      <!-- ✅ NEW: Role Rates Section (শাটারের বাইরে বসানো হয়েছে) -->
       ${getRoleRatesSection(id)}
 
-    </div>
+    </div> <!-- ✅ Product Row এখানে ক্লোজ হলো -->
   `;
 }
   
@@ -3068,53 +3071,53 @@ function checkRowHasData(id) {
           </div>
         </div>
         
-        <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
-          <span>📊 বিস্তারিত হিসাব দেখুন</span>
-          <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
+              <!-- Shutter Toggle -->
+      <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
+        <span>📊 বিস্তারিত হিসাব দেখুন</span>
+        <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
+      </div>
+      
+      <!-- Detail Section (লুকানো) -->
+      <div class="calc-details-shutter" id="calc-details-${id}">
+        <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
+        <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
+        <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
+        <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="calc-divider"></div>
+        <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
+        <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
+        <div class="calc-row" style="font-size:11px; color:#666;">
+          <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
         </div>
+        <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
         
-        <div class="calc-details-shutter" id="calc-details-${id}">
-          <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
-          <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
-          <div class="calc-row"><span>🟡 Cash মোট:</span><b class="calc-cash">₹0</b></div>
-          <div class="calc-row"><span>GST:</span><b class="calc-gst">₹0</b></div>
+        <div class="benefit-box" style="display: none;">
           <div class="calc-divider"></div>
-          <div class="calc-row"><span>🚛 পরিবহন ভাগ:</span><b class="calc-transport-share">₹0</b></div>
-          <div class="calc-row"><span>💰 Extra ভাগ:</span><b class="calc-extra-share">₹0</b></div>
-          <div class="calc-row" style="font-size:11px; color:#666;">
-            <span>⚖️ ওজন ভাগ:</span><b class="calc-weight-share" style="font-size:11px;">0%</b>
+          <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
+          <div class="calc-row"><span>📦 আসল মাপ:</span><b class="calc-actual">0</b></div>
+          <div class="calc-row highlight-green"><span>🎁 Extra:</span><b class="calc-extra">0</b></div>
+          <div class="calc-row highlight-green"><span>📈 Extra %:</span><b class="calc-extra-pct">0%</b></div>
+          <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
+          <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
+          
+          <!-- ✅ এখানে আপনার নতুন যোগ করা প্রতি sqft (Actual) এবং মেজারমেন্ট বেনিফিট বসবে -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
+            <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
+            <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
           </div>
-          <div class="calc-row total"><span>🎯 মোট (Landing):</span><b class="calc-total">₹0</b></div>
-          <div class="calc-row" style="background:#e6f4ea; padding:8px 12px; border-radius:8px; margin-top:6px; font-size:14px;">
-            <span>💵 মোট (Tax ছাড়া):</span>
-            <b class="calc-total-no-tax" style="color:#0f9d58;">₹0</b>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding-top:4px;">
+            <span style="font-size:12px;">📈 মেজারমেন্ট বেনিফিট:</span>
+            <b class="calc-measure-benefit" style="color:#0f9d58; font-size:14px;">—</b>
           </div>
-           <div class="benefit-box" style="display: none;">
-            <div class="calc-divider"></div>
-            <div class="calc-row"><span>📄 হিসাব মাপ:</span><b class="calc-paper">0</b></div>
-            <div class="calc-row"><span>📦 আসল মাপ:</span><b class="calc-actual">0</b></div>
-            <div class="calc-row highlight-green"><span>🎁 Extra:</span><b class="calc-extra">0</b></div>
-            <div class="calc-row highlight-green"><span>📈 Extra %:</span><b class="calc-extra-pct">0%</b></div>
-            <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
-            <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
-         
-         <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
-             <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
-              <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
-              <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-              <span style="font-size:11px; color:#0f9d58;">📈 মেজারমেন্ট বেনিফিট:</span>
-              <b class="calc-measure-benefit" style="color:#0f9d58; font-size:13px; background:#c8e6c9; padding:2px 8px; border-radius:10px;">₹0/sqft</b>
-             </div>
-            </div>
         </div>
-      <!-- ✅ NEW: Role Rates Section (এখানে বসানো হয়েছে) -->
+      </div> <!-- ✅ calc-details-shutter এখানে ক্লোজ হলো -->
+
+      <!-- ✅ NEW: Role Rates Section (শাটারের বাইরে বসানো হয়েছে) -->
       ${getRoleRatesSection(id)}
 
-      </div>
-    `;
-  }
+    </div> <!-- ✅ Product Row এখানে ক্লোজ হলো -->
+  `;
+}
   
   // ==================== TEMPLATES ====================
     // ============================================================
