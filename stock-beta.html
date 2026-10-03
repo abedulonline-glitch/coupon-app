@@ -904,8 +904,20 @@ body:not(.others-mode-active) .role-rates-section {
         
         <label>কোম্পানি / সাপ্লায়ার নাম <span class="required">*</span></label>
         <input type="text" id="supplierName" placeholder="যেমন: Gujarat Tiles Pvt Ltd">
-        
-                <label>সাপ্লায়ারের GST নাম্বার <span class="required">*</span></label>
+                <!-- ✅ নতুন: সাপ্লায়ারের WhatsApp নাম্বার (বাধ্যতামূলক) -->
+        <label>📱 সাপ্লায়ারের WhatsApp নাম্বার <span class="required">*</span></label>
+        <input type="tel" id="supplierWhatsapp" 
+          placeholder="9876543210" 
+          maxlength="10" 
+          inputmode="numeric" 
+          pattern="[0-9]{10}"
+          oninput="validateSupplierWhatsapp(this)"
+          required>
+        <div class="helper" id="supplierWhatsappHelper">
+          সাপ্লায়ারের সাথে যোগাযোগের জন্য ১০ ডিজিটের নাম্বার
+        </div>
+               
+        <label>সাপ্লায়ারের GST নাম্বার <span class="required">*</span></label>
        <input type="text" id="supplierGst" placeholder="24AAAAA0000A1Z5" maxlength="15" 
   inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" autocomplete="off"
   style="text-transform: uppercase; font-family: monospace; letter-spacing: 1px;"
@@ -4149,7 +4161,17 @@ function checkRowHasData(id) {
     addProductRow();
   };
   
-  window.finishStockEntry = function() {
+   window.finishStockEntry = function() {
+    
+    // ✅ Supplier WhatsApp যাচাই (সবার আগে)
+    const supplierWhatsapp = document.getElementById('supplierWhatsapp')?.value?.trim() || '';
+    if (!supplierWhatsapp || supplierWhatsapp.length !== 10) {
+      alert('⚠️ সাপ্লায়ারের WhatsApp নাম্বার সঠিকভাবে দিন (১০ ডিজিট)');
+      document.getElementById('supplierWhatsapp')?.focus();
+      return;
+    }
+    
+    // ✅ এরপর বাকি সব চেক
     const allRows = document.querySelectorAll('.product-row');
     if (allRows.length === 0) { alert('⚠️ কমপক্ষে একটি পণ্য এন্ট্রি করুন'); return; }
     
@@ -4166,13 +4188,11 @@ function checkRowHasData(id) {
       
       const type = row.dataset.type || 'general';
       if (type === 'marble') {
-        // Marble-এর জন্য — wt/sqft + দৈর্ঘ্য
         const wtSqft = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
         const dL = parseFloat(row.querySelector('.d-l')?.value) || 0;
         if (wtSqft <= 0) missingFields.push(`পণ্য ${num}: ওজন/sqft নেই`);
         if (dL <= 0) missingFields.push(`পণ্য ${num}: Length নেই`);
       } else {
-        // Tiles/General — boxes + weight
         const boxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
         const weight = parseFloat(row.querySelector('.p-weight')?.value) || 0;
         if (boxes <= 0) missingFields.push(`পণ্য ${num}: Quantity নেই`);
@@ -4192,7 +4212,12 @@ function checkRowHasData(id) {
     if (!confirm(`✅ নিশ্চিত করবেন?\n\n📦 মোট পণ্য: ${allRows.length}টি`)) return;
     
     alert('🎯 Phase 3C-তে সেভ কার্যক্রম যুক্ত হবে\n\nআপনার সব ডেটা প্রস্তুত।');
-    console.log('✅ Finished:', { products: allRows.length, boxes: totalBoxes });
+    console.log('✅ Finished:', { 
+      supplier: document.getElementById('supplierName')?.value,
+      whatsapp: supplierWhatsapp,
+      products: allRows.length, 
+      boxes: totalBoxes 
+    });
   };
   
    // ============================================================
@@ -5519,6 +5544,36 @@ function updateOthersStatusUI(active) {
 }
 
 // ============================================================
+// SUPPLIER WHATSAPP VALIDATION
+// ============================================================
+window.validateSupplierWhatsapp = function(input) {
+  // শুধু ডিজিট রাখো
+  input.value = input.value.replace(/\D/g, '').slice(0, 10);
+  
+  const helper = document.getElementById('supplierWhatsappHelper');
+  const val = input.value;
+  
+  if (val.length === 0) {
+    input.style.borderColor = '#dadce0';
+    if (helper) {
+      helper.innerText = 'সাপ্লায়ারের সাথে যোগাযোগের জন্য ১০ ডিজিটের নাম্বার';
+      helper.style.color = '#999';
+    }
+  } else if (val.length === 10) {
+    input.style.borderColor = '#0f9d58';
+    if (helper) {
+      helper.innerText = '✅ সঠিক নাম্বার';
+      helper.style.color = '#0f9d58';
+    }
+  } else {
+    input.style.borderColor = '#d93025';
+    if (helper) {
+      helper.innerText = `⚠️ ${val.length}/১০ ডিজিট — আরো ${10 - val.length} ডিজিট দিন`;
+      helper.style.color = '#d93025';
+    }
+  }
+};
+    // ============================================================
 // HIDDEN TRIGGER — Triple Tap on Title + Double Tap on Topbar
 // ============================================================
 (function initHiddenTriggers() {
