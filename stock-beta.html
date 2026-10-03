@@ -590,10 +590,13 @@ body.others-mode-active .allow-info-icon {
   visibility: visible !important;
   opacity: 1 !important;
 }
-body:not(.others-mode-active) .p-allow-check {
-  display: none !important;
-}
-body:not(.others-mode-active) .allow-info-icon {
+/* ============================================================
+   ALLOWANCE FIELDS — Others Mode Hide/Show (Fixed)
+   ============================================================ */
+body:not(.others-mode-active) .p-allow-check,
+body:not(.others-mode-active) .allow-info-icon,
+body:not(.others-mode-active) .allow-col,
+body:not(.others-mode-active) .allow-cell {
   display: none !important;
 }
 
