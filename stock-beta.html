@@ -2997,7 +2997,7 @@ function checkRowHasData(id) {
         </div>
       </div>
       
-          <!-- Shutter Toggle -->
+                    <!-- Shutter Toggle -->
       <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
         <span>📊 বিস্তারিত হিসাব দেখুন</span>
         <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
@@ -3026,7 +3026,7 @@ function checkRowHasData(id) {
           <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
           <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
           
-          <!-- ✅ এখানে আপনার নতুন যোগ করা প্রতি sqft (Actual) এবং মেজারমেন্ট বেনিফিট বসবে -->
+          <!-- ✅ এখানে প্রতি sqft (Actual) এবং মেজারমেন্ট বেনিফিট বসানো হয়েছে -->
           <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
             <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
             <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
@@ -3036,12 +3036,12 @@ function checkRowHasData(id) {
             <b class="calc-measure-benefit" style="color:#0f9d58; font-size:14px;">—</b>
           </div>
         </div>
-      </div> <!-- ✅ calc-details-shutter এখানে ক্লোজ হলো -->
+      </div> <!-- calc-details-shutter এখানে ক্লোজ হলো -->
 
-      <!-- ✅ NEW: Role Rates Section (শাটারের বাইরে বসানো হয়েছে) -->
+      <!-- ✅ NEW: Role Rates Section (শাটারের বাইরে বসানো হয়েছে) -->
       ${getRoleRatesSection(id)}
 
-    </div> <!-- ✅ Product Row এখানে ক্লোজ হলো -->
+    </div> <!-- Product Row এখানে ক্লোজ হলো -->
   `;
 }
   
