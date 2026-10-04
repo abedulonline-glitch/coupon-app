@@ -1063,12 +1063,18 @@ body:not(.others-mode-active) .role-rates-section {
           </div>
           
           <!-- Main Buttons: Add Item | View Items | Finish -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
             
             <!-- Add Item -->
             <button onclick="addTempItem()" 
               style="padding: 14px 6px; background:#1a73e8; color:white; border:2px solid #1a73e8; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">
               ➕<br>Add Item
+            </button>
+
+                        <!-- ⚡ Quick Add -->
+            <button onclick="openQuickAdd()" 
+              style="padding: 14px 6px; background:#7b1fa2; color:white; border:2px solid #7b1fa2; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">
+              ⚡<br>Quick Add
             </button>
             
             <!-- View Items -->
@@ -5788,13 +5794,18 @@ window.cancelCrop = function() {
 // ৪. Crop Apply + ImgBB আপলোড
 // --------------------------------------------
 window.applyCrop = async function() {
+  
+  // ✅ NEW: Quick Add Modal থেকে আহ্বান করা হয়েছে কি না চেক
+  if (window._quickCropTarget) {
+    return applyQuickCrop();
+  }
+  
   if (!cropperInstance) return;
   
   const statusEl = document.getElementById('cropStatus');
   statusEl.innerHTML = '<span style="color: #1a73e8;">⏳ আপলোড হচ্ছে...</span>';
   
   try {
-    // Cropper থেকে Canvas তৈরি (max width 800px)
     const canvas = cropperInstance.getCroppedCanvas({
       maxWidth: 800,
       maxHeight: 800,
@@ -5803,14 +5814,12 @@ window.applyCrop = async function() {
       imageSmoothingQuality: 'high'
     });
     
-    // Canvas থেকে Blob তৈরি (WebP format, 0.85 quality)
     const blob = await new Promise(resolve => {
       canvas.toBlob(resolve, 'image/webp', 0.85);
     });
     
     if (!blob) throw new Error('ছবি তৈরি করা যায়নি');
     
-    // ImgBB-তে আপলোড
     const formData = new FormData();
     formData.append('image', blob, 'product.webp');
     
@@ -5843,9 +5852,6 @@ window.applyCrop = async function() {
   }
 };
 
-// --------------------------------------------
-// ৫. আপলোড হওয়া ImgBB URL সংরক্ষণ
-// --------------------------------------------
 // --------------------------------------------
 // ৫. আপলোড হওয়া ImgBB URL সংরক্ষণ (Updated)
 // --------------------------------------------
@@ -6066,7 +6072,393 @@ window.addTempItem = function() {
   }
 };
 
+// ============================================================
+// QUICK ADD SYSTEM — Smart Design Entry
+// ============================================================
+
+let quickMainImageUrl = '';
+let quickGalleryUrls = ['', '', '', '', ''];
+let quickItemsThisSession = 0;
+
 // --------------------------------------------
+// ১. Quick Add Modal খোলা (স্মার্ট চেক সহ)
+// --------------------------------------------
+window.openQuickAdd = function() {
+  // চেক করি: Temporary Buffer-এ কোনো আইটেম আছে কি না
+  if (tempItems.length === 0) {
+    // ✅ স্মার্ট মেসেজ
+    const userOk = confirm(
+      '⚠️ প্রথমে একটি প্রোডাক্টের Category ও Size সেট করুন\n\n' +
+      'Quick Add ব্যবহার করার জন্য আগে একটি প্রোডাক্টের\n' +
+      'Common Info (Category, Size, Rate) দরকার।\n\n' +
+      'OK চাপলে নিচে প্রোডাক্ট রো-তে ফোকাস যাবে।'
+    );
+    
+    if (userOk) {
+      // 🔽 স্ক্রল করে প্রোডাক্ট রো-তে ফোকাস
+      const firstRow = document.querySelector('.product-row');
+      if (firstRow) {
+        firstRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // Category ড্রপডাউনে ফোকাস
+        setTimeout(() => {
+          const catSelect = firstRow.querySelector('.p-category');
+          if (catSelect) {
+            catSelect.focus();
+            catSelect.style.boxShadow = '0 0 0 3px rgba(26,115,232,0.3)';
+            setTimeout(() => catSelect.style.boxShadow = '', 2000);
+          }
+        }, 500);
+      }
+    }
+    return;
+  }
+  
+  // ✅ Buffer-এ আইটেম আছে — Modal খুলি
+  const lastItem = tempItems[tempItems.length - 1];
+  
+  // Common Info Preview আপডেট
+  const commonText = document.getElementById('quickCommonText');
+  if (commonText) {
+    commonText.innerText = `${lastItem.category || '—'} · ${lastItem.size || '—'} · 🟢 ₹${lastItem.pakkaRate || 0} · 🟡 ₹${lastItem.cashRate || 0}`;
+  }
+  
+  // Gallery স্লট তৈরি
+  buildQuickGallerySlots();
+  
+  // ফর্ম রিসেট
+  document.getElementById('quickDesignName').value = '';
+  document.getElementById('quickQuantity').value = '';
+  document.getElementById('quickVideoUrl').value = '';
+  quickMainImageUrl = '';
+  quickGalleryUrls = ['', '', '', '', ''];
+  updateQuickMainImagePreview();
+  
+  // Counter আপডেট
+  updateQuickAddCounter();
+  
+  // Modal খুলি
+  document.getElementById('quickAddModal').style.display = 'flex';
+  
+  // Design Name ফিল্ডে ফোকাস
+  setTimeout(() => {
+    document.getElementById('quickDesignName')?.focus();
+  }, 300);
+};
+
+// --------------------------------------------
+// ২. Modal বন্ধ
+// --------------------------------------------
+window.closeQuickAdd = function() {
+  document.getElementById('quickAddModal').style.display = 'none';
+  quickItemsThisSession = 0;
+  updateQuickAddCounter();
+};
+
+// --------------------------------------------
+// ৩. Gallery স্লট তৈরি (৫টি)
+// --------------------------------------------
+function buildQuickGallerySlots() {
+  const container = document.getElementById('quickGallerySlots');
+  if (!container) return;
+  
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    const url = quickGalleryUrls[i] || '';
+    html += `
+      <div onclick="quickSelectGalleryImage(${i})" 
+        style="aspect-ratio:1; border:2px dashed #dadce0; border-radius:6px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; background:#f8f9fa; position:relative;">
+        ${url 
+          ? `<img src="${url}" style="width:100%; height:100%; object-fit:cover;">` 
+          : `<span style="font-size:16px; color:#bbb;">+</span>`}
+      </div>
+    `;
+  }
+  container.innerHTML = html;
+}
+
+// --------------------------------------------
+// ৪. Main Image সিলেক্ট
+// --------------------------------------------
+window.quickSelectMainImage = function() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.style.display = 'none';
+  
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    // Cropper Modal খুলি (Quick Add এর জন্য আলাদা target)
+    openQuickCropModal(file, 'main', null);
+  };
+  
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(() => input.remove(), 1000);
+};
+
+// --------------------------------------------
+// ৫. Gallery Image সিলেক্ট
+// --------------------------------------------
+window.quickSelectGalleryImage = function(index) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.style.display = 'none';
+  
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    openQuickCropModal(file, 'gallery', index);
+  };
+  
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(() => input.remove(), 1000);
+};
+
+// --------------------------------------------
+// ৬. Quick Add-এর জন্য Crop Modal
+// --------------------------------------------
+function openQuickCropModal(file, target, index) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const cropImg = document.getElementById('cropImage');
+    cropImg.src = e.target.result;
+    
+    document.getElementById('cropModal').style.display = 'flex';
+    document.getElementById('cropStatus').innerText = '';
+    
+    if (cropperInstance) {
+      cropperInstance.destroy();
+      cropperInstance = null;
+    }
+    
+    // Quick Add এর জন্য target মেমোরিতে রাখি
+    window._quickCropTarget = { target, index };
+    
+    setTimeout(() => {
+      cropperInstance = new Cropper(cropImg, {
+        aspectRatio: NaN,
+        viewMode: 1,
+        autoCropArea: 1,
+        responsive: true,
+        background: false,
+        zoomable: true,
+        scalable: false,
+        minContainerWidth: 280,
+        minContainerHeight: 250
+      });
+    }, 100);
+  };
+  reader.readAsDataURL(file);
+}
+
+// --------------------------------------------
+// ৭. Quick Add-এর জন্য Crop Apply (আলাদা ফাংশন)
+// --------------------------------------------
+window.applyQuickCrop = async function() {
+  if (!cropperInstance || !window._quickCropTarget) return;
+  
+  const statusEl = document.getElementById('cropStatus');
+  statusEl.innerHTML = '<span style="color: #1a73e8;">⏳ আপলোড হচ্ছে...</span>';
+  
+  try {
+    const canvas = cropperInstance.getCroppedCanvas({
+      maxWidth: 800,
+      maxHeight: 800,
+      fillColor: '#fff',
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: 'high'
+    });
+    
+    const blob = await new Promise(resolve => {
+      canvas.toBlob(resolve, 'image/webp', 0.85);
+    });
+    
+    if (!blob) throw new Error('ছবি তৈরি করা যায়নি');
+    
+    const formData = new FormData();
+    formData.append('image', blob, 'quick.webp');
+    
+    const response = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error?.message || 'ImgBB আপলোড ব্যর্থ');
+    
+    const imageUrl = result.data.url;
+    
+    // Target অনুযায়ী সেভ করি
+    const { target, index } = window._quickCropTarget;
+    
+    if (target === 'main') {
+      quickMainImageUrl = imageUrl;
+      updateQuickMainImagePreview();
+    } else if (target === 'gallery') {
+      quickGalleryUrls[index] = imageUrl;
+      buildQuickGallerySlots();
+    }
+    
+    statusEl.innerHTML = '<span style="color: #0f9d58;">✅ আপলোড সফল!</span>';
+    
+    setTimeout(() => {
+      cropperInstance.destroy();
+      cropperInstance = null;
+      document.getElementById('cropModal').style.display = 'none';
+      window._quickCropTarget = null;
+    }, 1000);
+    
+  } catch (err) {
+    console.error('❌ Quick Upload error:', err);
+    statusEl.innerHTML = `<span style="color: #d93025;">❌ ${err.message}</span>`;
+  }
+};
+
+// --------------------------------------------
+// ৮. Main Image Preview আপডেট
+// --------------------------------------------
+function updateQuickMainImagePreview() {
+  const preview = document.getElementById('quickMainImagePreview');
+  if (!preview) return;
+  
+  if (quickMainImageUrl) {
+    preview.innerHTML = `<img src="${quickMainImageUrl}" style="width:100%; max-height:80px; object-fit:cover; border-radius:6px;">`;
+  } else {
+    preview.innerHTML = '📷';
+  }
+}
+
+// --------------------------------------------
+// ৯. "Add & Next" — ডিজাইন জমা করে Modal খোলা রাখে
+// --------------------------------------------
+window.quickAddNext = function() {
+  const designName = document.getElementById('quickDesignName')?.value?.trim() || '';
+  const quantity = parseFloat(document.getElementById('quickQuantity')?.value) || 0;
+  const videoUrl = document.getElementById('quickVideoUrl')?.value?.trim() || '';
+  
+  // ভ্যালিডেশন
+  if (!designName) {
+    alert('⚠️ Design / Item Name দিন');
+    document.getElementById('quickDesignName')?.focus();
+    return;
+  }
+  if (quantity <= 0) {
+    alert('⚠️ Quantity (Box) দিন');
+    document.getElementById('quickQuantity')?.focus();
+    return;
+  }
+  
+  // সর্বশেষ আইটেমের Common Info নিই
+  const lastItem = tempItems[tempItems.length - 1];
+  if (!lastItem) {
+    alert('⚠️ কোনো Common Info পাওয়া যায়নি');
+    return;
+  }
+  
+  // নতুন আইটেম তৈরি (Common Info কপি + নতুন Design, Quantity, Image, Video)
+  const newItem = {
+    ...lastItem,                        // ✅ সব Common Info কপি
+    productId: 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    name: designName,                   // 🔄 নতুন
+    boxes: quantity,                    // 🔄 নতুন
+    images: {
+      main: quickMainImageUrl,          // 🔄 নতুন
+      gallery: quickGalleryUrls.filter(u => u), // 🔄 নতুন
+      video: videoUrl                   // 🔄 নতুন
+    },
+    createdAt: new Date().toISOString(),
+    _isQuickAdd: true
+  };
+  
+  tempItems.push(newItem);
+  quickItemsThisSession++;
+  
+  console.log(`✅ Quick Add: ${designName} (${quantity} box). Total: ${tempItems.length}`);
+  
+  // ফর্ম রিসেট (পরের ডিজাইনের জন্য)
+  document.getElementById('quickDesignName').value = '';
+  document.getElementById('quickQuantity').value = '';
+  document.getElementById('quickVideoUrl').value = '';
+  quickMainImageUrl = '';
+  quickGalleryUrls = ['', '', '', '', ''];
+  updateQuickMainImagePreview();
+  buildQuickGallerySlots();
+  
+  // Counter আপডেট
+  updateQuickAddCounter();
+  
+  // টোস্ট নোটিফিকেশন
+  showQuickToast(`✅ "${designName}" যোগ হয়েছে`);
+  
+  // Design Name ফিল্ডে ফোকাস (দ্রুত পরের ডিজাইন যোগ করার জন্য)
+  document.getElementById('quickDesignName')?.focus();
+  
+  // Main View-এর Counter আপডেট
+  updateTempBufferUI();
+};
+
+// --------------------------------------------
+// ১০. Quick Add Counter
+// --------------------------------------------
+function updateQuickAddCounter() {
+  const counter = document.getElementById('quickAddCounter');
+  if (counter) {
+    counter.innerText = `📦 এই সেশনে জমা: ${quickItemsThisSession} · মোট: ${tempItems.length}`;
+  }
+}
+
+// --------------------------------------------
+// ১১. টোস্ট নোটিফিকেশন
+// --------------------------------------------
+function showQuickToast(msg) {
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f9d58;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 99999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: slideUpToast 0.3s ease-out;
+  `;
+  toast.innerText = msg;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
+// CSS Animation যোগ
+if (!document.getElementById('quickToastStyle')) {
+  const style = document.createElement('style');
+  style.id = 'quickToastStyle';
+  style.innerHTML = `
+    @keyframes slideUpToast {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+console.log('✅ Quick Add System loaded');
+  
+  // --------------------------------------------
 // ২. প্রোডাক্ট ডেটা সংগ্রহ (Firestore-এর জন্য প্রস্তুত)
 // --------------------------------------------
 function collectProductData(row, id) {
@@ -6424,5 +6816,60 @@ console.log('✅ Temporary Buffer System loaded');
   </div>
 </div>
   
+<!-- ============ QUICK ADD MODAL ============ -->
+<div id="quickAddModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 99998; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: white; border-radius: 14px; padding: 18px; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto;">
+    
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+      <h3 style="font-size: 16px; color: #202124; margin: 0;">⚡ Quick Add Item</h3>
+      <span onclick="closeQuickAdd()" style="font-size: 24px; cursor: pointer; color: #666;">&times;</span>
+    </div>
+    
+    <!-- Common Info Preview -->
+    <div id="quickAddCommonInfo" style="background: #e8f0fe; padding: 10px; border-radius: 8px; font-size: 11px; color: #1a73e8; margin-bottom: 12px; line-height: 1.6;">
+      📁 <b>Common Info:</b> <span id="quickCommonText">—</span>
+    </div>
+    
+    <!-- Form Fields -->
+    <div>
+      <label style="font-size: 12px; font-weight: 600; color: #555;">🎨 Design / Item Name <span class="required">*</span></label>
+      <input type="text" id="quickDesignName" placeholder="যেমন: Calcutta Gold" style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-top:4px;">
+      
+      <label style="font-size: 12px; font-weight: 600; color: #555; margin-top:10px; display:block;">📦 Quantity (Box) <span class="required">*</span></label>
+      <input type="number" id="quickQuantity" placeholder="যেমন: 10" min="0" step="0.01" style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-top:4px;">
+      
+      <!-- Main Image -->
+      <label style="font-size: 12px; font-weight: 600; color: #555; margin-top:10px; display:block;">📷 Main Image</label>
+      <div onclick="quickSelectMainImage()" style="margin-top:4px; padding:12px; border:2px dashed #dadce0; border-radius:8px; text-align:center; cursor:pointer; background:#f8f9fa;">
+        <div id="quickMainImagePreview" style="font-size: 24px;">📷</div>
+        <div style="font-size: 11px; color: #666; margin-top:4px;">ক্যামেরা বা গ্যালারি থেকে</div>
+      </div>
+      
+      <!-- Gallery -->
+      <label style="font-size: 12px; font-weight: 600; color: #555; margin-top:10px; display:block;">🖼️ Gallery (৫টি)</label>
+      <div id="quickGallerySlots" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 4px;">
+        <!-- ৫টি স্লট JS দিয়ে তৈরি হবে -->
+      </div>
+      
+      <!-- Video -->
+      <label style="font-size: 12px; font-weight: 600; color: #555; margin-top:10px; display:block;">🎥 Video (YouTube)</label>
+      <input type="text" id="quickVideoUrl" placeholder="https://youtube.com/..." style="width:100%; padding:11px; border:1px solid #dadce0; border-radius:8px; font-size:14px; margin-top:4px;">
+    </div>
+    
+    <!-- Buttons -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px;">
+      <button onclick="closeQuickAdd()" style="padding: 12px; background: #f0f2f5; color: #333; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">❌ বাতিল</button>
+      <button onclick="quickAddNext()" style="padding: 12px; background: #0f9d58; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">✅ Add & Next</button>
+    </div>
+    
+    <!-- Counter -->
+    <div id="quickAddCounter" style="text-align: center; margin-top: 10px; font-size: 12px; color: #1a73e8; font-weight: 600;">
+      📦 জমা হয়েছে: 0
+    </div>
+    
+  </div>
+</div>
+
 </body>
 </html>
