@@ -2662,22 +2662,41 @@ function checkRowHasData(id) {
     `;
   }
   
-  function getRowImageUpload() {
+   function getRowImageUpload(id) {
     return `
       <label>📸 ছবি ও ভিডিও</label>
-      <div class="image-upload-section">
-        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
-          <div class="icon">📷</div>
+      <div class="image-upload-section" data-product-id="${id}">
+        
+        <!-- ✅ Main Image -->
+        <div class="upload-box" onclick="selectProductImage(${id}, 'main')">
+          <div class="icon" id="icon-main-${id}">📷</div>
           <div class="label">মেইন ছবি <span class="required">*</span></div>
+          <div class="img-preview-main" id="preview-main-${id}" 
+            style="margin-top:6px; width:100%; height:60px; border-radius:6px; overflow:hidden; display:none;">
+          </div>
         </div>
-        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
-          <div class="icon">🖼️</div>
+        
+        <!-- ✅ Gallery (5টি) -->
+        <div class="upload-box" onclick="openGalleryPicker(${id})">
+          <div class="icon" id="icon-gallery-${id}">🖼️</div>
           <div class="label">গ্যালারি (৫টি)</div>
+          <div id="preview-gallery-${id}" 
+            style="margin-top:6px; display:grid; grid-template-columns:repeat(5, 1fr); gap:2px;">
+          </div>
         </div>
-        <div class="upload-box" onclick="alert('Phase 3C-এ কাজ করবে')">
-          <div class="icon">🎥</div>
+        
+        <!-- ✅ Video (YouTube) -->
+        <div class="upload-box" onclick="promptVideoUrl(${id})">
+          <div class="icon" id="icon-video-${id}">🎥</div>
           <div class="label">ভিডিও (YouTube)</div>
+          <div id="preview-video-${id}" style="font-size:10px; color:#0f9d58; margin-top:4px;"></div>
         </div>
+        
+        <!-- ✅ Hidden inputs for URLs -->
+        <input type="hidden" class="p-image-main-url" id="img-main-url-${id}">
+        <input type="hidden" class="p-image-gallery-urls" id="img-gallery-urls-${id}">
+        <input type="hidden" class="p-video-url" id="video-url-${id}">
+        
       </div>
     `;
   }
@@ -2863,7 +2882,7 @@ function checkRowHasData(id) {
       </div>
       
       ${getMarbleCalcBox(id)}
-      ${getRowImageUpload()}
+      ${getRowImageUpload(id)}
     `;
   }
   
@@ -2916,7 +2935,7 @@ function checkRowHasData(id) {
       </div>
       
       ${getCalcBox(id)}
-      ${getRowImageUpload()}
+      ${getRowImageUpload(id)}
     `;
   }
   
@@ -2959,7 +2978,7 @@ function checkRowHasData(id) {
       </div>
       
       ${getCalcBox(id)}
-      ${getRowImageUpload()}
+      ${getRowImageUpload(id)}
     `;
   }
   
@@ -3340,7 +3359,7 @@ function checkRowHasData(id) {
         </div>
         
         ${getMarbleCalcBox(id)}
-        ${getRowImageUpload()}
+        ${getRowImageUpload(id)}
       </div>
     `;
   }
@@ -3714,7 +3733,7 @@ function checkRowHasData(id) {
         </div>
         
         ${getCalcBox(id)}
-        ${getRowImageUpload()}
+        ${getRowImageUpload(id)}
       </div>
     `;
   }
@@ -3763,7 +3782,7 @@ function checkRowHasData(id) {
         </div>
         
         ${getCalcBox(id)}
-        ${getRowImageUpload()}
+        ${getRowImageUpload(id)}
       </div>
     `;
   }
@@ -3819,7 +3838,7 @@ function checkRowHasData(id) {
         </div>
         
         ${getCalcBox(id)}
-        ${getRowImageUpload()}
+        ${getRowImageUpload(id)}
       </div>
     `;
   }
@@ -3860,7 +3879,7 @@ function checkRowHasData(id) {
         </div>
         
         ${getCalcBox(id)}
-        ${getRowImageUpload()}
+        ${getRowImageUpload(id)}
       </div>
     `;
   }
@@ -3916,7 +3935,7 @@ function checkRowHasData(id) {
         </div>
         
         ${getCalcBox(id)}
-        ${getRowImageUpload()}
+        ${getRowImageUpload(id)}
       </div>
     `;
   }
@@ -3957,7 +3976,7 @@ function checkRowHasData(id) {
         </div>
         
         ${getCalcBox(id)}
-        ${getRowImageUpload()}
+        ${getRowImageUpload(id)}
       </div>
     `;
   }
@@ -5809,42 +5828,46 @@ window.applyCrop = async function() {
 // --------------------------------------------
 // ৫. আপলোড হওয়া ImgBB URL সংরক্ষণ
 // --------------------------------------------
+// --------------------------------------------
+// ৫. আপলোড হওয়া ImgBB URL সংরক্ষণ (Updated)
+// --------------------------------------------
 function saveUploadedImage(productId, target, url) {
   const row = document.getElementById('product-row-' + productId);
   if (!row) return;
   
-  // লুকানো ইনপুটে URL সেভ করি
   if (target === 'main') {
-    let hiddenInput = row.querySelector('.p-image-main-url');
-    if (!hiddenInput) {
-      hiddenInput = document.createElement('input');
-      hiddenInput.type = 'hidden';
-      hiddenInput.className = 'p-image-main-url';
-      row.appendChild(hiddenInput);
-    }
-    hiddenInput.value = url;
+    // Main Image
+    const input = row.querySelector('.p-image-main-url');
+    if (input) input.value = url;
     
-    // Preview আপডেট
-    const preview = row.querySelector('.img-preview-main');
+    const preview = document.getElementById('preview-main-' + productId);
     if (preview) {
-      preview.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+      preview.style.display = 'block';
+      preview.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover;">`;
     }
-  } else {
-    // Gallery: target = 'gallery-0', 'gallery-1', ...
+    
+    const icon = document.getElementById('icon-main-' + productId);
+    if (icon) icon.innerText = '✅';
+    
+  } else if (target.startsWith('gallery-')) {
+    // Gallery Image
     const index = parseInt(target.split('-')[1]);
-    let hiddenInput = row.querySelector(`.p-image-gallery-${index}-url`);
-    if (!hiddenInput) {
-      hiddenInput = document.createElement('input');
-      hiddenInput.type = 'hidden';
-      hiddenInput.className = `p-image-gallery-${index}-url`;
-      row.appendChild(hiddenInput);
-    }
-    hiddenInput.value = url;
+    const input = row.querySelector('.p-image-gallery-urls');
+    let urls = [];
+    try { urls = JSON.parse(input?.value || '[]'); } catch (e) { urls = []; }
     
-    // Preview আপডেট
-    const preview = row.querySelector(`.img-preview-gallery-${index}`);
-    if (preview) {
-      preview.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+    while (urls.length < 5) urls.push('');
+    urls[index] = url;
+    
+    if (input) input.value = JSON.stringify(urls);
+    
+    // Gallery Modal আপডেট (যদি খোলা থাকে)
+    const modal = document.getElementById('galleryPickerModal');
+    if (modal) {
+      closeGalleryPicker();
+      openGalleryPicker(productId); // রিফ্রেশ
+    } else {
+      updateGalleryPreview(productId);
     }
   }
   
@@ -5853,6 +5876,120 @@ function saveUploadedImage(productId, target, url) {
 
 console.log('✅ ImgBB + Cropper.js System loaded');
   
+// ============================================================
+// GALLERY PICKER — ৫টি ছবির স্লট
+// ============================================================
+window.openGalleryPicker = function(productId) {
+  const row = document.getElementById('product-row-' + productId);
+  if (!row) return;
+  
+  // Gallery URLs পড়ি
+  const galleryInput = row.querySelector('.p-image-gallery-urls');
+  let urls = [];
+  try {
+    urls = JSON.parse(galleryInput?.value || '[]');
+  } catch (e) { urls = []; }
+  
+  // Gallery Modal তৈরি
+  let slotsHtml = '';
+  for (let i = 0; i < 5; i++) {
+    const url = urls[i] || '';
+    slotsHtml += `
+      <div class="gallery-slot" style="position:relative; aspect-ratio:1; border:2px dashed #dadce0; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; background:#f8f9fa;"
+        onclick="selectProductImage(${productId}, 'gallery-${i}')">
+        ${url 
+          ? `<img src="${url}" style="width:100%; height:100%; object-fit:cover;">` 
+          : `<span style="font-size:24px; color:#bbb;">+</span>`}
+      </div>
+    `;
+  }
+  
+  // Modal HTML
+  const modalHtml = `
+    <div id="galleryPickerModal" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px;">
+      <div style="background:white; border-radius:14px; padding:16px; max-width:450px; width:100%;">
+        <h3 style="font-size:15px; color:#202124; margin-bottom:4px; text-align:center;">🖼️ গ্যালারি (৫টি ছবি)</h3>
+        <p style="font-size:11px; color:#666; text-align:center; margin-bottom:12px;">প্রতিটি স্লটে ক্লিক করে ছবি আপলোড করুন</p>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:14px;">
+          ${slotsHtml}
+        </div>
+        <button onclick="closeGalleryPicker()" style="width:100%; padding:11px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">✅ সম্পন্ন</button>
+      </div>
+    </div>
+  `;
+  
+  // পুরনো Modal থাকলে সরাই
+  document.getElementById('galleryPickerModal')?.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+};
+
+window.closeGalleryPicker = function() {
+  document.getElementById('galleryPickerModal')?.remove();
+  // Gallery Preview আপডেট করি
+  document.querySelectorAll('.image-upload-section').forEach(section => {
+    const id = section.dataset.productId;
+    updateGalleryPreview(id);
+  });
+};
+
+// Gallery Preview আপডেট
+function updateGalleryPreview(productId) {
+  const row = document.getElementById('product-row-' + productId);
+  if (!row) return;
+  const galleryInput = row.querySelector('.p-image-gallery-urls');
+  let urls = [];
+  try { urls = JSON.parse(galleryInput?.value || '[]'); } catch (e) { urls = []; }
+  
+  const preview = document.getElementById('preview-gallery-' + productId);
+  if (!preview) return;
+  
+  preview.innerHTML = '';
+  urls.forEach(url => {
+    if (url) {
+      preview.innerHTML += `<div style="aspect-ratio:1; border-radius:4px; overflow:hidden;"><img src="${url}" style="width:100%; height:100%; object-fit:cover;"></div>`;
+    }
+  });
+  
+  // আইকন আপডেট
+  const icon = document.getElementById('icon-gallery-' + productId);
+  if (icon && urls.filter(u => u).length > 0) {
+    icon.innerText = '✅';
+  } else if (icon) {
+    icon.innerText = '🖼️';
+  }
+}
+
+// ============================================================
+// VIDEO URL PROMPT
+// ============================================================
+window.promptVideoUrl = function(productId) {
+  const row = document.getElementById('product-row-' + productId);
+  if (!row) return;
+  const videoInput = row.querySelector('.p-video-url');
+  const currentUrl = videoInput?.value || '';
+  
+  const url = prompt('🎥 YouTube ভিডিও লিংক দিন:\n\nউদাহরণ: https://www.youtube.com/watch?v=xxxxx', currentUrl);
+  if (url === null) return; // Cancel
+  
+  if (videoInput) videoInput.value = url.trim();
+  
+  // Preview আপডেট
+  const preview = document.getElementById('preview-video-' + productId);
+  if (preview) {
+    if (url.trim()) {
+      preview.innerText = '✅ ভিডিও যুক্ত হয়েছে';
+    } else {
+      preview.innerText = '';
+    }
+  }
+  
+  // আইকন আপডেট
+  const icon = document.getElementById('icon-video-' + productId);
+  if (icon) icon.innerText = url.trim() ? '✅' : '🎥';
+  
+  console.log('🎥 Video URL saved:', { productId, url });
+};
+
 </script>
 
 <!--</body>-->
