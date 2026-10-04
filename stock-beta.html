@@ -6,7 +6,9 @@
 <title>📦 Stock Management</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
+<!-- ✅ Cropper.js CSS (Image Cropping) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+  
 <!--
   ============================================================
   📦 STOCK MANAGEMENT MODULE (Beta)
@@ -5662,8 +5664,195 @@ window.validateSupplierWhatsapp = function(input) {
     }
   });
 })();
-
 console.log('✅ Others Mode System v3.0 loaded (Hidden Trigger)');
+
+// ============================================================
+// IMGBB API + CROPPER.JS — Image Upload System
+// ============================================================
+const IMGBB_API_KEY = 'cb410994ffe4638b322192f4bd9a3a09'; // 🔑 আপনার ImgBB API Key এখানে বসান
+const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload';
+
+let cropperInstance = null;
+let currentImageTarget = null; // 'main' | 'gallery-0' | 'gallery-1' ...
+
+// --------------------------------------------
+// ১. ছবি সিলেক্ট করার ফাংশন (ক্যামেরা / গ্যালারি)
+// --------------------------------------------
+window.selectProductImage = function(productId, target) {
+  currentImageTarget = { productId, target };
+  
+  // Hidden file input তৈরি
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // মোবাইলে ক্যামেরা অপশন
+  input.style.display = 'none';
+  
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    openCropModal(file);
+  };
+  
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(() => input.remove(), 1000);
+};
+
+// --------------------------------------------
+// ২. Crop Modal খোলা
+// --------------------------------------------
+function openCropModal(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const cropImg = document.getElementById('cropImage');
+    cropImg.src = e.target.result;
+    
+    document.getElementById('cropModal').style.display = 'flex';
+    document.getElementById('cropStatus').innerText = '';
+    
+    // পুরনো Cropper থাকলে ধ্বংস করি
+    if (cropperInstance) {
+      cropperInstance.destroy();
+      cropperInstance = null;
+    }
+    
+    // নতুন Cropper তৈরি (800px width, aspect ratio free)
+    setTimeout(() => {
+      cropperInstance = new Cropper(cropImg, {
+        aspectRatio: NaN, // Free ratio
+        viewMode: 1,
+        autoCropArea: 1,
+        responsive: true,
+        background: false,
+        zoomable: true,
+        scalable: false,
+        minContainerWidth: 280,
+        minContainerHeight: 250
+      });
+    }, 100);
+  };
+  reader.readAsDataURL(file);
+}
+
+// --------------------------------------------
+// ৩. Crop বাতিল
+// --------------------------------------------
+window.cancelCrop = function() {
+  if (cropperInstance) {
+    cropperInstance.destroy();
+    cropperInstance = null;
+  }
+  document.getElementById('cropModal').style.display = 'none';
+  currentImageTarget = null;
+};
+
+// --------------------------------------------
+// ৪. Crop Apply + ImgBB আপলোড
+// --------------------------------------------
+window.applyCrop = async function() {
+  if (!cropperInstance) return;
+  
+  const statusEl = document.getElementById('cropStatus');
+  statusEl.innerHTML = '<span style="color: #1a73e8;">⏳ আপলোড হচ্ছে...</span>';
+  
+  try {
+    // Cropper থেকে Canvas তৈরি (max width 800px)
+    const canvas = cropperInstance.getCroppedCanvas({
+      maxWidth: 800,
+      maxHeight: 800,
+      fillColor: '#fff',
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: 'high'
+    });
+    
+    // Canvas থেকে Blob তৈরি (WebP format, 0.85 quality)
+    const blob = await new Promise(resolve => {
+      canvas.toBlob(resolve, 'image/webp', 0.85);
+    });
+    
+    if (!blob) throw new Error('ছবি তৈরি করা যায়নি');
+    
+    // ImgBB-তে আপলোড
+    const formData = new FormData();
+    formData.append('image', blob, 'product.webp');
+    
+    const response = await fetch(`${IMGBB_UPLOAD_URL}?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error?.message || 'ImgBB আপলোড ব্যর্থ');
+    }
+    
+    const imageUrl = result.data.url;
+    console.log('✅ ImgBB Upload Success:', imageUrl);
+    
+    // সফল হলে URL সংরক্ষণ
+    saveUploadedImage(currentImageTarget.productId, currentImageTarget.target, imageUrl);
+    
+    statusEl.innerHTML = '<span style="color: #0f9d58;">✅ আপলোড সফল!</span>';
+    
+    setTimeout(() => {
+      cancelCrop();
+    }, 1200);
+    
+  } catch (err) {
+    console.error('❌ Upload error:', err);
+    statusEl.innerHTML = `<span style="color: #d93025;">❌ ${err.message}</span>`;
+  }
+};
+
+// --------------------------------------------
+// ৫. আপলোড হওয়া ImgBB URL সংরক্ষণ
+// --------------------------------------------
+function saveUploadedImage(productId, target, url) {
+  const row = document.getElementById('product-row-' + productId);
+  if (!row) return;
+  
+  // লুকানো ইনপুটে URL সেভ করি
+  if (target === 'main') {
+    let hiddenInput = row.querySelector('.p-image-main-url');
+    if (!hiddenInput) {
+      hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.className = 'p-image-main-url';
+      row.appendChild(hiddenInput);
+    }
+    hiddenInput.value = url;
+    
+    // Preview আপডেট
+    const preview = row.querySelector('.img-preview-main');
+    if (preview) {
+      preview.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+    }
+  } else {
+    // Gallery: target = 'gallery-0', 'gallery-1', ...
+    const index = parseInt(target.split('-')[1]);
+    let hiddenInput = row.querySelector(`.p-image-gallery-${index}-url`);
+    if (!hiddenInput) {
+      hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.className = `p-image-gallery-${index}-url`;
+      row.appendChild(hiddenInput);
+    }
+    hiddenInput.value = url;
+    
+    // Preview আপডেট
+    const preview = row.querySelector(`.img-preview-gallery-${index}`);
+    if (preview) {
+      preview.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">`;
+    }
+  }
+  
+  console.log('💾 Saved image URL:', { productId, target, url });
+}
+
+console.log('✅ ImgBB + Cropper.js System loaded');
+  
 </script>
 
 <!--</body>-->
@@ -5717,6 +5906,22 @@ console.log('✅ Others Mode System v3.0 loaded (Hidden Trigger)');
 
   </div>
 </div>
-
+<!-- ✅ Cropper.js JS (Image Cropping) -->
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+<!-- ============ IMAGE CROP MODAL ============ -->
+<div id="cropModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 99999; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: white; border-radius: 12px; padding: 15px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+    <h3 style="font-size: 16px; color: #202124; margin-bottom: 12px; text-align: center;">✂️ ছবি ক্রপ করুন</h3>
+    <div style="max-height: 60vh; overflow: hidden;">
+      <img id="cropImage" style="max-width: 100%; display: block;" src="">
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+      <button onclick="cancelCrop()" style="flex: 1; padding: 12px; background: #f0f2f5; color: #666; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">❌ বাতিল</button>
+      <button onclick="applyCrop()" style="flex: 1; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">✅ ক্রপ ও আপলোড</button>
+    </div>
+    <div id="cropStatus" style="text-align: center; margin-top: 10px; font-size: 13px;"></div>
+  </div>
+</div>
+  
 </body>
 </html>
