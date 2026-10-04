@@ -1054,19 +1054,37 @@ body:not(.others-mode-active) .role-rates-section {
       <div class="card">
         <h3>📦 পণ্যের তালিকা</h3>
         <div id="productsList"></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
-          <button onclick="addSameLot()" 
-            style="padding: 12px 6px; background:#e6f4ea; color:#0f9d58; border:2px solid #0f9d58; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
-            🔄<br>Same Lot
-          </button>
-          <button onclick="addNewLot()" 
-            style="padding: 12px 6px; background:#e8f0fe; color:#1a73e8; border:2px solid #1a73e8; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
-            ➕<br>New Lot
-          </button>
-          <button onclick="finishStockEntry()" 
-            style="padding: 12px 6px; background:#0f9d58; color:white; border:2px solid #0f9d58; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer;">
-            ✅<br>Finish
-          </button>
+                       <!-- ✅ নতুন স্মার্ট বাটন স্ট্রাকচার -->
+        <div style="margin-top: 16px;">
+          
+          <!-- Temporary Buffer Status -->
+          <div id="tempBufferStatus" style="display:none; background:#e8f0fe; padding:10px; border-radius:8px; margin-bottom:10px; font-size:12px; color:#1a73e8; text-align:center; font-weight:600;">
+            📦 <span id="tempBufferCount">0</span>টি আইটেম জমা হয়েছে
+          </div>
+          
+          <!-- Main Buttons: Add Item | View Items | Finish -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+            
+            <!-- Add Item -->
+            <button onclick="addTempItem()" 
+              style="padding: 14px 6px; background:#1a73e8; color:white; border:2px solid #1a73e8; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">
+              ➕<br>Add Item
+            </button>
+            
+            <!-- View Items -->
+            <button onclick="openViewItemsModal()" 
+              style="padding: 14px 6px; background:#f9a825; color:white; border:2px solid #f9a825; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">
+              👁️<br>View (<span id="viewItemsCount">0</span>)
+            </button>
+            
+            <!-- Finish & Save -->
+            <button onclick="finishAndSave()" 
+              style="padding: 14px 6px; background:#0f9d58; color:white; border:2px solid #0f9d58; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">
+              ✅<br>Finish
+            </button>
+            
+          </div>
+          
         </div>
       </div>
 
@@ -5990,6 +6008,333 @@ window.promptVideoUrl = function(productId) {
   console.log('🎥 Video URL saved:', { productId, url });
 };
 
+// ============================================================
+// TEMPORARY BUFFER SYSTEM — Smart Stock Entry
+// ============================================================
+let tempItems = []; // Temporary storage
+
+// --------------------------------------------
+// ১. Add Item — বর্তমান প্রোডাক্ট জমা করে ফর্ম খালি করে
+// --------------------------------------------
+window.addTempItem = function() {
+  const rows = document.querySelectorAll('.product-row');
+  if (rows.length === 0) {
+    alert('⚠️ কমপক্ষে একটি পণ্য এন্ট্রি করুন');
+    return;
+  }
+  
+  let addedCount = 0;
+  let skippedCount = 0;
+  
+  rows.forEach(row => {
+    const id = row.id.replace('product-row-', '');
+    
+    // প্রোডাক্ট ডেটা সংগ্রহ
+    const itemData = collectProductData(row, id);
+    
+    // নাম বা ক্যাটাগরি ছাড়া স্কিপ করি
+    if (!itemData.name || !itemData.category) {
+      skippedCount++;
+      return;
+    }
+    
+    // Temporary Buffer-এ যোগ
+    tempItems.push(itemData);
+    addedCount++;
+  });
+  
+  if (addedCount === 0) {
+    alert('⚠️ কোনো বৈধ পণ্য পাওয়া যায়নি। নাম ও ক্যাটাগরি দিন।');
+    return;
+  }
+  
+  // UI আপডেট
+  updateTempBufferUI();
+  
+  // প্রোডাক্ট ফিল্ড খালি করি (Common Field থাকবে)
+  resetProductFields();
+  
+  console.log(`✅ ${addedCount} items added to buffer. Total: ${tempItems.length}`);
+  
+  if (skippedCount > 0) {
+    alert(`✅ ${addedCount}টি আইটেম জমা হয়েছে।\n⚠️ ${skippedCount}টি আইটেমে নাম/ক্যাটাগরি নেই, বাদ দেওয়া হয়েছে।`);
+  } else {
+    // স্বয়ংক্রিয়ভাবে একটি নতুন খালি প্রোডাক্ট রো যোগ করি
+    if (typeof addNewLot === 'function') {
+      addNewLot();
+    }
+  }
+};
+
+// --------------------------------------------
+// ২. প্রোডাক্ট ডেটা সংগ্রহ (Firestore-এর জন্য প্রস্তুত)
+// --------------------------------------------
+function collectProductData(row, id) {
+  const getName = (sel) => row.querySelector(sel)?.value?.trim() || '';
+  const getNum = (sel) => parseFloat(row.querySelector(sel)?.value) || 0;
+  const getChecked = (sel) => row.querySelector(sel)?.checked || false;
+  
+  // গ্যালারি URLs
+  let galleryUrls = [];
+  try {
+    galleryUrls = JSON.parse(row.querySelector('.p-image-gallery-urls')?.value || '[]');
+  } catch (e) { galleryUrls = []; }
+  
+  // Role Rates
+  const roleRates = {};
+  row.querySelectorAll('.p-role-input').forEach(inp => {
+    roleRates[inp.dataset.role] = parseFloat(inp.value) || 0;
+  });
+  
+  // Marble specific
+  const type = row.dataset.type || 'general';
+  const isMarble = type === 'marble';
+  
+  return {
+    // Basic
+    name: getName('.p-name'),
+    category: getName('.p-category'),
+    brand: getName('.p-brand'),
+    hsn: getName('.p-hsn'),
+    gst: getNum('.p-gst'),
+    
+    // Size/Pieces
+    size: getName('.p-size'),
+    piecesPerBox: getNum('.p-pieces'),
+    sqftPerBox: getNum('.p-sqft'),
+    weightPerBox: getNum('.p-weight'),
+    boxes: isMarble ? getNum('.p-boxes') : getNum('.p-boxes'),
+    
+    // Rates
+    pakkaRate: getNum('.p-pakka'),
+    cashRate: getNum('.p-optional'),
+    
+    // Marble special
+    isMarble: isMarble,
+    marbleDetails: isMarble ? {
+      mode: row.dataset.mode || 'simple',
+      allowance: getChecked('.p-allow-check'),
+      weightPerSqft: getNum('.p-wt-sqft')
+    } : null,
+    
+    // ✅ Images (ImgBB URLs)
+    images: {
+      main: row.querySelector('.p-image-main-url')?.value || '',
+      gallery: galleryUrls.filter(u => u), // খালি স্লট বাদ
+      video: row.querySelector('.p-video-url')?.value || ''
+    },
+    
+    // ✅ Role Rates
+    roleRates: roleRates,
+    
+    // Metadata
+    productId: 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    createdAt: new Date().toISOString()
+  };
+}
+
+// --------------------------------------------
+// ৩. প্রোডাক্ট ফিল্ড খালি করা (Common Field থাকবে)
+// --------------------------------------------
+function resetProductFields() {
+  const rows = document.querySelectorAll('.product-row');
+  rows.forEach(row => {
+    // Text/Number inputs (Common Field বাদে)
+    row.querySelectorAll('input[type="text"], input[type="number"]').forEach(inp => {
+      // Common Field গুলো (supplier, invoice, transport, extra costs) ছাড়া
+      if (!inp.id?.startsWith('supplier') && 
+          !inp.id?.startsWith('invoice') && 
+          !inp.id?.startsWith('purchase') &&
+          !inp.id?.startsWith('transport') &&
+          !inp.id?.startsWith('truck') &&
+          !inp.id?.startsWith('loading') &&
+          !inp.id?.startsWith('unloading') &&
+          !inp.id?.startsWith('insurance') &&
+          !inp.id?.startsWith('other') &&
+          !inp.id?.startsWith('optional') &&
+          !inp.id?.startsWith('container')) {
+        inp.value = '';
+      }
+    });
+    
+    // Checkboxes (Allowance বাদে)
+    row.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+      if (!chk.classList.contains('p-allow-check')) {
+        chk.checked = false;
+      }
+    });
+    
+    // Image URLs & Previews
+    row.querySelectorAll('.p-image-main-url, .p-image-gallery-urls, .p-video-url').forEach(inp => inp.value = '');
+    
+    const mainPreview = row.querySelector('.img-preview-main');
+    if (mainPreview) {
+      mainPreview.style.display = 'none';
+      mainPreview.innerHTML = '';
+    }
+    
+    const galleryPreview = row.querySelector('[id^="preview-gallery-"]');
+    if (galleryPreview) galleryPreview.innerHTML = '';
+    
+    const videoPreview = row.querySelector('[id^="preview-video-"]');
+    if (videoPreview) videoPreview.innerText = '';
+    
+    // Icon reset
+    row.querySelectorAll('[id^="icon-"]').forEach(icon => {
+      if (icon.id.includes('main')) icon.innerText = '📷';
+      else if (icon.id.includes('gallery')) icon.innerText = '🖼️';
+      else if (icon.id.includes('video')) icon.innerText = '🎥';
+    });
+    
+    // Role Rates inputs খালি করি
+    row.querySelectorAll('.p-role-input').forEach(inp => inp.value = '');
+  });
+}
+
+// --------------------------------------------
+// ৪. Temporary Buffer UI আপডেট
+// --------------------------------------------
+function updateTempBufferUI() {
+  const count = tempItems.length;
+  
+  const statusEl = document.getElementById('tempBufferStatus');
+  const countEl = document.getElementById('tempBufferCount');
+  const viewCountEl = document.getElementById('viewItemsCount');
+  
+  if (count > 0) {
+    if (statusEl) statusEl.style.display = 'block';
+    if (countEl) countEl.innerText = count;
+    if (viewCountEl) viewCountEl.innerText = count;
+  } else {
+    if (statusEl) statusEl.style.display = 'none';
+    if (viewCountEl) viewCountEl.innerText = '0';
+  }
+}
+
+// --------------------------------------------
+// ৫. View Items Modal
+// --------------------------------------------
+window.openViewItemsModal = function() {
+  if (tempItems.length === 0) {
+    alert('⚠️ এখনো কোনো আইটেম জমা হয়নি। প্রথমে "Add Item" চাপুন।');
+    return;
+  }
+  
+  const modal = document.getElementById('viewItemsModal');
+  const list = document.getElementById('viewItemsList');
+  const countEl = document.getElementById('modalItemsCount');
+  
+  countEl.innerText = tempItems.length;
+  
+  let html = '';
+  tempItems.forEach((item, idx) => {
+    html += `
+      <div style="background: #f8f9fa; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #1a73e8;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 700; color: #202124;">
+              ${idx + 1}. ${item.name || 'নাম নেই'}
+            </div>
+            <div style="font-size: 11px; color: #666; margin-top: 4px;">
+              📁 ${item.category || '—'} · 🏷️ ${item.brand || '—'} · 📏 ${item.size || '—'}
+            </div>
+            <div style="font-size: 11px; color: #666; margin-top: 2px;">
+              📦 ${item.boxes || 0} box · 🟢 ₹${item.pakkaRate || 0} · 🟡 ₹${item.cashRate || 0}
+            </div>
+            ${item.images?.main ? `<div style="margin-top:6px;"><img src="${item.images.main}" style="width:50px; height:50px; object-fit:cover; border-radius:6px;"></div>` : ''}
+          </div>
+          <button onclick="removeTempItem(${idx})" 
+            style="background: #d93025; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 11px; cursor: pointer; margin-left: 8px;">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  
+  list.innerHTML = html;
+  modal.style.display = 'flex';
+};
+
+window.closeViewItemsModal = function() {
+  document.getElementById('viewItemsModal').style.display = 'none';
+};
+
+// --------------------------------------------
+// ৬. Temporary Item ডিলিট
+// --------------------------------------------
+window.removeTempItem = function(index) {
+  if (!confirm('এই আইটেমটি মুছে ফেলবেন?')) return;
+  tempItems.splice(index, 1);
+  updateTempBufferUI();
+  openViewItemsModal(); // রিফ্রেশ
+  console.log(`🗑️ Item removed. Total: ${tempItems.length}`);
+};
+
+// --------------------------------------------
+// ৭. Finish & Save (Firestore-এ সেভ)
+// --------------------------------------------
+window.finishAndSave = async function() {
+  // বর্তমান খোলা আইটেম যোগ করি (যদি থাকে)
+  const rows = document.querySelectorAll('.product-row');
+  let currentAdded = 0;
+  rows.forEach(row => {
+    const id = row.id.replace('product-row-', '');
+    const itemData = collectProductData(row, id);
+    if (itemData.name && itemData.category) {
+      tempItems.push(itemData);
+      currentAdded++;
+    }
+  });
+  
+  if (tempItems.length === 0) {
+    alert('⚠️ কোনো আইটেম নেই। প্রথমে "Add Item" চাপুন।');
+    return;
+  }
+  
+  // Common Info চেক
+  const supplierName = document.getElementById('supplierName')?.value?.trim() || '';
+  const supplierWhatsapp = document.getElementById('supplierWhatsapp')?.value?.trim() || '';
+  if (!supplierName) { alert('⚠️ সাপ্লায়ারের নাম দিন'); return; }
+  if (!supplierWhatsapp || supplierWhatsapp.length !== 10) { 
+    alert('⚠️ সাপ্লায়ারের WhatsApp নাম্বার সঠিকভাবে দিন (১০ ডিজিট)'); 
+    return; 
+  }
+  
+  // Confirmation Dialog
+  const confirmMsg = `✅ নিশ্চিত করবেন?\n\n📦 মোট আইটেম: ${tempItems.length}টি\n🏢 সাপ্লায়ার: ${supplierName}\n\nFirestore-এ সেভ হবে।`;
+  if (!confirm(confirmMsg)) return;
+  
+  // সেভ শুরু
+  alert('⏳ সেভ হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।');
+  
+  try {
+    // 🔴 এখানে Firebase Save Code যোগ হবে (পরবর্তী সাব-স্টেপে)
+    console.log('📦 Ready to save:', { 
+      supplier: supplierName, 
+      whatsapp: supplierWhatsapp,
+      items: tempItems 
+    });
+    
+    // ⚠️ আপাতত শুধু কনসোলে দেখাচ্ছি (Firebase Save পরবর্তী ধাপে)
+    alert(`✅ ${tempItems.length}টি আইটেম প্রস্তুত!\n\nFirebase Save পরবর্তী ধাপে যুক্ত হবে।\n\nকনসোল দেখুন (F12)।`);
+    
+    // Temporary Buffer খালি করি
+    tempItems = [];
+    updateTempBufferUI();
+    resetProductFields();
+    
+    // নতুন খালি প্রোডাক্ট রো যোগ করি
+    if (typeof addNewLot === 'function') addNewLot();
+    
+  } catch (err) {
+    console.error('❌ Save error:', err);
+    alert('❌ সেভ করতে সমস্যা হয়েছে: ' + err.message);
+  }
+};
+
+console.log('✅ Temporary Buffer System loaded');
+
 </script>
 
 <!--</body>-->
@@ -6057,6 +6402,25 @@ window.promptVideoUrl = function(productId) {
       <button onclick="applyCrop()" style="flex: 1; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">✅ ক্রপ ও আপলোড</button>
     </div>
     <div id="cropStatus" style="text-align: center; margin-top: 10px; font-size: 13px;"></div>
+  </div>
+</div>
+
+<!-- ============ VIEW ITEMS MODAL ============ -->
+<div id="viewItemsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 99999; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: white; border-radius: 14px; padding: 16px; max-width: 600px; width: 100%; max-height: 85vh; overflow-y: auto;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+      <h3 style="font-size: 16px; color: #202124; margin: 0;">📦 জমা হওয়া আইটেম (<span id="modalItemsCount">0</span>)</h3>
+      <span onclick="closeViewItemsModal()" style="font-size: 24px; cursor: pointer; color: #666;">&times;</span>
+    </div>
+    
+    <div id="viewItemsList" style="margin-bottom: 14px;"></div>
+    
+    <div style="display: flex; gap: 10px;">
+      <button onclick="closeViewItemsModal()" style="flex: 1; padding: 12px; background: #f0f2f5; color: #333; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">← আরো যোগ করুন</button>
+      <button onclick="closeViewItemsModal(); finishAndSave();" style="flex: 1; padding: 12px; background: #0f9d58; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">✅ Finish & Save</button>
+    </div>
+    
   </div>
 </div>
   
