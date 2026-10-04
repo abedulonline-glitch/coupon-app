@@ -6059,6 +6059,9 @@ window.addTempItem = function() {
   
   // প্রোডাক্ট ফিল্ড খালি করি (Common Field থাকবে)
   resetProductFields();
+
+    // ✅ Local Storage-এ সেভ
+  saveDraftToLocalStorage();
   
   console.log(`✅ ${addedCount} items added to buffer. Total: ${tempItems.length}`);
   
@@ -6146,7 +6149,191 @@ window.openQuickAdd = function() {
   }, 300);
 };
 
+// ============================================================
+// LOCAL STORAGE AUTO-SAVE SYSTEM — Draft Protection
+// ============================================================
+const DRAFT_KEY_PREFIX = 'stock_draft_';
+const DRAFT_EXPIRY_HOURS = 24;
+
 // --------------------------------------------
+// ১. Local Storage-এ Draft সেভ
+// --------------------------------------------
+function saveDraftToLocalStorage() {
+  if (!window.adminId && !localStorage.getItem('adminId')) {
+    console.warn('⚠️ adminId নেই, Local Storage-এ সেভ হবে না');
+    return;
+  }
+  
+  const adminId = window.adminId || localStorage.getItem('adminId');
+  
+  // শুধু প্রয়োজনীয় ডেটা সেভ করি (ছবি নয়, শুধু URL)
+  const draftData = {
+    items: tempItems,
+    savedAt: Date.now(),
+    totalItems: tempItems.length
+  };
+  
+  try {
+    localStorage.setItem(DRAFT_KEY_PREFIX + adminId, JSON.stringify(draftData));
+    console.log(`💾 Draft saved: ${tempItems.length} items`);
+  } catch (e) {
+    console.error('❌ Draft save error:', e);
+  }
+}
+
+// --------------------------------------------
+// ২. Draft লোড করা (পেজ লোড হওয়ার সময়)
+// --------------------------------------------
+function checkDraftOnLoad() {
+  const adminId = window.adminId || localStorage.getItem('adminId');
+  if (!adminId) return;
+  
+  const draftKey = DRAFT_KEY_PREFIX + adminId;
+  const draftStr = localStorage.getItem(draftKey);
+  
+  if (!draftStr) return; // কোনো ড্রাফট নেই
+  
+  try {
+    const draft = JSON.parse(draftStr);
+    const savedAt = draft.savedAt || 0;
+    const hoursDiff = (Date.now() - savedAt) / (1000 * 60 * 60);
+    
+    // ২৪ ঘণ্টার বেশি হলে ডিলিট
+    if (hoursDiff > DRAFT_EXPIRY_HOURS) {
+      localStorage.removeItem(draftKey);
+      console.log('🗑️ Draft auto-deleted (24h expired)');
+      return;
+    }
+    
+    // ✅ Draft আছে — Popup দেখাই
+    const count = draft.totalItems || draft.items?.length || 0;
+    if (count > 0) {
+      showDraftRestorePopup(draft, hoursDiff);
+    }
+  } catch (e) {
+    console.error('❌ Draft load error:', e);
+    localStorage.removeItem(draftKey);
+  }
+}
+
+// --------------------------------------------
+// ৩. Draft Restore Popup
+// --------------------------------------------
+function showDraftRestorePopup(draft, hoursDiff) {
+  const count = draft.totalItems || draft.items?.length || 0;
+  const minsAgo = Math.round(hoursDiff * 60);
+  const timeText = minsAgo < 60 
+    ? `${minsAgo} মিনিট আগে` 
+    : `${Math.round(hoursDiff)} ঘণ্টা আগে`;
+  
+  // Modal তৈরি
+  const modalHtml = `
+    <div id="draftRestoreModal" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px;">
+      <div style="background:white; border-radius:14px; padding:20px; max-width:400px; width:100%; text-align:center;">
+        <div style="font-size:50px; margin-bottom:10px;">📦</div>
+        <h3 style="font-size:16px; color:#202124; margin-bottom:8px;">অসম্পূর্ণ ড্রাফট পাওয়া গেছে!</h3>
+        <p style="font-size:13px; color:#666; line-height:1.6; margin-bottom:16px;">
+          আপনার <b>${count}টি আইটেম</b> সেভ করা আছে (${timeText})।<br>
+          আপনি কি চালিয়ে যেতে চান?
+        </p>
+        <div style="display:flex; gap:10px;">
+          <button onclick="discardDraft()" style="flex:1; padding:12px; background:#f0f2f5; color:#666; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">🗑️ নতুন শুরু</button>
+          <button onclick="restoreDraft()" style="flex:1; padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">✅ চালিয়ে যান</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // পুরনো Modal থাকলে সরাই
+  document.getElementById('draftRestoreModal')?.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  
+  // ড্রাফট সাময়িকভাবে সংরক্ষণ করি
+  window._pendingDraft = draft;
+}
+
+// --------------------------------------------
+// ৪. Draft Restore (ডুপ্লিকেট চেক সহ)
+// --------------------------------------------
+window.restoreDraft = function() {
+  const draft = window._pendingDraft;
+  if (!draft || !draft.items) {
+    document.getElementById('draftRestoreModal')?.remove();
+    return;
+  }
+  
+  // ডুপ্লিকেট প্রতিরোধ: _localId চেক
+  const existingIds = new Set(tempItems.map(it => it._localId));
+  let restoredCount = 0;
+  
+  draft.items.forEach(item => {
+    // _localId না থাকলে নতুন তৈরি করি
+    if (!item._localId) {
+      item._localId = 'draft_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    }
+    
+    // ডুপ্লিকেট চেক
+    if (!existingIds.has(item._localId)) {
+      tempItems.push(item);
+      existingIds.add(item._localId);
+      restoredCount++;
+    }
+  });
+  
+  console.log(`✅ Restored ${restoredCount} items (${draft.items.length - restoredCount} duplicates skipped)`);
+  
+  // UI আপডেট
+  updateTempBufferUI();
+  
+  // Modal বন্ধ
+  document.getElementById('draftRestoreModal')?.remove();
+  window._pendingDraft = null;
+  
+  // টোস্ট নোটিফিকেশন
+  if (typeof showQuickToast === 'function') {
+    showQuickToast(`✅ ${restoredCount}টি আইটেম পুনরুদ্ধার হয়েছে`);
+  }
+};
+
+// --------------------------------------------
+// ৫. Draft Discard (নতুন শুরু)
+// --------------------------------------------
+window.discardDraft = function() {
+  const adminId = window.adminId || localStorage.getItem('adminId');
+  if (adminId) {
+    localStorage.removeItem(DRAFT_KEY_PREFIX + adminId);
+  }
+  
+  document.getElementById('draftRestoreModal')?.remove();
+  window._pendingDraft = null;
+  
+  console.log('🗑️ Draft discarded');
+};
+
+// --------------------------------------------
+// ৬. Draft Clear (Finish চাপলে)
+// --------------------------------------------
+function clearDraftFromLocalStorage() {
+  const adminId = window.adminId || localStorage.getItem('adminId');
+  if (adminId) {
+    localStorage.removeItem(DRAFT_KEY_PREFIX + adminId);
+    console.log('🗑️ Draft cleared after Finish');
+  }
+}
+
+// --------------------------------------------
+// ৭. পেজ লোড হওয়ার সময় Draft চেক
+// --------------------------------------------
+window.addEventListener('load', function() {
+  // Admin ID লোড হওয়ার জন্য অপেক্ষা করি
+  setTimeout(() => {
+    checkDraftOnLoad();
+  }, 2000);
+});
+
+console.log('✅ Local Storage Auto-Save System loaded');
+  
+  // --------------------------------------------
 // ২. Modal বন্ধ
 // --------------------------------------------
 window.closeQuickAdd = function() {
@@ -6337,72 +6524,79 @@ function updateQuickMainImagePreview() {
 // --------------------------------------------
 // ৯. "Add & Next" — ডিজাইন জমা করে Modal খোলা রাখে
 // --------------------------------------------
-window.quickAddNext = function() {
-  const designName = document.getElementById('quickDesignName')?.value?.trim() || '';
-  const quantity = parseFloat(document.getElementById('quickQuantity')?.value) || 0;
-  const videoUrl = document.getElementById('quickVideoUrl')?.value?.trim() || '';
-  
-  // ভ্যালিডেশন
-  if (!designName) {
-    alert('⚠️ Design / Item Name দিন');
+  window.quickAddNext = function() {
+    const designName = document.getElementById('quickDesignName')?.value?.trim() || '';
+    const quantity = parseFloat(document.getElementById('quickQuantity')?.value) || 0;
+    const videoUrl = document.getElementById('quickVideoUrl')?.value?.trim() || '';
+    
+    // ভ্যালিডেশন
+    if (!designName) {
+      alert('⚠️ Design / Item Name দিন');
+      document.getElementById('quickDesignName')?.focus();
+      return;
+    }
+    if (quantity <= 0) {
+      alert('⚠️ Quantity (Box) দিন');
+      document.getElementById('quickQuantity')?.focus();
+      return;
+    }
+    
+    // সর্বশেষ আইটেমের Common Info নিই
+    const lastItem = tempItems[tempItems.length - 1];
+    if (!lastItem) {
+      alert('⚠️ কোনো Common Info পাওয়া যায়নি');
+      return;
+    }
+    
+    // নতুন আইটেম তৈরি (Common Info কপি + নতুন Design, Quantity, Image, Video)
+    const newItem = {
+      ...lastItem,                        // ✅ সব Common Info কপি
+      
+      // ✅ NEW: Unique Local ID (ডুপ্লিকেট প্রতিরোধের জন্য)
+      // ⚠️ এটা অবশ্যই ...lastItem এর পরে বসবে, যাতে পুরনো _localId ওভাররাইড হয়
+      _localId: 'quick_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      
+      productId: 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      name: designName,                   // 🔄 নতুন
+      boxes: quantity,                    // 🔄 নতুন
+      images: {
+        main: quickMainImageUrl,          // 🔄 নতুন
+        gallery: quickGalleryUrls.filter(u => u), // 🔄 নতুন
+        video: videoUrl                   // 🔄 নতুন
+      },
+      createdAt: new Date().toISOString(),
+      _isQuickAdd: true
+    };
+    
+    tempItems.push(newItem);
+    quickItemsThisSession++;
+    
+    console.log(`✅ Quick Add: ${designName} (${quantity} box). Total: ${tempItems.length}`);
+    
+    // ফর্ম রিসেট (পরের ডিজাইনের জন্য)
+    document.getElementById('quickDesignName').value = '';
+    document.getElementById('quickQuantity').value = '';
+    document.getElementById('quickVideoUrl').value = '';
+    quickMainImageUrl = '';
+    quickGalleryUrls = ['', '', '', '', ''];
+    updateQuickMainImagePreview();
+    buildQuickGallerySlots();
+    
+    // Counter আপডেট
+    updateQuickAddCounter();
+    
+    // টোস্ট নোটিফিকেশন
+    showQuickToast(`✅ "${designName}" যোগ হয়েছে`);
+    
+    // Design Name ফিল্ডে ফোকাস (দ্রুত পরের ডিজাইন যোগ করার জন্য)
     document.getElementById('quickDesignName')?.focus();
-    return;
-  }
-  if (quantity <= 0) {
-    alert('⚠️ Quantity (Box) দিন');
-    document.getElementById('quickQuantity')?.focus();
-    return;
-  }
-  
-  // সর্বশেষ আইটেমের Common Info নিই
-  const lastItem = tempItems[tempItems.length - 1];
-  if (!lastItem) {
-    alert('⚠️ কোনো Common Info পাওয়া যায়নি');
-    return;
-  }
-  
-  // নতুন আইটেম তৈরি (Common Info কপি + নতুন Design, Quantity, Image, Video)
-  const newItem = {
-    ...lastItem,                        // ✅ সব Common Info কপি
-    productId: 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-    name: designName,                   // 🔄 নতুন
-    boxes: quantity,                    // 🔄 নতুন
-    images: {
-      main: quickMainImageUrl,          // 🔄 নতুন
-      gallery: quickGalleryUrls.filter(u => u), // 🔄 নতুন
-      video: videoUrl                   // 🔄 নতুন
-    },
-    createdAt: new Date().toISOString(),
-    _isQuickAdd: true
+    
+    // Main View-এর Counter আপডেট
+    updateTempBufferUI();
+    
+    // ✅ NEW: Local Storage-এ সেভ (Draft Protection)
+    saveDraftToLocalStorage();
   };
-  
-  tempItems.push(newItem);
-  quickItemsThisSession++;
-  
-  console.log(`✅ Quick Add: ${designName} (${quantity} box). Total: ${tempItems.length}`);
-  
-  // ফর্ম রিসেট (পরের ডিজাইনের জন্য)
-  document.getElementById('quickDesignName').value = '';
-  document.getElementById('quickQuantity').value = '';
-  document.getElementById('quickVideoUrl').value = '';
-  quickMainImageUrl = '';
-  quickGalleryUrls = ['', '', '', '', ''];
-  updateQuickMainImagePreview();
-  buildQuickGallerySlots();
-  
-  // Counter আপডেট
-  updateQuickAddCounter();
-  
-  // টোস্ট নোটিফিকেশন
-  showQuickToast(`✅ "${designName}" যোগ হয়েছে`);
-  
-  // Design Name ফিল্ডে ফোকাস (দ্রুত পরের ডিজাইন যোগ করার জন্য)
-  document.getElementById('quickDesignName')?.focus();
-  
-  // Main View-এর Counter আপডেট
-  updateTempBufferUI();
-};
-
 // --------------------------------------------
 // ১০. Quick Add Counter
 // --------------------------------------------
@@ -6461,70 +6655,72 @@ console.log('✅ Quick Add System loaded');
   // --------------------------------------------
 // ২. প্রোডাক্ট ডেটা সংগ্রহ (Firestore-এর জন্য প্রস্তুত)
 // --------------------------------------------
-function collectProductData(row, id) {
-  const getName = (sel) => row.querySelector(sel)?.value?.trim() || '';
-  const getNum = (sel) => parseFloat(row.querySelector(sel)?.value) || 0;
-  const getChecked = (sel) => row.querySelector(sel)?.checked || false;
-  
-  // গ্যালারি URLs
-  let galleryUrls = [];
-  try {
-    galleryUrls = JSON.parse(row.querySelector('.p-image-gallery-urls')?.value || '[]');
-  } catch (e) { galleryUrls = []; }
-  
-  // Role Rates
-  const roleRates = {};
-  row.querySelectorAll('.p-role-input').forEach(inp => {
-    roleRates[inp.dataset.role] = parseFloat(inp.value) || 0;
-  });
-  
-  // Marble specific
-  const type = row.dataset.type || 'general';
-  const isMarble = type === 'marble';
-  
-  return {
-    // Basic
-    name: getName('.p-name'),
-    category: getName('.p-category'),
-    brand: getName('.p-brand'),
-    hsn: getName('.p-hsn'),
-    gst: getNum('.p-gst'),
+  function collectProductData(row, id) {
+    const getName = (sel) => row.querySelector(sel)?.value?.trim() || '';
+    const getNum = (sel) => parseFloat(row.querySelector(sel)?.value) || 0;
+    const getChecked = (sel) => row.querySelector(sel)?.checked || false;
     
-    // Size/Pieces
-    size: getName('.p-size'),
-    piecesPerBox: getNum('.p-pieces'),
-    sqftPerBox: getNum('.p-sqft'),
-    weightPerBox: getNum('.p-weight'),
-    boxes: isMarble ? getNum('.p-boxes') : getNum('.p-boxes'),
+    // গ্যালারি URLs
+    let galleryUrls = [];
+    try {
+      galleryUrls = JSON.parse(row.querySelector('.p-image-gallery-urls')?.value || '[]');
+    } catch (e) { galleryUrls = []; }
     
-    // Rates
-    pakkaRate: getNum('.p-pakka'),
-    cashRate: getNum('.p-optional'),
+    // Role Rates
+    const roleRates = {};
+    row.querySelectorAll('.p-role-input').forEach(inp => {
+      roleRates[inp.dataset.role] = parseFloat(inp.value) || 0;
+    });
     
-    // Marble special
-    isMarble: isMarble,
-    marbleDetails: isMarble ? {
-      mode: row.dataset.mode || 'simple',
-      allowance: getChecked('.p-allow-check'),
-      weightPerSqft: getNum('.p-wt-sqft')
-    } : null,
+    // Marble specific
+    const type = row.dataset.type || 'general';
+    const isMarble = type === 'marble';
     
-    // ✅ Images (ImgBB URLs)
-    images: {
-      main: row.querySelector('.p-image-main-url')?.value || '',
-      gallery: galleryUrls.filter(u => u), // খালি স্লট বাদ
-      video: row.querySelector('.p-video-url')?.value || ''
-    },
-    
-    // ✅ Role Rates
-    roleRates: roleRates,
-    
-    // Metadata
-    productId: 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-    createdAt: new Date().toISOString()
-  };
-}
-
+    return {
+      // ✅ NEW: Unique Local ID (ডুপ্লিকেট প্রতিরোধের জন্য)
+      _localId: 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      
+      // Basic
+      name: getName('.p-name'),
+      category: getName('.p-category'),
+      brand: getName('.p-brand'),
+      hsn: getName('.p-hsn'),
+      gst: getNum('.p-gst'),
+      
+      // Size/Pieces
+      size: getName('.p-size'),
+      piecesPerBox: getNum('.p-pieces'),
+      sqftPerBox: getNum('.p-sqft'),
+      weightPerBox: getNum('.p-weight'),
+      boxes: isMarble ? getNum('.p-boxes') : getNum('.p-boxes'),
+      
+      // Rates
+      pakkaRate: getNum('.p-pakka'),
+      cashRate: getNum('.p-optional'),
+      
+      // Marble special
+      isMarble: isMarble,
+      marbleDetails: isMarble ? {
+        mode: row.dataset.mode || 'simple',
+        allowance: getChecked('.p-allow-check'),
+        weightPerSqft: getNum('.p-wt-sqft')
+      } : null,
+      
+      // ✅ Images (ImgBB URLs)
+      images: {
+        main: row.querySelector('.p-image-main-url')?.value || '',
+        gallery: galleryUrls.filter(u => u), // খালি স্লট বাদ
+        video: row.querySelector('.p-video-url')?.value || ''
+      },
+      
+      // ✅ Role Rates
+      roleRates: roleRates,
+      
+      // Metadata
+      productId: 'PRD-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      createdAt: new Date().toISOString()
+    };
+  }
 // --------------------------------------------
 // ৩. প্রোডাক্ট ফিল্ড খালি করা (Common Field থাকবে)
 // --------------------------------------------
@@ -6710,6 +6906,9 @@ window.finishAndSave = async function() {
     
     // ⚠️ আপাতত শুধু কনসোলে দেখাচ্ছি (Firebase Save পরবর্তী ধাপে)
     alert(`✅ ${tempItems.length}টি আইটেম প্রস্তুত!\n\nFirebase Save পরবর্তী ধাপে যুক্ত হবে।\n\nকনসোল দেখুন (F12)।`);
+    
+        // ✅ Local Storage-এ ড্রাফট খালি করি
+    clearDraftFromLocalStorage();
     
     // Temporary Buffer খালি করি
     tempItems = [];
