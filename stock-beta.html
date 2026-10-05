@@ -801,6 +801,34 @@ body:not(.others-mode-active) .benefit-box {
 body:not(.others-mode-active) .role-rates-section {
   display: none !important;
 }
+/* ============================================================
+   SIMPLE MODE — Hide Length, Width, L-Allow, W-Allow
+   ============================================================ */
+/* Simple Mode-এর টেবিলে Length, Width, Allowance কলাম হাইড */
+#marble-simple-\[id\] thead th:contains("Length"),
+.marble-simple-mode thead th:nth-child(1),
+.marble-simple-mode thead th:nth-child(2),
+.marble-simple-mode thead th:nth-child(3),
+.marble-simple-mode thead th:nth-child(4) {
+  display: none !important;
+}
+
+/* Simple Mode-এর টেবিলে সংশ্লিষ্ট ডেটা সেল হাইড */
+.marble-simple-mode tbody td:nth-child(1),
+.marble-simple-mode tbody td:nth-child(2),
+.marble-simple-mode tbody td:nth-child(3),
+.marble-simple-mode tbody td:nth-child(4) {
+  display: none !important;
+}
+
+/* Simple Mode-এর ইনপুট ফিল্ড হাইড (নিরাপত্তার জন্য) */
+.marble-simple-mode .d-l,
+.marble-simple-mode .d-w,
+.marble-simple-mode .d-al,
+.marble-simple-mode .d-aw {
+  display: none !important;
+}
+
 </style>
 </head>
 <body>
