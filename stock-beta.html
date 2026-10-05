@@ -801,27 +801,12 @@ body:not(.others-mode-active) .benefit-box {
 body:not(.others-mode-active) .role-rates-section {
   display: none !important;
 }
+
 /* ============================================================
-   SIMPLE MODE — Hide Length, Width, L-Allow, W-Allow
+   SIMPLE MODE — Hide Length, Width, L-Allow, W-Allow (v2)
    ============================================================ */
-/* Simple Mode-এর টেবিলে Length, Width, Allowance কলাম হাইড */
-#marble-simple-\[id\] thead th:contains("Length"),
-.marble-simple-mode thead th:nth-child(1),
-.marble-simple-mode thead th:nth-child(2),
-.marble-simple-mode thead th:nth-child(3),
-.marble-simple-mode thead th:nth-child(4) {
-  display: none !important;
-}
 
-/* Simple Mode-এর টেবিলে সংশ্লিষ্ট ডেটা সেল হাইড */
-.marble-simple-mode tbody td:nth-child(1),
-.marble-simple-mode tbody td:nth-child(2),
-.marble-simple-mode tbody td:nth-child(3),
-.marble-simple-mode tbody td:nth-child(4) {
-  display: none !important;
-}
-
-/* Simple Mode-এর ইনপুট ফিল্ড হাইড (নিরাপত্তার জন্য) */
+/* ১. Simple Mode-এর ইনপুট ফিল্ড সরাসরি হাইড */
 .marble-simple-mode .d-l,
 .marble-simple-mode .d-w,
 .marble-simple-mode .d-al,
@@ -829,6 +814,31 @@ body:not(.others-mode-active) .role-rates-section {
   display: none !important;
 }
 
+/* ২. Simple Mode-এর ইনপুট ফিল্ডের পিতামাতা সেল (td) হাইড */
+.marble-simple-mode td:has(> .d-l),
+.marble-simple-mode td:has(> .d-w),
+.marble-simple-mode td:has(> .d-al),
+.marble-simple-mode td:has(> .d-aw) {
+  display: none !important;
+}
+
+/* ৩. Simple Mode-এর হেডার সেল (th) হাইড — Allowance কলাম */
+.marble-simple-mode th.allow-col {
+  display: none !important;
+}
+
+/* ৪. Simple Mode-এর টেবিল হেডারে প্রথম ২টি th হাইড (Length, Width) */
+.marble-simple-mode thead tr th:nth-child(1),
+.marble-simple-mode thead tr th:nth-child(2) {
+  display: none !important;
+}
+
+/* ৫. Simple Mode-এর টেবিল বডিতে প্রথম ২টি td হাইড (Length, Width) */
+.marble-simple-mode tbody tr td:nth-child(1),
+.marble-simple-mode tbody tr td:nth-child(2) {
+  display: none !important;
+}
+  
 </style>
 </head>
 <body>
