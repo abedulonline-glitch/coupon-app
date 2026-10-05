@@ -4,7 +4,7 @@
 
 A complete business management platform built with **Vanilla JavaScript**, **Firebase**, and **GitHub Pages**. Designed for manufacturers, wholesalers, retailers, and craftsmen (Mistri) across India.
 
-**Last Updated:** 2026-10-02
+**Last Updated:** 2026-10-05
 
 ---
 
@@ -16,11 +16,12 @@ A complete business management platform built with **Vanilla JavaScript**, **Fir
 4. [Features Implemented](#-features-implemented)
 5. [Features In Progress](#-features-in-progress)
 6. [Tech Stack](#-tech-stack)
-7. [Database Structure](#-database-structure)
-8. [User Roles](#-user-roles)
-9. [Subscription Plans](#-subscription-plans)
-10. [How to Use This Repo](#-how-to-use-this-repo)
-11. [Update Log](#-update-log)
+7. [Class & ID Registry](#-class--id-registry-developer-reference)
+8. [Database Structure](#-database-structure)
+9. [User Roles](#-user-roles)
+10. [Subscription Plans](#-subscription-plans)
+11. [How to Use This Repo](#-how-to-use-this-repo)
+12. [Update Log](#-update-log)
 
 ---
 
@@ -90,13 +91,13 @@ Each admin can manage their own business with separate coupons, stock, team, and
 
 - **Category-First Approach** — Select category first, then template loads
 - **Marble / Granite Template**
-  - Simple Mode (one line entry)
-  - Details Mode (Excel-like table)
+  - ✅ **Simple Mode** — Slab সংখ্যা, Total Sqft, Allowance (ঐচ্ছিক), Live Calculator
+  - ✅ **Details Mode** — Excel-like table (Length, Width, L-Allow, W-Allow, Qty)
   - Length / Width in **inches** (auto-converts to feet)
   - Allowance (with info tooltip)
   - Total Paper sqft + Total Actual sqft
-  - Per sqft (Paper based) + Per sqft (Actual based)
-  - Measurement Benefit (per sqft)
+  - Per sqft (Paper) + Per sqft (Actual)
+  - ✅ **Allowance Profit Calculator** — Marble/Granite-এ বাড়তি মাপের প্রফিট হিসাব
   - Add New Lot / Finish Lot
 - **Tiles Template**
   - Rating Type (sqft / Box)
@@ -124,11 +125,34 @@ Each admin can manage their own business with separate coupons, stock, team, and
   - Admin Global % (Priority 3)
   - Super Admin Global % (Priority 4)
   - Contact Admin (Priority 5)
-- **Others Mode + Timer + Panic Button**
+- ✅ **Others Mode + Timer + Panic Button**
   - Vault Password Protection
   - Timer with Progress Bar (15/30/45/60 min)
+  - ✅ **Slider Drag System** — Progress Bar-এ আঙুল টেনে সময় কমানো/বাড়ানো
   - Panic Button (Double Tap)
-  - Auto-close on: Timer End / Another Screen / 10s Inactivity
+  - Auto-close on: Timer End / Another Screen / 30s Inactivity
+- ✅ **Quick Add System**
+  - Design Name, Quantity, Image, Gallery, Video
+  - Marble/Granite-এ Allowance (L-Allow, W-Allow)
+  - Common Info Auto-Copy
+  - Add & Next (Modal খোলা থাকে)
+- ✅ **Temporary Buffer + Auto-Save**
+  - Local Storage Auto-Save
+  - Restore Popup (24 ঘণ্টা পর Auto-Delete)
+  - Duplicate Prevention (_localId)
+- ✅ **Image Upload (ImgBB + Cropper.js)**
+  - Camera / Gallery থেকে ছবি
+  - Crop (800px, WebP format)
+  - ImgBB-তে আপলোড
+  - ১টি Main + ৫টি Gallery + ১টি Video (YouTube)
+- ✅ **Supplier WhatsApp Field**
+  - বাধ্যতামূলক ১০ ডিজিট ভ্যালিডেশন
+  - ভবিষ্যতের জন্য Firebase-এ সেভ প্রস্তুত
+- ✅ **Smart Button System**
+  - ➕ Add Item (সম্পূর্ণ নতুন Product Row)
+  - ⚡ Quick Add (Common Info কপি)
+  - 👁️ View Items (Temporary Buffer তালিকা)
+  - ✅ Finish & Save
 
 ### 🌐 Language System (`i18n.js`)
 
@@ -155,23 +179,41 @@ Each admin can manage their own business with separate coupons, stock, team, and
 
 ## 🚧 Features In Progress
 
-<!-- AUTO_FEATURES_IN_PROGRESS_START -->
-- [ ] **Product-level Free Delivery** for all 7 templates
-- [ ] **Others Mode Integration** — Cash/Optional hide/show
-- [ ] **Firebase Save** — Full stock entry save to Firestore
+- [ ] **Firebase Save (Stock Entry)** — Full stock entry save to Firestore
+- [ ] **Godown / Warehouse Management** — Dynamic Location Tracking
+  - User-Defined Godown Name, Lane, Distance, Side
+  - Marble: Large Hall, Tiles: Rack, Sanitary: Shelf
+  - Stock Shift between Godowns
+- [ ] **Stock Movement (Shift / Sale)** — User Details + Timestamp সহ লগ
+- [ ] **Stock List View (Table Format)** — WordPress-এর মতো Excel Table
+  - Quick Edit, Bulk Add/Edit, Delete Restriction (Stock 0 না হলে ডিলিট নয়)
 - [ ] **Excel Import / Export** — CSV + XLSX
-- [ ] **Table View** — Form ↔ Table toggle
+- [ ] **POS Billing System** — E-commerce এর সাথে ইন্টিগ্রেটেড
+- [ ] **Online Catalog** — E-commerce Website এর জন্য
+- [ ] **Product-level Free Delivery** — 7 Template-এ
 - [ ] **Category Default Role Rates** — Priority 2
-- [ ] **Barcode / QR Scan** — Product scanning
+- [ ] **Barcode / QR Scan** — Product Scanning
 - [ ] **Mobile Typography Optimization**
 - [ ] **Voice Input** — Speech-to-text
-- [ ] **Auto-Save Draft** — localStorage
-- [ ] **Stock List Tab** — View all stock entries
-- [ ] **Dashboard** — Analytics + Charts
-<!-- AUTO_FEATURES_IN_PROGRESS_END -->
+- [ ] **Dashboard Analytics** — Charts + Revenue Reports
 
 ---
 
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|:---|:---|
+| **Frontend** | Vanilla JavaScript (ES Modules), HTML5, CSS3 |
+| **Backend** | Firebase (Firestore, Auth) |
+| **Hosting** | GitHub Pages |
+| **QR Scanner** | html5-qrcode |
+| **QR Generator** | qrcodejs |
+| **Image Hosting** | ImgBB API |
+| **Image Cropping** | Cropper.js |
+| **Language System** | Custom i18n implementation |
+| **Cost** | ₹0 (সম্পূর্ণ ফ্রি) |
+
+---
 ## 🏷️ Class & ID Registry (Developer Reference)
 
 > **⚠️ গুরুত্বপূর্ণ:** এই সেকশনটি প্রতিটি ফাইলের গুরুত্বপূর্ণ Class, ID এবং Local Storage Key-এর রেফারেন্স। নতুন কোড যোগ করার আগে এখানে খুঁজে নিন, যাতে ডুপ্লিকেট না হয়।
@@ -181,6 +223,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 ### 📦 Stock System (`stock-beta.html`)
 
 #### 🏢 Supplier & Common Info
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Supplier Name | `#supplierName` | কোম্পানি / সাপ্লায়ার নাম |
@@ -199,6 +242,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Container GST Wrapper | `#containerGstWrapper` | কনটেইনার GST সেকশন |
 
 #### 💰 Additional Cost (Whole Bill)
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Loading | `#loadingCost` | লোডিং খরচ |
@@ -213,6 +257,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Cash Label Wrap | `.others-cash-label` | Cash লেবেল (Others Mode) |
 
 #### 📦 Product Row — General / Tiles
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Product Row | `.product-row` | প্রতিটি প্রোডাক্ট রো |
@@ -236,9 +281,10 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Allowance Cell | `.allow-cell` | Allowance ডেটা সেল |
 | Role Inputs | `.p-role-input` | ৫টি রোলের রেট |
 | Role Preview | `.role-preview` | প্রিভিউ |
-| Cash Rate Wrap | `.others-cash-rate-wrap` | Cash রেট সেকশন (Others Mode) |
+| Cash Rate Wrap | `.others-cash-rate-wrap` | Cash রেট সেকশন |
 
 #### 🧮 Calculation Box
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Calc Box | `#calc-box-{id}` | হিসাবের বক্স |
@@ -270,15 +316,16 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Calc Real Rate | `.calc-real-rate` | প্রকৃত/sqft |
 
 #### 🧮 Simple Mode (Marble/Granite)
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Simple Mode | `#marble-simple-{id}` | Simple Mode কন্টেইনার |
-| Simple Tbody | `#simple-tbody-{id}` | Simple Mode টেবিল বডি |
 | Slab সংখ্যা | `.s-slabs` | মোট স্ল্যাবের সংখ্যা |
 | Total Sqft | `.s-total-sqft` | মূল কাগজের মোট মাপ |
 | Allowance | `.s-allowance` | বাড়তি মাপ (ঐচ্ছিক) |
 
 #### 🧮 Details Mode (Marble/Granite)
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Details Mode | `#marble-details-{id}` | Details Mode কন্টেইনার |
@@ -288,9 +335,9 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | L-Allow | `.d-al` | দৈর্ঘ্যের ছাড় |
 | W-Allow | `.d-aw` | প্রস্থের ছাড় |
 | Qty | `.d-qty` | স্ল্যাব সংখ্যা |
-| Row ID | `data-row-id` | রো আইডেন্টিফায়ার |
 
 #### 🎯 Role Rates Section
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Role Section | `.role-rates-section` | Role Rates কন্টেইনার |
@@ -303,6 +350,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Role Autofill | `.role-autofill-btn` | Auto-fill বাটন |
 
 #### 📸 Image Upload
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Image Section | `.image-upload-section` | ছবির সেকশন |
@@ -316,6 +364,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Icon Video | `#icon-video-{id}` | Video Icon |
 
 #### 🖼️ Crop Modal
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Crop Modal | `#cropModal` | ক্রপ মোডাল |
@@ -323,6 +372,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Crop Status | `#cropStatus` | আপলোড স্ট্যাটাস |
 
 #### ⚡ Quick Add System
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Quick Add Modal | `#quickAddModal` | Quick Add মোডাল |
@@ -338,6 +388,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Allowance Wrapper | `#quickAllowanceWrapper` | Allowance সেকশন |
 
 #### 📋 Temporary Buffer & Buttons
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Temp Buffer Status | `#tempBufferStatus` | জমা হওয়া আইটেম স্ট্যাটাস |
@@ -348,6 +399,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Modal Count | `#modalItemsCount` | মোডালে আইটেম সংখ্যা |
 
 #### 🟡 Others Mode
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Toggle | `#othersModeToggle` | Others Mode চেকবক্স |
@@ -362,6 +414,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Drag Tooltip | `#othersDragTooltip` | Drag টুলটিপ |
 
 #### 💾 Local Storage Keys
+
 | Key | Purpose |
 |:---|:---|
 | `stock_draft_{adminId}` | অসম্পূর্ণ স্টক এন্ট্রির ড্রাফট |
@@ -370,22 +423,25 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | `stock_vault_method` | Vault Method |
 | `others_mode_timer_mins` | Others Mode Timer |
 | `others_mode_inactivity_sec` | Others Mode Inactivity |
+| `adminId` | Admin ID |
 
 #### 🎨 CSS State Classes
+
 | Class | Purpose |
 |:---|:---|
 | `body.others-mode-active` | Others Mode চালু অবস্থায় |
 | `body.others-mode-active .p-optional` | Cash রেট দেখানো |
 | `body:not(.others-mode-active) .p-allow-check` | Allowance হাইড |
-| `.others-mode-active .calc-details-shutter` | Shutter দেখানো |
 | `.calc-details-shutter.open` | Shutter খোলা |
 | `.danger` | Timer Danger State |
+| `.quick-rates-common` | Quick Add Common Info |
 
 ---
 
 ### 🎫 Coupon System (`beta.html`)
 
 #### 🔐 Auth & Registration
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Login Form | `#login-form` | Login |
@@ -408,6 +464,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Company Field Wrapper | `#companyFieldWrapper` | কোম্পানি ফিল্ড |
 
 #### 🎨 Role Cards
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Role Card | `.role-card` | রোল সিলেকশন কার্ড |
@@ -419,6 +476,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Customer Role | `#role-customer` | Customer কার্ড |
 
 #### 📊 Dashboard Views
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Admin View | `#view-admin` | Admin ভিউ |
@@ -431,13 +489,15 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Language Selector | `#languageSelector` | ভাষা সিলেক্টর |
 
 #### 🌐 Splash Screen
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Splash Screen | `#view-lang` | Splash Screen |
 | Rotating Welcome | `#rotatingWelcome` | Rotating Text |
 | Float Icons | `.float-icons` | Floating Icons |
 
-#### 🎨 Subscription Cards
+#### 🎫 Subscription Cards
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Plan Card | `.plan-card` | প্ল্যান কার্ড |
@@ -447,6 +507,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Sub End Date | `.sub-end-date` | শেষ তারিখ |
 
 #### 🎫 Team Management
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Team Role Pill | `.team-role-pill` | রোল ব্যাজ |
@@ -456,17 +517,13 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Dispatch Boy Pill | `.pill-dispatch_boy` | Dispatch Boy |
 | Consignor Pill | `.pill-consignor` | Consignor |
 | Member Card | `.member-card` | টিম মেম্বার কার্ড |
-| Member Header | `.member-header` | মেম্বার হেডার |
-| Member Name | `.member-name` | নাম |
-| Member Contact | `.member-contact` | কন্টাক্ট |
-| Member Stats | `.member-stats` | স্ট্যাটস |
 
 #### 🎫 Invite System
+
 | Element | Class / ID | Purpose |
 |:---|:---|:---|
 | Invite Card | `.invite-card` | Invite কার্ড |
 | Invite Code Text | `.invite-code-text` | কোড টেক্সট |
-| Invite Meta | `.invite-meta` | মেটাডেটা |
 | Badge Unused | `.badge-unused` | অব্যবহৃত |
 | Badge Used | `.badge-used` | ব্যবহৃত |
 | Badge Expired | `.badge-expired` | মেয়াদোত্তীর্ণ |
@@ -476,6 +533,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 ### 🌐 Language System (`i18n.js`)
 
 #### 📚 Language Codes
+
 | Code | Language | Flag |
 |:---|:---|:---|
 | `bn` | বাংলা | 🇧🇩 |
@@ -490,6 +548,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | `ml` | മലയാളം | 🇮🇳 |
 
 #### 📚 Exported Functions
+
 | Function | Purpose |
 |:---|:---|
 | `t(key)` | Translation lookup |
@@ -503,42 +562,11 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | `startMutationObserver()` | Dynamic content observe |
 
 #### 📚 HTML Attributes
+
 | Attribute | Purpose |
 |:---|:---|
 | `data-t="key"` | ট্রান্সলেশন কী |
 | `data-t-placeholder="key"` | Placeholder কী |
-
----
-
-### 🟣 Super Admin Panel (`super-beta.html`)
-
-#### 🔐 Super Admin
-| Element | Class / ID | Purpose |
-|:---|:---|:---|
-| Super Admin Registration | (Secret Key) | Registration |
-| Super Admin Login | (Firebase Auth) | Login |
-| Admin List | (Table) | সব কোম্পানি |
-| Subscription Requests | (List) | Approve/Reject |
-| Trial Management | (Card) | Trial বাড়ানো |
-| Revenue Tracking | (Stats) | আয় ট্র্যাকিং |
-
----
-
-### 🗄️ Firestore Collections
-
-| Collection | Purpose |
-|:---|:---|
-| `admins` | Admin অ্যাকাউন্ট |
-| `invites` | Invite কোড |
-| `coupons` | কুপন |
-| `customers` | কাস্টমার |
-| `transactions` | লেনদেন |
-| `withdrawals` | উইথড্রয়াল |
-| `subscriptions` | সাবস্ক্রিপশন |
-| `stock_entries` | স্টক এন্ট্রি (আগত) |
-| `stock_movements` | স্টক মুভমেন্ট (আগত) |
-| `categories` | ক্যাটাগরি |
-| `super_settings` | Super Admin সেটিংস |
 
 ---
 
@@ -557,84 +585,6 @@ Each admin can manage their own business with separate coupons, stock, team, and
 ### 📊 Calculation Logic (Summary)
 
 #### Simple Mode (Marble/Granite)
-
-## 🛠 Tech Stack
-
-| Layer | Technology |
-|:---|:---|
-| **Frontend** | Vanilla JavaScript (ES Modules), HTML5, CSS3 |
-| **Backend** | Firebase (Firestore, Auth) |
-| **Hosting** | GitHub Pages |
-| **QR Scanner** | html5-qrcode |
-| **QR Generator** | qrcodejs |
-| **Image Hosting** | ImgBB |
-| **Language System** | Custom i18n implementation |
-
----
-
-## 🗄 Database Structure
-
-### Firestore Collections
-
-| Collection | Purpose |
-|:---|:---|
-| `admins` | Admin accounts (company, role, subscription) |
-| `invites` | Invite codes (role, expiry, used status) |
-| `coupons` | Generated coupons (code, grade, status) |
-| `customers` | Customer accounts (phone, wallet balance) |
-| `transactions` | Wallet transactions (credit/debit) |
-| `withdrawals` | Withdrawal requests |
-| `subscriptions` | Subscription requests (plan, screenshot, status) |
-| `stock_entries` | Stock entries (products, transport, cost) |
-| `categories` | Custom categories per admin |
-
----
-
-## 👥 User Roles (12 Total)
-
-| # | Role | Type | Registration |
-|:---|:---|:---|:---|
-| 1 | Super Admin | Platform Owner | Secret Link |
-| 2 | Admin / Owner | Business Owner | Open |
-| 3 | Manufacturer | Business Owner | Open |
-| 4 | Wholesaler | Business Owner | Open |
-| 5 | Retailer | Business Owner | Open |
-| 6 | Mistri | Craftsman | Open |
-| 7 | Customer | End User | Open |
-| 8 | Manager | Team Member | Invite Code |
-| 9 | Salesman | Team Member | Invite Code |
-| 10 | Delivery Boy | Team Member | Invite Code |
-| 11 | Dispatch Boy | Team Member | Invite Code |
-| 12 | Consignor | Team Member | Invite Code |
-
----
-
-## 💰 Subscription Plans
-
-### Current Pricing (Subject to change)
-
-| Plan | Monthly Price | Coupon Limit | Customer Limit |
-|:---|:---|:---|:---|
-| 🟡 Trial | Free | 100 | 50 |
-| 🟢 Starter | ₹300 | 500 | 200 |
-| 🔵 Pro | ₹800 | 5,000 | 2,000 |
-| 🟣 Enterprise | ₹2,000+ | Unlimited | Unlimited |
-
-### Module-Based Pricing (Planned)
-
-| Module | Price |
-|:---|:---|
-| 📦 Stock Management | ₹1000/month |
-| 🛍️ Product Catalog | ₹500/month |
-| 🎫 Coupon (1000) | ₹500/month |
-| 🎫 Coupon (1000+) | ₹800/month |
-| 👥 Team Management | ₹300/month |
-| 💎 Subscription System | ₹300/month |
-| 📊 Reports & Analytics | ₹500/month |
-| 🎯 **COMBO (All)** | **₹2500/month** |
-
----
-
 ## 📖 How to Use This Repo
 
 ### For Developers / Chatbots
@@ -655,6 +605,8 @@ Each admin can manage their own business with separate coupons, stock, team, and
 
 **Step 4:** When giving instructions, reference the specific file and line numbers when possible.
 
+**Step 5:** Before adding a new Class/ID, check the "Class & ID Registry" section above.
+
 ### For Users
 
 **Admin Login:**
@@ -668,7 +620,7 @@ Each admin can manage their own business with separate coupons, stock, team, and
 2. Select Business Type
 3. Select Category (Marble / Tiles / Adhesive / etc.)
 4. Fill product details
-5. Add New Lot / Finish Lot
+5. Add Item / Quick Add / Finish
 
 **Customer Access:**
 1. Admin shares unique link: `beta.html?admin=ADMIN_ID`
@@ -720,24 +672,57 @@ This project is deployed via GitHub Pages:
 - Free Delivery checkbox **hides** the entire Transport Section
 - Container transport includes **GST Tax Benefit** calculation
 - Cash / Optional fields are **hidden by default** and revealed only in Others Mode
-
----
-
-## 📊 Update Log
-
-<!-- AUTO_UPDATE_LOG_START -->
-| Date | File(s) | Changes |
-|:---|:---|:---|
-| 2026-10-02 | `README.md` | Master Context restructured with auto-update tags |
-<!-- AUTO_UPDATE_LOG_END -->
+- Others Mode auto-closes on: Timer End / Panic Button / 30s Inactivity
+- Local Storage Draft auto-deletes after **24 hours**
+- ImgBB Images are compressed to **WebP (max 800px, ~500KB)**
 
 ---
 
 ## 📸 Screenshots & Demo
 
-<!-- AUTO_SCREENSHOTS_START -->
 > _Screenshots will be added here as the project evolves._
-<!-- AUTO_SCREENSHOTS_END -->
+
+<!-- 
+  স্ক্রিনশট যোগ করার নিয়ম:
+  1. ছবি ImgBB-তে আপলোড করুন
+  2. নিচের ফরম্যাটে যোগ করুন:
+  
+  ### 📦 Stock Management
+  ![Simple Mode](IMAGE_URL_HERE)
+  _Simple Mode: Slab সংখ্যা, Total Sqft, Allowance, Live Calculator_
+  
+  ![Quick Add](IMAGE_URL_HERE)
+  _Quick Add: Design, Quantity, Image, Gallery, Video_
+  
+  ![Timer Bar](IMAGE_URL_HERE)
+  _Others Mode Timer Bar with Slider Drag System_
+  
+  ### 🎫 Coupon System
+  ![Admin Dashboard](IMAGE_URL_HERE)
+  
+  ![Role Selection](IMAGE_URL_HERE)
+-->
+
+---
+
+## 📊 Update Log
+
+| Date | File(s) | Changes |
+|:---|:---|:---|
+| 2026-10-05 | `README.md` | Fresh restructured Master Context with Class/ID Registry, Features List, Update Log |
+| 2026-10-05 | `stock-beta.html` | Added Simple Mode with Slab Count, Total Sqft, Allowance |
+| 2026-10-05 | `stock-beta.html` | Added Allowance Profit Calculator (Marble/Granite) |
+| 2026-10-04 | `stock-beta.html` | Implemented Quick Add System (Design, Qty, Image, Gallery, Video) |
+| 2026-10-04 | `stock-beta.html` | Implemented ImgBB + Cropper.js Image Upload |
+| 2026-10-04 | `stock-beta.html` | Implemented Supplier WhatsApp Field with Validation |
+| 2026-10-04 | `stock-beta.html` | Implemented Smart Button System (Add/Quick/View/Finish) |
+| 2026-10-03 | `stock-beta.html` | Implemented Local Storage Auto-Save (Draft Protection) |
+| 2026-10-03 | `stock-beta.html` | Implemented Temporary Buffer + Restore Popup |
+| 2026-10-02 | `stock-beta.html` | Implemented Others Mode + Timer + Panic Button |
+| 2026-10-02 | `stock-beta.html` | Implemented Slider Drag System for Timer |
+| 2026-10-02 | `README.md` | Restructured Master Context with Auto-Update Tags |
+| 2026-10-02 | `stock-beta.html` | Fixed Role Rates, Allowance, Cash Hide/Show |
+| 2026-10-01 | `stock-beta.html` | Fixed Marble/Granite Transport & Weight Share |
 
 ---
 
@@ -749,6 +734,14 @@ This is a **private project** by [@abedulonline-glitch](https://github.com/abedu
 
 - **GitHub**: [abedulonline-glitch](https://github.com/abedulonline-glitch)
 - **WhatsApp**: 9851713487
+
+## 📅 Version History
+
+| Version | Date | Changes |
+|:---|:---|:---|
+| 3.0 | 2026-10 | Quick Add System, ImgBB Upload, Local Storage Auto-Save, Smart Buttons |
+| 2.0 | 2026-10 | Category-First Approach, Marble Simple+Details, Others Mode, Timer |
+| 1.0 | 2026-09 | Initial Coupon System |
 
 ---
 
