@@ -2896,46 +2896,40 @@ function checkRowHasData(id) {
 </div>
         
         <!-- ═══ Lot Buttons (Rates এর উপরে) ═══ -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; margin-bottom:12px;">
-          <button type="button" onclick="addNewMarbleLot(${id})" 
-            style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-            ➕ Add New Lot
-          </button>
-          <button type="button" onclick="finishMarbleLot(${id})" 
-            style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-            ✅ Finish Lot
-          </button>
-        </div>
         
-        <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
-        <div class="row-3">
-          <div>
-            <label style="font-size:11px;">ওজন/sqft (kg)</label>
-            <input type="number" min="0" inputmode="decimal" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
-          </div>
-          <div>
-            <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
-            <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
-          </div>
-        <div class="others-cash-rate-wrap">
-  <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-  <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-       </div>
-        </div>
+              <!-- ═══ Lot Buttons (Rates এর উপরে) ═══ -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; margin-bottom:12px;">
+        <button type="button" onclick="addNewMarbleLot(${id})" 
+          style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+          ➕ Add New Lot
+        </button>
+        <button type="button" onclick="finishMarbleLot(${id})" 
+          style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
+          ✅ Finish Lot
+        </button>
       </div>
       
-      <!-- ═══ Details Mode ═══ -->
-      <div class="marble-details-mode" id="marble-details-${id}" style="display:none;">
-        <div style="display:flex; gap:8px; margin-bottom:10px;">
-          <button type="button" onclick="addDetailRow(${id}, false)" 
-            style="flex:1; padding:10px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
-            ➕ Add New Row
-          </button>
-          <button type="button" onclick="addDetailRow(${id}, true)" 
-            style="flex:1; padding:10px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
-            📋 Copy Last Row
-          </button>
+      <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
+      <div class="row-3">
+        <div>
+          <label style="font-size:11px;">ওজন/sqft (kg)</label>
+          <input type="number" min="0" inputmode="decimal" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
         </div>
+        <div>
+          <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+          <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
+        </div>
+        <div class="others-cash-rate-wrap">
+          <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+          <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
+        </div>
+      </div>
+    </div>
+    
+    ${getMarbleCalcBox(id)}
+    ${getRowImageUpload(id)}
+  `;
+}
         
         <div class="detail-table-wrapper">
           <table class="detail-table">
@@ -2952,40 +2946,6 @@ function checkRowHasData(id) {
             <tbody id="details-tbody-${id}"></tbody>
           </table>
         </div>
-        
-        <!-- ═══ Lot Buttons (Rates এর উপরে) ═══ -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; margin-bottom:12px;">
-          <button type="button" onclick="addNewMarbleLot(${id})" 
-            style="padding:12px; background:#0f9d58; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-            ➕ Add New Lot
-          </button>
-          <button type="button" onclick="finishMarbleLot(${id})" 
-            style="padding:12px; background:#d93025; color:white; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">
-            ✅ Finish Lot
-          </button>
-        </div>
-        
-        <!-- ═══ Rates (Buttons এর নিচে) ═══ -->
-        <div class="row-3">
-          <div>
-            2 ওজন/sqft (kg)</label>
-            <input type="number" min="0" inputmode="decimal" class="p-wt-sqft" placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
-          </div>
-          <div>
-            🟢 পাকা রেট/sqft</label>
-            <input type="number" min="0" inputmode="decimal" class="p-pakka" placeholder="30" step="0.01" oninput="recalcProduct(${id})" style="background:#e6f4ea;">
-          </div>
-          <div class="others-cash-rate-wrap">
-  <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
-  <input type="number" min="0" inputmode="decimal" class="p-optional" placeholder="40" step="0.01" oninput="recalcProduct(${id})" style="background:#fef7e0;">
-</div>
-        </div>
-      </div>
-      
-      ${getMarbleCalcBox(id)}
-      ${getRowImageUpload(id)}
-    `;
-  }
   
   // ============================================================
   // TILES TEMPLATE FIELDS
