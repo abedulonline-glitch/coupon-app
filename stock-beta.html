@@ -2892,21 +2892,7 @@ function checkRowHasData(id) {
             style="background:#fef7e0;">
         </div>
       </div>
-      
-      <!-- Row 3: GST -->
-      <div class="row-2" style="margin-bottom:12px;">
-        <div>
-          <label style="font-size:11px;">📊 GST %</label>
-          <select class="p-gst" onchange="recalcProduct(${id})">
-            <option value="0">0%</option>
-            <option value="5">5%</option>
-            <option value="12">12%</option>
-            <option value="18" selected>18%</option>
-            <option value="28">28%</option>
-          </select>
-        </div>
-      </div>
-      
+
       <!-- ═══ Lot Buttons ═══ -->
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; margin-bottom:12px;">
         <button type="button" onclick="addNewMarbleLot(${id})" 
