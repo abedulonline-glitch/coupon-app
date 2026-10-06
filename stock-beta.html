@@ -2832,29 +2832,68 @@ function checkRowHasData(id) {
       </div>
       
       <!-- ═══ Simple Mode ═══ -->
-      <div class="marble-simple-mode" id="marble-simple-${id}">
-        <div class="detail-table-wrapper">
-          <table class="detail-table">
-            <thead>
-              <tr>
-                <th>Length (in)</th>
-                <th>Width (in)</th>
-                <th class="allow-col" style="display:none;">L-Allow (in)</th>
-                <th class="allow-col" style="display:none;">W-Allow (in)</th>
-                <th>Qty 1</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><input type="number" min="0" inputmode="decimal" class="d-l" placeholder="60" step="0.01" oninput="recalcProduct(${id})"></td>
-                <td><input type="number" min="0" inputmode="decimal" class="d-w" placeholder="48" step="0.01" oninput="recalcProduct(${id})"></td>
-                <td class="allow-cell" style="display:none;"><input type="number" min="0" inputmode="decimal" class="d-al" placeholder="6" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                <td class="allow-cell" style="display:none;"><input type="number" min="0" inputmode="decimal" class="d-aw" placeholder="3" step="0.01" oninput="recalcProduct(${id})" style="background:#fff3e0;"></td>
-                <td><input type="number" min="0" inputmode="numeric" class="d-qty" placeholder="10" oninput="recalcProduct(${id})"></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <!-- ═══ Simple Mode (Marble/Granite) ═══ -->
+<div class="marble-simple-mode" id="marble-simple-${id}">
+  
+  <!-- Row 1: Slab সংখ্যা | Total Sqft | Total Allowance -->
+  <div class="row-3" style="margin-bottom:12px;">
+    <div>
+      <label style="font-size:11px;">📊 Qty (Slab) <span class="required">*</span></label>
+      <input type="number" min="0" inputmode="numeric" class="d-qty" 
+        placeholder="75" oninput="recalcProduct(${id})">
+    </div>
+    <div>
+      <label style="font-size:11px;">📏 Total Sqft <span class="required">*</span></label>
+      <input type="number" min="0" inputmode="decimal" class="s-total-sqft" 
+        placeholder="5000" step="0.01" 
+        oninput="recalcProduct(${id})"
+        style="background:#e8f0fe; font-weight:600;">
+    </div>
+    <div>
+      <label style="font-size:11px;">✂️ Total Allowance (Opt)</label>
+      <input type="number" min="0" inputmode="decimal" class="s-allowance" 
+        placeholder="350" step="0.01" 
+        oninput="recalcProduct(${id})"
+        style="background:#fff3e0;">
+    </div>
+  </div>
+  
+  <!-- Row 2: ওজন/sqft | পাকা রেট | Cash রেট -->
+  <div class="row-3" style="margin-bottom:12px;">
+    <div>
+      <label style="font-size:11px;">⚖️ ওজন/sqft (kg)</label>
+      <input type="number" min="0" inputmode="decimal" class="p-wt-sqft" 
+        placeholder="5.5" step="0.01" oninput="recalcProduct(${id})">
+    </div>
+    <div>
+      <label style="font-size:11px;">🟢 পাকা রেট/sqft</label>
+      <input type="number" min="0" inputmode="decimal" class="p-pakka" 
+        placeholder="30" step="0.01" oninput="recalcProduct(${id})" 
+        style="background:#e6f4ea;">
+    </div>
+    <div class="others-cash-rate-wrap">
+      <label style="font-size:11px;">🟡 Cash রেট/sqft 🔒</label>
+      <input type="number" min="0" inputmode="decimal" class="p-optional" 
+        placeholder="10" step="0.01" oninput="recalcProduct(${id})" 
+        style="background:#fef7e0;">
+    </div>
+  </div>
+  
+  <!-- Row 3: GST -->
+  <div class="row-2" style="margin-bottom:12px;">
+    <div>
+      <label style="font-size:11px;">📊 GST %</label>
+      <select class="p-gst" onchange="recalcProduct(${id})">
+        <option value="0">0%</option>
+        <option value="5">5%</option>
+        <option value="12">12%</option>
+        <option value="18" selected>18%</option>
+        <option value="28">28%</option>
+      </select>
+    </div>
+  </div>
+  
+</div>
         
         <!-- ═══ Lot Buttons (Rates এর উপরে) ═══ -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; margin-bottom:12px;">
@@ -4545,15 +4584,38 @@ function checkRowHasData(id) {
   // ============================================================
   // MARBLE CALCULATION — v2
   // ============================================================
+
   function recalcMarbleProductV2(id, row) {
-    const mode = row.dataset.mode || 'simple';
-    const allowChecked = row.querySelector('.p-allow-check')?.checked || false;
+  const mode = row.dataset.mode || 'simple';
+  const allowChecked = row.querySelector('.p-allow-check')?.checked || false;
+  
+  // ✅ মোট Paper, Actual, Qty, Allowance
+  let totalPaper = 0;
+  let totalActual = 0;
+  let totalQty = 0;
+  let totalAllowance = 0;  // ✅ NEW
+  
+  // ============================================================
+  // ✅ SIMPLE MODE — নতুন সিস্টেম
+  // ============================================================
+  if (mode === 'simple') {
+    const slabs = parseFloat(row.querySelector('.d-qty')?.value) || 0;
+    const totalSqftInput = parseFloat(row.querySelector('.s-total-sqft')?.value) || 0;
+    const allowance = parseFloat(row.querySelector('.s-allowance')?.value) || 0;
     
-    // ✅ মোট Paper ও Actual বের করি
-    let totalPaper = 0;
-    let totalActual = 0;
-    let totalQty = 0;
+    totalPaper = totalSqftInput;
+    totalActual = totalPaper + allowance;
+    totalQty = slabs;
+    totalAllowance = allowance;
     
+    // Debug
+    console.log('🧮 Simple Mode:', { slabs, totalPaper, totalActual, allowance });
+    
+  } 
+  // ============================================================
+  // ✅ DETAILS MODE — পুরনো সিস্টেম (একাধিক সারি)
+  // ============================================================
+  else {
     const parseRow = (tr) => {
       const l = parseFloat(tr.querySelector('.d-l')?.value) || 0;
       const w = parseFloat(tr.querySelector('.d-w')?.value) || 0;
@@ -4567,178 +4629,199 @@ function checkRowHasData(id) {
       const alFt = al / 12;
       const awFt = aw / 12;
       
+      const paper = (lFt * wFt) * q;
+      const actual = ((lFt + alFt) * (wFt + awFt)) * q;
+      
       return {
-        paper: (lFt * wFt) * q,
-        actual: ((lFt + alFt) * (wFt + awFt)) * q,
-        qty: q
+        paper: paper,
+        actual: actual,
+        qty: q,
+        allowance: actual - paper
       };
     };
     
-    if (mode === 'simple') {
-      const simpleSection = document.getElementById('marble-simple-' + id);
-      if (simpleSection) {
-        simpleSection.querySelectorAll('tbody tr').forEach(tr => {
-          const r = parseRow(tr);
-          totalPaper += r.paper;
-          totalActual += r.actual;
-          totalQty += r.qty;
-        });
-      }
-    } else {
-      const detailsTbody = document.getElementById('details-tbody-' + id);
-      if (detailsTbody) {
-        detailsTbody.querySelectorAll('tr').forEach(tr => {
-          const r = parseRow(tr);
-          totalPaper += r.paper;
-          totalActual += r.actual;
-          totalQty += r.qty;
-        });
-      }
+    const detailsTbody = document.getElementById('details-tbody-' + id);
+    if (detailsTbody) {
+      detailsTbody.querySelectorAll('tr').forEach(tr => {
+        const r = parseRow(tr);
+        totalPaper += r.paper;
+        totalActual += r.actual;
+        totalQty += r.qty;
+        totalAllowance += r.allowance;
+      });
     }
     
-    const extra = totalActual - totalPaper;
-    const extraPct = totalPaper > 0 ? (extra / totalPaper) * 100 : 0;
-    const savingsPct = totalActual > 0 ? (extra / totalActual) * 100 : 0;
-    
-    // ✅ Rates
-    const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
-    const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
-    const wtPerSqft = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
-    
-    let gstPct = 0;
-    const gstSel = row.querySelector('.p-gst');
-    if (gstSel) gstPct = parseFloat(gstSel.value) || 0;
-    
-    // ✅ Total Weight = Actual × wt/sqft
-    const totalWeight = totalActual * wtPerSqft;
-    // ✅ Transport-এর জন্য Paper weight
-    const paperWeightForTransport = totalPaper * wtPerSqft;
-    
-    // ✅ Amounts
-    const pakkaAmount = totalPaper * pakkaRate;
-    const cashAmount = totalPaper * cashRate;
-    const gstAmount = pakkaAmount * (gstPct / 100);
-    const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
-    
-    // ✅ Transport
-    const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
-    let effectiveTransportRate = transportRate;
-    if (typeof isContainerTransport === 'function' && isContainerTransport()) {
-      const cGst = typeof getContainerGstPercent === 'function' ? getContainerGstPercent() : 0;
-      if (cGst > 0) effectiveTransportRate = transportRate / (1 + cGst / 100);
-    }
-    
-    let thisTransport = 0;
-    if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
-      thisTransport = 0;
-    } else {
-      thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
-    }
-    
-    // ✅ Extra খরচ
-    const truckWeightKg = typeof getTruckWeightKg === 'function' ? getTruckWeightKg() : 0;
-    const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
-    const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
-    const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
-    const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
-    const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
-    
-    const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
-    let thisExtra = 0;
-    if (truckWeightKg > 0) {
-      thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
-    }
-    
-    const totalLanding = pakkaCashGst + thisExtra + thisTransport;
-    
-    // ✅ Per sqft
-    const pakkaGstTransport = pakkaAmount + gstAmount + thisTransport;
-    const perPaperSqft = totalPaper > 0 ? pakkaGstTransport / totalPaper : 0;
-    const perPaperSqftNoTax = totalPaper > 0 ? (pakkaAmount + thisTransport) / totalPaper : 0;
-    const perActualSqft = totalActual > 0 ? pakkaGstTransport / totalActual : 0;
-    
-    // ✅ Display
-    const box = document.getElementById('calc-box-' + id);
-    if (!box) return;
-    
-    const setText = (sel, val) => {
-      let el = box.querySelector(sel) || row.querySelector(sel);
-      if (el) el.innerText = val;
-    };
-    
-    setText('.calc-total-paper', totalPaper.toFixed(2));
-    setText('.calc-total-actual', totalActual.toFixed(2));
-    setText('.calc-per-sqft', '₹' + perPaperSqft.toFixed(2));
-    setText('.calc-per-sqft-no-tax', '₹' + perPaperSqftNoTax.toFixed(2));
-    setText('.calc-per-actual-sqft', '₹' + perActualSqft.toFixed(2));
-    setText('.calc-qty', `${totalQty} slab · ${totalPaper.toFixed(2)} sqft`);
-    setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
-    setText('.calc-cash', '₹' + cashAmount.toFixed(2));
-    setText('.calc-gst', '₹' + gstAmount.toFixed(2));
-    setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
-    setText('.calc-total', '₹' + totalLanding.toFixed(2));
-    setText('.calc-total-no-tax', '₹' + (totalLanding - gstAmount).toFixed(2));
-    
-    // Transport — Free Delivery হলে
-    const transportEl = box.querySelector('.calc-transport-share');
-    if (transportEl) {
-      if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
-        transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
-      } else {
-        transportEl.innerText = '₹' + thisTransport.toFixed(2);
-      }
-    }
-    
-    // Measurement Benefit
-    const measureBenefit = perPaperSqft - perActualSqft;
-    const benefitEl = box.querySelector('.calc-measure-benefit');
-    if (benefitEl) {
-      if (measureBenefit > 0) {
-        benefitEl.innerText = '₹' + measureBenefit.toFixed(2) + '/sqft';
-      } else {
-        benefitEl.innerText = '—';
-      }
-    }
-    
-    // Weight Share
-    const shareEl = box.querySelector('.calc-weight-share');
-    if (shareEl) {
-      if (truckWeightKg > 0) {
-        shareEl.innerText = `${((totalWeight / truckWeightKg) * 100).toFixed(2)}% (${totalWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
-      } else {
-        shareEl.innerText = '⚠️ Truck weight দিন';
-      }
-    }
-    
-    // Benefit Box
-    const benefitBox = box.querySelector('.benefit-box');
-    if (benefitBox) {
-      if (extra > 0) {
-        benefitBox.style.display = 'block';
-        setText('.calc-paper', totalPaper.toFixed(2) + ' sqft');
-        setText('.calc-actual', totalActual.toFixed(2) + ' sqft');
-        setText('.calc-extra', extra.toFixed(2) + ' sqft');
-        setText('.calc-extra-pct', extraPct.toFixed(2) + '% extra');
-        setText('.calc-savings-pct', savingsPct.toFixed(2) + '% saved');
-        setText('.calc-real-rate', '₹' + perActualSqft.toFixed(2));
-      } else {
-        benefitBox.style.display = 'none';
-      }
-    }
-    
-    if (typeof recalcRoleRate === 'function') recalcRoleRate(id);
-       console.log('🔍 Marble Debug:', {
-      totalPaper,
-      totalActual,
-      wtPerSqft,
-      paperWeightForTransport,
-      totalWeight,
-      transportRate,
-      effectiveTransportRate,
-      thisTransport
-    });
-    if (typeof updateSummary === 'function') updateSummary();
+    // Debug
+    console.log('🧮 Details Mode:', { totalPaper, totalActual, totalQty, totalAllowance });
   }
+  
+  // ✅ Extra (Allowance)
+  const extra = totalActual - totalPaper;
+  const extraPct = totalPaper > 0 ? (extra / totalPaper) * 100 : 0;
+  const savingsPct = totalActual > 0 ? (extra / totalActual) * 100 : 0;
+  
+  // ✅ Rates
+  const pakkaRate = parseFloat(row.querySelector('.p-pakka')?.value) || 0;
+  const cashRate = parseFloat(row.querySelector('.p-optional')?.value) || 0;
+  const wtPerSqft = parseFloat(row.querySelector('.p-wt-sqft')?.value) || 0;
+  
+  let gstPct = 0;
+  const gstSel = row.querySelector('.p-gst');
+  if (gstSel) gstPct = parseFloat(gstSel.value) || 0;
+  
+  // ✅ Total Weight (Original Sqft × ওজন/sqft)
+  const totalWeight = totalPaper * wtPerSqft;
+  const paperWeightForTransport = totalPaper * wtPerSqft;
+  
+  // ✅ Amounts (Original Sqft থেকে হিসাব)
+  const pakkaAmount = totalPaper * pakkaRate;
+  const cashAmount = totalPaper * cashRate;
+  const gstAmount = pakkaAmount * (gstPct / 100);
+  const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
+  
+  // ✅ Allowance Profit (Allowance Sqft × পাকা রেট)
+  const allowanceProfit = totalAllowance > 0 ? (totalAllowance * pakkaRate) : 0;
+  
+  // ✅ Transport
+  const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
+  let effectiveTransportRate = transportRate;
+  if (typeof isContainerTransport === 'function' && isContainerTransport()) {
+    const cGst = typeof getContainerGstPercent === 'function' ? getContainerGstPercent() : 0;
+    if (cGst > 0) effectiveTransportRate = transportRate / (1 + cGst / 100);
+  }
+  
+  let thisTransport = 0;
+  if (typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+    thisTransport = 0;
+  } else {
+    thisTransport = (effectiveTransportRate * paperWeightForTransport) / 1000;
+  }
+  
+  // ✅ Extra খরচ
+  const truckWeightKg = typeof getTruckWeightKg === 'function' ? getTruckWeightKg() : 0;
+  const loading = parseFloat(document.getElementById('loadingCost')?.value) || 0;
+  const unloading = parseFloat(document.getElementById('unloadingCost')?.value) || 0;
+  const insurance = parseFloat(document.getElementById('insuranceCost')?.value) || 0;
+  const otherPakka = parseFloat(document.getElementById('otherPakka')?.value) || 0;
+  const optionalCost = parseFloat(document.getElementById('optionalCost')?.value) || 0;
+  
+  const totalExtraLump = loading + unloading + insurance + otherPakka + optionalCost;
+  let thisExtra = 0;
+  if (truckWeightKg > 0) {
+    thisExtra = (totalExtraLump / truckWeightKg) * totalWeight;
+  }
+  
+  const totalLanding = pakkaCashGst + thisExtra + thisTransport;
+  
+  // ✅ Per sqft
+  const pakkaGstTransport = pakkaAmount + gstAmount + thisTransport;
+  const perPaperSqft = totalPaper > 0 ? pakkaGstTransport / totalPaper : 0;
+  const perPaperSqftNoTax = totalPaper > 0 ? (pakkaAmount + thisTransport) / totalPaper : 0;
+  const perActualSqft = totalActual > 0 ? pakkaGstTransport / totalActual : 0;
+  
+  // ✅ Display
+  const box = document.getElementById('calc-box-' + id);
+  if (!box) return;
+  
+  const setText = (sel, val) => {
+    let el = box.querySelector(sel) || row.querySelector(sel);
+    if (el) el.innerText = val;
+  };
+  
+  setText('.calc-total-paper', totalPaper.toFixed(2));
+  setText('.calc-total-actual', totalActual.toFixed(2));
+  setText('.calc-per-sqft', '₹' + perPaperSqft.toFixed(2));
+  setText('.calc-per-sqft-no-tax', '₹' + perPaperSqftNoTax.toFixed(2));
+  setText('.calc-per-actual-sqft', '₹' + perActualSqft.toFixed(2));
+  
+  // ✅ Qty Text — Simple Mode-এ "75 slab · 5000.00 sqft"
+  setText('.calc-qty', `${totalQty} slab · ${totalPaper.toFixed(2)} sqft`);
+  
+  setText('.calc-pakka', '₹' + pakkaAmount.toFixed(2));
+  setText('.calc-cash', '₹' + cashAmount.toFixed(2));
+  setText('.calc-gst', '₹' + gstAmount.toFixed(2));
+  setText('.calc-extra-share', '₹' + thisExtra.toFixed(2));
+  setText('.calc-total', '₹' + totalLanding.toFixed(2));
+  setText('.calc-total-no-tax', '₹' + (totalLanding - gstAmount).toFixed(2));
+  
+  // ✅ Allowance Profit Display
+  const allowanceProfitEl = box.querySelector('.calc-allowance-profit');
+  if (allowanceProfitEl) {
+    if (allowanceProfit > 0) {
+      allowanceProfitEl.innerText = '₹' + allowanceProfit.toFixed(2);
+      allowanceProfitEl.parentElement.style.display = 'flex';
+    } else {
+      allowanceProfitEl.parentElement.style.display = 'none';
+    }
+  }
+  
+  // Transport — Free Delivery হলে
+  const transportEl = box.querySelector('.calc-transport-share');
+  if (transportEl) {
+    if (thisTransport === 0 && typeof isProductFreeDelivery === 'function' && isProductFreeDelivery(id)) {
+      transportEl.innerHTML = '<span style="color:#4caf50;">🎁 ফ্রি</span>';
+    } else {
+      transportEl.innerText = '₹' + thisTransport.toFixed(2);
+    }
+  }
+  
+  // Measurement Benefit
+  const measureBenefit = perPaperSqft - perActualSqft;
+  const benefitEl = box.querySelector('.calc-measure-benefit');
+  if (benefitEl) {
+    if (measureBenefit > 0) {
+      benefitEl.innerText = '₹' + measureBenefit.toFixed(2) + '/sqft';
+    } else {
+      benefitEl.innerText = '—';
+    }
+  }
+  
+  // Weight Share
+  const shareEl = box.querySelector('.calc-weight-share');
+  if (shareEl) {
+    if (truckWeightKg > 0) {
+      shareEl.innerText = `${((totalWeight / truckWeightKg) * 100).toFixed(2)}% (${totalWeight.toFixed(0)} / ${truckWeightKg.toFixed(0)} kg)`;
+    } else {
+      shareEl.innerText = '⚠️ Truck weight দিন';
+    }
+  }
+  
+  // Benefit Box
+  const benefitBox = box.querySelector('.benefit-box');
+  if (benefitBox) {
+    if (extra > 0) {
+      benefitBox.style.display = 'block';
+      setText('.calc-paper', totalPaper.toFixed(2) + ' sqft');
+      setText('.calc-actual', totalActual.toFixed(2) + ' sqft');
+      setText('.calc-extra', extra.toFixed(2) + ' sqft');
+      setText('.calc-extra-pct', extraPct.toFixed(2) + '% extra');
+      setText('.calc-savings-pct', savingsPct.toFixed(2) + '% saved');
+      setText('.calc-real-rate', '₹' + perActualSqft.toFixed(2));
+    } else {
+      benefitBox.style.display = 'none';
+    }
+  }
+  
+  if (typeof recalcRoleRate === 'function') recalcRoleRate(id);
+  
+  console.log('🔍 Marble Debug:', {
+    mode,
+    totalPaper,
+    totalActual,
+    totalQty,
+    totalAllowance,
+    allowanceProfit,
+    wtPerSqft,
+    paperWeightForTransport,
+    totalWeight,
+    transportRate,
+    effectiveTransportRate,
+    thisTransport
+  });
+  
+  if (typeof updateSummary === 'function') updateSummary();
+}
+           
   
   // ============================================================
   // STANDARD CALCULATION — v2 (Tiles + General)
