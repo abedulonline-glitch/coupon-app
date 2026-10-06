@@ -5830,11 +5830,10 @@ let currentImageTarget = null; // 'main' | 'gallery-0' | 'gallery-1' ...
 window.selectProductImage = function(productId, target) {
   currentImageTarget = { productId, target };
   
-  // Hidden file input তৈরি
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.capture = 'environment'; // মোবাইলে ক্যামেরা অপশন
+  // ✅ capture লাইন সরানো হয়েছে — মোবাইলে Camera / Gallery / Files অপশন আসবে
   input.style.display = 'none';
   
   input.onchange = (e) => {
@@ -6477,13 +6476,12 @@ window.quickSelectMainImage = function() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.capture = 'environment';
+  // ✅ capture সরানো হয়েছে
   input.style.display = 'none';
   
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    // Cropper Modal খুলি (Quick Add এর জন্য আলাদা target)
     openQuickCropModal(file, 'main', null);
   };
   
@@ -6499,7 +6497,7 @@ window.quickSelectGalleryImage = function(index) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.capture = 'environment';
+  // ✅ capture সরানো হয়েছে
   input.style.display = 'none';
   
   input.onchange = (e) => {
