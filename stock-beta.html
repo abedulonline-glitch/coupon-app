@@ -5824,27 +5824,90 @@ const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload';
 let cropperInstance = null;
 let currentImageTarget = null; // 'main' | 'gallery-0' | 'gallery-1' ...
 
+  // ============================================================
+// IMAGE SOURCE PICKER — Camera / Gallery Choice
+// ============================================================
+let pendingImageTarget = null;  // { productId, target } — যেটি পেন্ডিং আছে
+
 // --------------------------------------------
-// ১. ছবি সিলেক্ট করার ফাংশন (ক্যামেরা / গ্যালারি)
+// ১. পিকার পপআপ খোলা
 // --------------------------------------------
-window.selectProductImage = function(productId, target) {
-  currentImageTarget = { productId, target };
+window.openImageSourcePicker = function(productId, target) {
+  pendingImageTarget = { productId, target };
+  document.getElementById('imageSourcePicker').style.display = 'flex';
+};
+
+// --------------------------------------------
+// ২. পিকার পপআপ বন্ধ
+// --------------------------------------------
+window.closeImageSourcePicker = function(event) {
+  if (event) event.stopPropagation();
+  document.getElementById('imageSourcePicker').style.display = 'none';
+  pendingImageTarget = null;
+};
+
+// --------------------------------------------
+// ৩. ইউজার Camera বা Gallery সিলেক্ট করল
+// --------------------------------------------
+window.pickImageSource = function(source) {
+  if (!pendingImageTarget) return;
   
+  const { productId, target } = pendingImageTarget;
+  
+  // পিকার বন্ধ করি
+  document.getElementById('imageSourcePicker').style.display = 'none';
+  pendingImageTarget = null;
+  
+  // গতবারের পছন্দ Local Storage-এ সেভ
+  localStorage.setItem('lastImageSource', source);
+  
+  // Camera বা Gallery অনুযায়ী ইনপুট তৈরি করি
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  // ✅ capture লাইন সরানো হয়েছে — মোবাইলে Camera / Gallery / Files অপশন আসবে
+  
+  if (source === 'camera') {
+    input.capture = 'environment';  // ✅ ক্যামেরা খুলবে
+  }
+  // Gallery হলে capture যোগ করব না — গ্যালারি খুলবে
+  
   input.style.display = 'none';
   
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    openCropModal(file);
+    
+    // Quick Add Modal-এর জন্য আলাদা
+    const isQuickAdd = target.startsWith('quick-');
+    
+    if (isQuickAdd) {
+      const realTarget = target.replace('quick-', '');  // 'main' বা 'gallery-0'
+      if (realTarget === 'main') {
+        openQuickCropModal(file, 'main', null);
+      } else {
+        const idx = parseInt(realTarget.split('-')[1]);
+        openQuickCropModal(file, 'gallery', idx);
+      }
+    } else {
+      // Normal Product Row-এর জন্য
+      currentImageTarget = { productId, target };
+      openCropModal(file);
+    }
   };
   
   document.body.appendChild(input);
   input.click();
   setTimeout(() => input.remove(), 1000);
+};
+
+console.log('✅ Image Source Picker loaded');
+
+// --------------------------------------------
+// ১. ছবি সিলেক্ট করার ফাংশন (ক্যামেরা / গ্যালারি)
+// --------------------------------------------
+window.selectProductImage = function(productId, target) {
+  // ✅ পিকার পপআপ খুলি
+  openImageSourcePicker(productId, target);
 };
 
 // --------------------------------------------
@@ -6473,48 +6536,33 @@ function buildQuickGallerySlots() {
 // ৪. Main Image সিলেক্ট
 // --------------------------------------------
 window.quickSelectMainImage = function() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  // ✅ capture সরানো হয়েছে
-  input.style.display = 'none';
-  
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    openQuickCropModal(file, 'main', null);
-  };
-  
-  document.body.appendChild(input);
-  input.click();
-  setTimeout(() => input.remove(), 1000);
+  // ✅ Quick Add Modal-এর জন্য পিকার খুলি
+  const quickModal = document.getElementById('quickAddModal');
+  if (quickModal && quickModal.style.display === 'flex') {
+    // Quick Add Modal খোলা → pendingImageTarget সেট করি
+    pendingImageTarget = { productId: 'quick', target: 'quick-main' };
+    document.getElementById('imageSourcePicker').style.display = 'flex';
+  } else {
+    // সাধারণ Product Row
+    openImageSourcePicker('current', 'main');
+  }
 };
 
 // --------------------------------------------
 // ৫. Gallery Image সিলেক্ট
 // --------------------------------------------
 window.quickSelectGalleryImage = function(index) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  // ✅ capture সরানো হয়েছে
-  input.style.display = 'none';
-  
-  input.onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    openQuickCropModal(file, 'gallery', index);
-  };
-  
-  document.body.appendChild(input);
-  input.click();
-  setTimeout(() => input.remove(), 1000);
+  pendingImageTarget = { productId: 'quick', target: 'quick-gallery-' + index };
+  document.getElementById('imageSourcePicker').style.display = 'flex';
 };
 
 // --------------------------------------------
 // ৬. Quick Add-এর জন্য Crop Modal
 // --------------------------------------------
-function openQuickCropModal(file, target, index) {
+// ✅ Quick Crop Target সেট করি
+window._quickCropTarget = { target, index };
+
+  function openQuickCropModal(file, target, index) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const cropImg = document.getElementById('cropImage');
@@ -7085,7 +7133,60 @@ console.log('✅ Temporary Buffer System loaded');
 </div>
 <!-- ✅ Cropper.js JS (Image Cropping) -->
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
-<!-- ============ IMAGE CROP MODAL ============ -->
+
+  <!-- ============ IMAGE SOURCE PICKER (Bottom Sheet) ============ -->
+<div id="imageSourcePicker" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99999; align-items: flex-end; justify-content: center;" onclick="closeImageSourcePicker(event)">
+  <div style="background: white; border-radius: 20px 20px 0 0; padding: 20px 16px 24px; max-width: 500px; width: 100%; animation: slideUpSource 0.3s ease-out;" onclick="event.stopPropagation()">
+    
+    <!-- Drag Handle -->
+    <div style="width: 40px; height: 4px; background: #ddd; border-radius: 4px; margin: 0 auto 14px;"></div>
+    
+    <!-- Title -->
+    <h3 style="font-size: 16px; color: #202124; text-align: center; margin-bottom: 4px;">📷 ছবি আপলোড করুন</h3>
+    <p style="font-size: 12px; color: #666; text-align: center; margin-bottom: 16px;">ক্যামেরা বা গ্যালারি থেকে সিলেক্ট করুন</p>
+    
+    <!-- Options -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      
+      <!-- Camera -->
+      <div onclick="pickImageSource('camera')" 
+        style="background: linear-gradient(135deg, #e8f0fe, #d2e3fc); padding: 20px 10px; border-radius: 14px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;"
+        onmouseover="this.style.borderColor='#1a73e8'; this.style.transform='translateY(-2px)';"
+        onmouseout="this.style.borderColor='transparent'; this.style.transform='translateY(0)';">
+        <div style="font-size: 36px; margin-bottom: 6px;">📷</div>
+        <div style="font-size: 13px; font-weight: 700; color: #1a73e8;">Camera</div>
+        <div style="font-size: 10px; color: #666; margin-top: 2px;">ছবি তুলুন</div>
+      </div>
+      
+      <!-- Gallery -->
+      <div onclick="pickImageSource('gallery')" 
+        style="background: linear-gradient(135deg, #e6f4ea, #c8e6c9); padding: 20px 10px; border-radius: 14px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;"
+        onmouseover="this.style.borderColor='#0f9d58'; this.style.transform='translateY(-2px)';"
+        onmouseout="this.style.borderColor='transparent'; this.style.transform='translateY(0)';">
+        <div style="font-size: 36px; margin-bottom: 6px;">🖼️</div>
+        <div style="font-size: 13px; font-weight: 700; color: #0f9d58;">Gallery</div>
+        <div style="font-size: 10px; color: #666; margin-top: 2px;">গ্যালারি থেকে</div>
+      </div>
+      
+    </div>
+    
+    <!-- Cancel Button -->
+    <button onclick="closeImageSourcePicker()" 
+      style="width: 100%; padding: 13px; margin-top: 14px; background: #f0f2f5; color: #666; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
+      ❌ বাতিল করুন
+    </button>
+    
+  </div>
+</div>
+
+<style>
+@keyframes slideUpSource {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+</style>
+
+  <!-- ============ IMAGE CROP MODAL ============ -->
 <div id="cropModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 99999; align-items: center; justify-content: center; padding: 20px;">
   <div style="background: white; border-radius: 12px; padding: 15px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
     <h3 style="font-size: 16px; color: #202124; margin-bottom: 12px; text-align: center;">✂️ ছবি ক্রপ করুন</h3>
