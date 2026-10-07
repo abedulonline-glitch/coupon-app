@@ -3107,25 +3107,42 @@ function checkRowHasData(id) {
   return `
     <div class="calc-box" id="calc-box-${id}">
       
-      <!-- Per Box (সবসময় দেখা যাবে) -->
+      <!-- ═══ Per Unit Display (Tiles / General) ═══ -->
       <div class="calc-perbox-display">
+        
+        <!-- প্রতি বক্সে (ল্যান্ডিং) -->
         <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
           <span style="font-size:13px;">📦 প্রতি বক্সে (ল্যান্ডিং):</span>
           <b class="calc-per-box" style="color:#1a73e8; font-size:18px;">₹0</b>
         </div>
-        <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
+        
+        <!-- ✅ প্রতি পিস (ল্যান্ডিং) — নতুন -->
+        <div class="calc-row calc-perbox-big per-piece-row" style="background:linear-gradient(135deg,#f3e8fd,#e1d4f5); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+          <span style="font-size:13px;">🔢 প্রতি পিস (ল্যান্ডিং):</span>
+          <b class="calc-per-piece" style="color:#7b1fa2; font-size:18px;">₹0</b>
+        </div>
+        
+        <!-- প্রতি বক্সে (Tax ছাড়া) -->
+        <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
           <span style="font-size:13px;">💵 প্রতি বক্সে (Tax ছাড়া):</span>
           <b class="calc-per-box-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
         </div>
+        
+        <!-- ✅ প্রতি পিস (Tax ছাড়া) — নতুন -->
+        <div class="calc-row calc-perbox-big per-piece-row" style="background:linear-gradient(135deg,#f3e8fd,#e1d4f5); padding:10px 14px; border-radius:10px;">
+          <span style="font-size:13px;">💵 প্রতি পিস (Tax ছাড়া):</span>
+          <b class="calc-per-piece-no-tax" style="color:#7b1fa2; font-size:18px;">₹0</b>
+        </div>
+        
       </div>
       
-                    <!-- Shutter Toggle -->
+      <!-- ═══ Shutter Toggle ═══ -->
       <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
         <span>📊 বিস্তারিত হিসাব দেখুন</span>
         <span class="calc-shutter-arrow" id="calc-arrow-${id}">▼</span>
       </div>
       
-      <!-- Detail Section (লুকানো) -->
+      <!-- ═══ Detail Section (লুকানো) ═══ -->
       <div class="calc-details-shutter" id="calc-details-${id}">
         <div class="calc-row"><span>📊 মোট পরিমাণ:</span><b class="calc-qty">0</b></div>
         <div class="calc-row"><span>🟢 পাকা মোট:</span><b class="calc-pakka">₹0</b></div>
@@ -3148,7 +3165,6 @@ function checkRowHasData(id) {
           <div class="calc-row highlight-blue"><span>💰 Savings:</span><b class="calc-savings-pct">0%</b></div>
           <div class="calc-row highlight-blue"><span>💵 প্রকৃত/sqft:</span><b class="calc-real-rate">₹0</b></div>
           
-          <!-- ✅ এখানে প্রতি sqft (Actual) এবং মেজারমেন্ট বেনিফিট বসানো হয়েছে -->
           <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; border-top:1px dashed #90caf9;">
             <span style="font-size:12px;">💰 প্রতি sqft (Actual):</span>
             <b class="calc-per-actual-sqft" style="color:#0f9d58; font-size:16px;">₹0</b>
@@ -3160,12 +3176,13 @@ function checkRowHasData(id) {
         </div>
       </div> <!-- calc-details-shutter এখানে ক্লোজ হলো -->
 
-      <!-- ✅ NEW: Role Rates Section (শাটারের বাইরে বসানো হয়েছে) -->
+      <!-- ✅ Role Rates Section -->
       ${getRoleRatesSection(id)}
 
-    </div> <!-- Product Row এখানে ক্লোজ হলো -->
+    </div> <!-- calc-box এখানে ক্লোজ হলো -->
   `;
 }
+    
   function getMarbleCalcBox(id) {
   return `
     <div class="calc-box" id="calc-box-${id}">
@@ -4975,6 +4992,32 @@ console.log('📊 Per Unit Debug:', {
     setText('.calc-total', '₹' + totalLanding.toFixed(2));
     setText('.calc-per-box', '₹' + perBox.toFixed(2));
     setText('.calc-per-box-no-tax', '₹' + perBoxNoTax.toFixed(2));
+   // ✅ প্রতি পিস হিসাব (Tiles/General only)
+const piecesPerBox = parseFloat(row.querySelector('.p-pieces')?.value) || 1;
+const totalBoxes = parseFloat(row.querySelector('.p-boxes')?.value) || 0;
+const totalPieces = totalBoxes * piecesPerBox;
+
+let perPieceLanding = 0;
+let perPieceNoTax = 0;
+
+if (totalPieces > 0) {
+  perPieceLanding = totalLanding / totalPieces;
+  perPieceNoTax = (totalLanding - gstAmount) / totalPieces;
+}
+
+setText('.calc-per-piece', '₹' + perPieceLanding.toFixed(2));
+setText('.calc-per-piece-no-tax', '₹' + perPieceNoTax.toFixed(2));
+
+// Debug
+console.log('🔢 Per Piece Debug:', {
+  totalBoxes,
+  piecesPerBox,
+  totalPieces,
+  totalLanding,
+  gstAmount,
+  perPieceLanding: perPieceLanding.toFixed(2),
+  perPieceNoTax: perPieceNoTax.toFixed(2)
+});
     setText('.calc-total-no-tax', '₹' + (totalLanding - gstAmount).toFixed(2));
     
     const transportEl = box.querySelector('.calc-transport-share');
