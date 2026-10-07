@@ -3171,16 +3171,17 @@ function checkRowHasData(id) {
     <div class="calc-box" id="calc-box-${id}">
       
       <!-- ═══ Per Box Display ═══ -->
-      <div class="calc-perbox-display">
-        <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
-          <span style="font-size:13px;">📦 প্রতি বক্সে (ল্যান্ডিং):</span>
-          <b class="calc-per-box" style="color:#1a73e8; font-size:18px;">₹0</b>
-        </div>
-        <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
-          <span style="font-size:13px;">💵 প্রতি বক্সে (Tax ছাড়া):</span>
-          <b class="calc-per-box-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
-        </div>
-      </div>
+      <!-- ✅ Per Unit Display (Marble/Granite-এ sqft, Tiles-এ Box) -->
+<div class="calc-perbox-display">
+  <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#e8f0fe,#d2e3fc); padding:10px 14px; border-radius:10px; margin-bottom:8px;">
+    <span style="font-size:13px;" class="per-unit-label-landing">📦 প্রতি বক্সে (ল্যান্ডিং):</span>
+    <b class="calc-per-box" style="color:#1a73e8; font-size:18px;">₹0</b>
+  </div>
+  <div class="calc-row calc-perbox-big" style="background:linear-gradient(135deg,#fef7e0,#ffecb3); padding:10px 14px; border-radius:10px;">
+    <span style="font-size:13px;" class="per-unit-label-no-tax">💵 প্রতি বক্সে (Tax ছাড়া):</span>
+    <b class="calc-per-box-no-tax" style="color:#b06000; font-size:18px;">₹0</b>
+  </div>
+</div>
       
       <!-- ═══ Shutter Toggle ═══ -->
       <div class="calc-shutter-toggle" onclick="toggleCalcDetails(${id})">
@@ -4712,7 +4713,73 @@ function checkRowHasData(id) {
     let el = box.querySelector(sel) || row.querySelector(sel);
     if (el) el.innerText = val;
   };
-  
+
+// ============================================================
+// ✅ Per Unit Calculation (Marble/Granite → sqft, Tiles → Box)
+// ============================================================
+
+// Category চেক করি
+const category = (row.querySelector('.p-category')?.value || '').toLowerCase();
+const isMarbleGranite = category.includes('marble') || category.includes('granite') || category.includes('মার্বেল') || category.includes('গ্রানাইট');
+
+let perUnitLanding = 0;
+let perUnitNoTax = 0;
+let unitLabel = 'Box';
+
+if (isMarbleGranite) {
+  // ✅ Marble/Granite → প্রতি sqft (Original Sqft দিয়ে ভাগ)
+  unitLabel = 'sqft';
+  const divisor = totalPaper > 0 ? totalPaper : 1;
+  perUnitLanding = totalLanding / divisor;
+  perUnitNoTax = (totalLanding - gstAmount) / divisor;
+} else {
+  // ✅ Tiles/General → প্রতি বক্স (Box সংখ্যা দিয়ে ভাগ)
+  unitLabel = 'Box';
+  const divisor = totalQty > 0 ? totalQty : 1;
+  perUnitLanding = totalLanding / divisor;
+  perUnitNoTax = (totalLanding - gstAmount) / divisor;
+}
+
+// ✅ Label পরিবর্তন (Dynamic)
+const labelLanding = box.querySelector('.per-unit-label-landing');
+const labelNoTax = box.querySelector('.per-unit-label-no-tax');
+
+if (labelLanding) {
+  if (unitLabel === 'sqft') {
+    labelLanding.innerText = '📄 প্রতি sqft (ল্যান্ডিং):';
+  } else {
+    labelLanding.innerText = '📦 প্রতি বক্সে (ল্যান্ডিং):';
+  }
+}
+
+if (labelNoTax) {
+  if (unitLabel === 'sqft') {
+    labelNoTax.innerText = '💵 প্রতি sqft (Tax ছাড়া):';
+  } else {
+    labelNoTax.innerText = '💵 প্রতি বক্সে (Tax ছাড়া):';
+  }
+}
+
+// ✅ মান বসানো
+setText('.calc-per-box', '₹' + perUnitLanding.toFixed(2));
+setText('.calc-per-box-no-tax', '₹' + perUnitNoTax.toFixed(2));
+
+// Debug
+console.log('📊 Per Unit Debug:', {
+  category,
+  isMarbleGranite,
+  unitLabel,
+  totalPaper,
+  totalQty,
+  totalLanding,
+  gstAmount,
+  perUnitLanding: perUnitLanding.toFixed(2),
+  perUnitNoTax: perUnitNoTax.toFixed(2)
+});
+
+// ============================================================
+
+    
   setText('.calc-total-paper', totalPaper.toFixed(2));
   setText('.calc-total-actual', totalActual.toFixed(2));
   setText('.calc-per-sqft', '₹' + perPaperSqft.toFixed(2));
