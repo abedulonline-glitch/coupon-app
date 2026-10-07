@@ -4629,11 +4629,29 @@ function checkRowHasData(id) {
   const paperWeightForTransport = totalPaper * wtPerSqft;
   
   // ✅ Amounts (Original Sqft থেকে হিসাব)
-  const pakkaAmount = totalPaper * pakkaRate;
-  const cashAmount = totalPaper * cashRate;
-  const gstAmount = pakkaAmount * (gstPct / 100);
-  const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
-  
+  // ✅ Others Mode চেক (Marble/Granite)
+const isOthersModeOnMarble = document.body.classList.contains('others-mode-active') 
+  || localStorage.getItem('othersModeEnabled') === 'true';
+
+// ✅ Amounts (Original Sqft থেকে হিসাব)
+const pakkaAmount = totalPaper * pakkaRate;
+
+// ✅ Cash Amount (Others Mode OFF হলে 0)
+let cashAmount = 0;
+if (isOthersModeOnMarble) {
+  cashAmount = totalPaper * cashRate;
+}
+
+const gstAmount = pakkaAmount * (gstPct / 100);
+const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
+
+// Debug
+console.log('🟡 Marble Cash Handling:', {
+  isOthersModeOnMarble,
+  cashRate,
+  cashAmount: cashAmount.toFixed(2),
+  pakkaCashGst: pakkaCashGst.toFixed(2)
+});
   // ✅ Allowance Profit (Allowance Sqft × পাকা রেট)
   const allowanceProfit = totalAllowance > 0 ? (totalAllowance * pakkaRate) : 0;
   
@@ -4823,11 +4841,29 @@ function checkRowHasData(id) {
       qtyUnit = 'box';
     }
     
-    const pakkaAmount = totalQty * pakkaRate;
-    const cashAmount = totalQty * cashRate;
-    const gstAmount = pakkaAmount * (gstPct / 100);
-    const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
-    
+    // ✅ Others Mode চেক (Tiles/General)
+const isOthersModeOnStd = document.body.classList.contains('others-mode-active') 
+  || localStorage.getItem('othersModeEnabled') === 'true';
+
+// ✅ Amounts (Quantity থেকে হিসাব)
+const pakkaAmount = totalQty * pakkaRate;
+
+// ✅ Cash Amount (Others Mode OFF হলে 0)
+let cashAmount = 0;
+if (isOthersModeOnStd) {
+  cashAmount = totalQty * cashRate;
+}
+
+const gstAmount = pakkaAmount * (gstPct / 100);
+const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
+
+// Debug
+console.log('🟡 Standard Cash Handling:', {
+  isOthersModeOnStd,
+  cashRate,
+  cashAmount: cashAmount.toFixed(2),
+  pakkaCashGst: pakkaCashGst.toFixed(2)
+});
     // Transport
     const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
     let effectiveTransportRate = transportRate;
@@ -5480,6 +5516,16 @@ window.stopOthersMode = function() {
   
   updateOthersStatusUI(false);
   console.log('🔴 Others Mode stopped');
+// ✅ সব প্রোডাক্টের হিসাব আপডেট করি (Cash হাইড হলে)
+setTimeout(() => {
+  document.querySelectorAll('.product-row').forEach(row => {
+    const id = row.id.replace('product-row-', '');
+    if (typeof recalcProduct === 'function') {
+      recalcProduct(parseInt(id));
+    }
+  });
+  console.log('✅ All products recalculated after Others Mode OFF');
+}, 100);
 };
 
 // Activity update
