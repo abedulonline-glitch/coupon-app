@@ -4676,12 +4676,28 @@ function checkRowHasData(id) {
   const totalWeight = totalPaper * wtPerSqft;
   const paperWeightForTransport = totalPaper * wtPerSqft;
   
-  // ✅ Amounts (Original Sqft থেকে হিসাব)
-  const pakkaAmount = totalPaper * pakkaRate;
-  const cashAmount = totalPaper * cashRate;
-  const gstAmount = pakkaAmount * (gstPct / 100);
-  const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
-  
+  // ✅ Others Mode চেক (Marble/Granite)
+const isOthersModeOnMarble = document.body.classList.contains('others-mode-active');
+
+// ✅ Amounts (Original Sqft থেকে হিসাব)
+const pakkaAmount = totalPaper * pakkaRate;
+
+// ✅ Cash Amount (Others Mode OFF হলে 0)
+let cashAmount = 0;
+if (isOthersModeOnMarble) {
+  cashAmount = totalPaper * cashRate;
+}
+
+const gstAmount = pakkaAmount * (gstPct / 100);
+const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
+
+// Debug
+console.log('🟡 Marble Cash Handling:', {
+  isOthersModeOnMarble,
+  cashRate,
+  cashAmount: cashAmount.toFixed(2),
+  pakkaCashGst: pakkaCashGst.toFixed(2)
+});
   // ✅ Allowance Profit (Allowance Sqft × পাকা রেট)
   const allowanceProfit = totalAllowance > 0 ? (totalAllowance * pakkaRate) : 0;
   
@@ -4732,29 +4748,54 @@ function checkRowHasData(id) {
   };
 
 // ============================================================
+// ============================================================
 // ✅ Per Unit Calculation (Marble/Granite → sqft, Tiles → Box)
+// Others Mode OFF হলে Cash বাদ দিয়ে হিসাব হবে
 // ============================================================
 
 // Category চেক করি
 const category = (row.querySelector('.p-category')?.value || '').toLowerCase();
 const isMarbleGranite = category.includes('marble') || category.includes('granite') || category.includes('মার্বেল') || category.includes('গ্রানাইট');
 
+// ✅ Others Mode স্ট্যাটাস চেক
+const isOthersModeOn = document.body.classList.contains('others-mode-active');
+
 let perUnitLanding = 0;
 let perUnitNoTax = 0;
 let unitLabel = 'Box';
+
+// ✅ Cash ছাড়া Total Landing হিসাব (Others Mode OFF এর জন্য)
+const totalLandingNoCash = totalLanding - cashAmount;
 
 if (isMarbleGranite) {
   // ✅ Marble/Granite → প্রতি sqft (Original Sqft দিয়ে ভাগ)
   unitLabel = 'sqft';
   const divisor = totalPaper > 0 ? totalPaper : 1;
-  perUnitLanding = totalLanding / divisor;
-  perUnitNoTax = (totalLanding - gstAmount) / divisor;
+  
+  if (isOthersModeOn) {
+    // ✅ Others Mode ON → Cash সহ
+    perUnitLanding = totalLanding / divisor;
+    perUnitNoTax = (totalLanding - gstAmount) / divisor;
+  } else {
+    // ✅ Others Mode OFF → Cash ছাড়া
+    perUnitLanding = totalLandingNoCash / divisor;
+    perUnitNoTax = (totalLandingNoCash - gstAmount) / divisor;
+  }
+  
 } else {
   // ✅ Tiles/General → প্রতি বক্স (Box সংখ্যা দিয়ে ভাগ)
   unitLabel = 'Box';
   const divisor = totalQty > 0 ? totalQty : 1;
-  perUnitLanding = totalLanding / divisor;
-  perUnitNoTax = (totalLanding - gstAmount) / divisor;
+  
+  if (isOthersModeOn) {
+    // ✅ Others Mode ON → Cash সহ
+    perUnitLanding = totalLanding / divisor;
+    perUnitNoTax = (totalLanding - gstAmount) / divisor;
+  } else {
+    // ✅ Others Mode OFF → Cash ছাড়া
+    perUnitLanding = totalLandingNoCash / divisor;
+    perUnitNoTax = (totalLandingNoCash - gstAmount) / divisor;
+  }
 }
 
 // ✅ Label পরিবর্তন (Dynamic)
@@ -4785,11 +4826,12 @@ setText('.calc-per-box-no-tax', '₹' + perUnitNoTax.toFixed(2));
 console.log('📊 Per Unit Debug:', {
   category,
   isMarbleGranite,
+  isOthersModeOn,
   unitLabel,
-  totalPaper,
-  totalQty,
-  totalLanding,
-  gstAmount,
+  cashAmount: cashAmount.toFixed(2),
+  totalLanding: totalLanding.toFixed(2),
+  totalLandingNoCash: totalLandingNoCash.toFixed(2),
+  gstAmount: gstAmount.toFixed(2),
   perUnitLanding: perUnitLanding.toFixed(2),
   perUnitNoTax: perUnitNoTax.toFixed(2)
 });
@@ -4937,11 +4979,28 @@ console.log('📊 Per Unit Debug:', {
       qtyUnit = 'box';
     }
     
-    const pakkaAmount = totalQty * pakkaRate;
-    const cashAmount = totalQty * cashRate;
-    const gstAmount = pakkaAmount * (gstPct / 100);
-    const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
-    
+    // ✅ Others Mode চেক (Tiles/General)
+const isOthersModeOnStd = document.body.classList.contains('others-mode-active');
+
+// ✅ Amounts (Quantity থেকে হিসাব)
+const pakkaAmount = totalQty * pakkaRate;
+
+// ✅ Cash Amount (Others Mode OFF হলে 0)
+let cashAmount = 0;
+if (isOthersModeOnStd) {
+  cashAmount = totalQty * cashRate;
+}
+
+const gstAmount = pakkaAmount * (gstPct / 100);
+const pakkaCashGst = pakkaAmount + cashAmount + gstAmount;
+
+// Debug
+console.log('🟡 Standard Cash Handling:', {
+  isOthersModeOnStd,
+  cashRate,
+  cashAmount: cashAmount.toFixed(2),
+  pakkaCashGst: pakkaCashGst.toFixed(2)
+});
     // Transport
     const transportRate = parseFloat(document.getElementById('transportRate')?.value) || 0;
     let effectiveTransportRate = transportRate;
@@ -5597,6 +5656,7 @@ window.stopOthersMode = function() {
   
   othersModeActive = false;
   document.body.classList.remove('others-mode-active');
+  localStorage.setItem('othersModeEnabled', 'false');
   
   if (othersTimerInterval) {
     clearInterval(othersTimerInterval);
@@ -5619,6 +5679,18 @@ window.stopOthersMode = function() {
   if (toggle) toggle.checked = false;
   
   updateOthersStatusUI(false);
+  
+  // ✅ সব প্রোডাক্টের হিসাব আপডেট করি (Cash বাদ দিয়ে)
+  setTimeout(() => {
+    document.querySelectorAll('.product-row').forEach(row => {
+      const id = row.id.replace('product-row-', '');
+      if (typeof recalcProduct === 'function') {
+        recalcProduct(parseInt(id));
+      }
+    });
+    console.log('✅ All products recalculated (Cash hidden)');
+  }, 150);
+  
   console.log('🔴 Others Mode stopped');
 };
 
