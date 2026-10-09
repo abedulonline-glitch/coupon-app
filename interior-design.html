@@ -21,35 +21,24 @@
 
 <!-- Firebase -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  // আপনার Firebase config থেকে আগেই-initialize করা সেবাগুলো নিন
+  import { app, db, auth } from "./firebase-config-beta.js";
 
-  // Firebase config নানা ধরনের export pattern সাপোর্ট করে লোড
-  let firebaseConfig;
-  try {
-    const cfg = await import("./firebase-config-beta.js");
-    firebaseConfig = cfg.firebaseConfig
-                  || cfg.default
-                  || cfg.config
-                  || cfg.firebaseConfigBeta
-                  || window.firebaseConfig;
-  } catch (e) {
-    console.warn("firebase-config-beta.js import ব্যর্থ, window.firebaseConfig চেষ্টা করা হচ্ছে…", e);
-    firebaseConfig = window.firebaseConfig;
-  }
+  // Firestore helper ফাংশন — ভার্সন 10.7.1 (আপনার config এর সাথে মিলিয়ে)
+  import { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  if (!firebaseConfig) {
-    console.error("❌ Firebase config পাওয়া যায়নি — firebase-config-beta.js চেক করুন।");
-  } else {
-    const app = initializeApp(firebaseConfig);
-    window.__id_db   = getFirestore(app);
-    window.__id_auth = getAuth(app);
-    window.__id_fs   = { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp };
-    console.log("✅ Interior Design — Firebase প্রস্তুত");
-  }
+  // Auth helper — একই ভার্সন
+  import { onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  // গ্লোবালি এক্সপোজ (id-app.js এগুলো ব্যবহার করে)
+  window.__id_db   = db;
+  window.__id_auth = auth;
+  window.__id_fs   = { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp };
+  window.__id_authHelpers = { onAuthStateChanged };
+
+  console.log("✅ Interior Design — Firebase প্রস্তুত");
 </script>
 
 <!-- i18n -->
