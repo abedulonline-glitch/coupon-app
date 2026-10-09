@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>🎨 Interior Design Studio — Pro</title>
+
+<!-- Three.js core + addons (free CDN) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<!-- Cropper.js for tile crop -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { firebaseConfig } from "./firebase-config-beta.js";
+
+  const app  = initializeApp(firebaseConfig);
+  window.__id_db   = getFirestore(app);
+  window.__id_auth = getAuth(app);
+  window.__id_fs   = { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp };
+</script>
+
+<!-- i18n -->
+<script src="./i18n.js"></script>
+
+<!-- Custom CSS -->
+<link rel="stylesheet" href="./id-style.css">
+</head>
+
+<body>
+
+<!-- ============ MAIN APP ============ -->
+<div id="id-app">
+
+  <!-- Top Bar -->
+  <header id="id-topbar">
+    <button id="id-backBtn" title="Back">◀</button>
+    <h1 id="id-title">🎨 Interior Design Studio</h1>
+    <div id="id-topActions">
+      <button id="id-saveBtn" title="Save">💾</button>
+      <button id="id-loadBtn" title="My Designs">📂</button>
+      <button id="id-helpBtn" title="Help">❓</button>
+    </div>
+  </header>
+
+  <!-- Progress Bar -->
+  <div id="id-progressWrap">
+    <div id="id-progressBar"></div>
+    <span id="id-progressText">Step 1 / 7</span>
+  </div>
+
+  <!-- Wizard Container -->
+  <main id="id-wizard">
+
+    <!-- STEP 1: Room Type + Size -->
+    <section class="id-step" id="id-step-1">
+      <h2>১. রুম টাইপ ও মাপ</h2>
+
+      <label class="id-label">রুম টাইপ</label>
+      <div class="id-grid" id="id-roomTypes">
+        <button class="id-tile-btn" data-room="living">🛋️ লিভিং রুম</button>
+        <button class="id-tile-btn" data-room="dining">🍽️ ডাইনিং</button>
+        <button class="id-tile-btn" data-room="bedroom">🛏️ বেডরুম</button>
+        <button class="id-tile-btn" data-room="kitchen">🍳 কিচেন</button>
+        <button class="id-tile-btn" data-room="bathroom">🚿 বাথরুম</button>
+        <button class="id-tile-btn" data-room="veranda">🌿 বারান্দা</button>
+        <button class="id-tile-btn" data-room="balcony">🏙️ ব্যালকনি</button>
+        <button class="id-tile-btn" data-room="office">💼 অফিস</button>
+      </div>
+
+      <label class="id-label">মাপ (ফুট বা sqft)</label>
+      <div class="id-row">
+        <input type="number" id="id-length" placeholder="দৈর্ঘ্য (ft)" min="3" max="100">
+        <span>×</span>
+        <input type="number" id="id-width"  placeholder="প্রস্থ (ft)" min="3" max="100">
+        <span>=</span>
+        <input type="number" id="id-sqft" placeholder="sqft" readonly>
+      </div>
+
+      <label class="id-label">সিলিং উচ্চতা (ft)</label>
+      <input type="number" id="id-height" value="10" min="7" max="20">
+    </section>
+
+    <!-- STEP 2: Shape -->
+    <section class="id-step" id="id-step-2" hidden>
+      <h2>২. রুমের আকৃতি</h2>
+      <p class="id-hint">আপনার মাপ অনুযায়ী সাজেশন — অথবা নিজে আঁকুন।</p>
+      <div class="id-grid" id="id-shapeGrid">
+        <button class="id-shape-btn" data-shape="rect">▭ চতুর্ভুজ</button>
+        <button class="id-shape-btn" data-shape="square">◻️ স্কয়ার</button>
+        <button class="id-shape-btn" data-shape="hex">⬡ ষড়ভুজ</button>
+        <button class="id-shape-btn" data-shape="oct">⯃ অষ্টভুজ</button>
+        <button class="id-shape-btn" data-shape="L">L-আকৃতি</button>
+        <button class="id-shape-btn" data-shape="custom">✏️ কাস্টম আঁকুন</button>
+      </div>
+      <canvas id="id-shapeCanvas" width="600" height="400" hidden></canvas>
+      <div id="id-shapeTools" hidden>
+        <button id="id-shapeUndo">↶ Undo</button>
+        <button id="id-shapeClear">🗑️ Clear</button>
+        <button id="id-shapeDone">✔️ Done</button>
+      </div>
+    </section>
+
+    <!-- STEP 3: Structure (walls/doors/windows/stairs) -->
+    <section class="id-step" id="id-step-3" hidden>
+      <h2>৩. স্ট্রাকচার — দরজা, জানালা, সিঁড়ি</h2>
+      <p class="id-hint">রুমের উপর ক্লিক করে এলিমেন্ট বসান।</p>
+
+      <div class="id-struct-toolbar">
+        <button class="id-struct-tool" data-tool="door">🚪 দরজা</button>
+        <button class="id-struct-tool" data-tool="window">🪟 জানালা</button>
+        <button class="id-struct-tool" data-tool="stairs">🪜 সিঁড়ি</button>
+        <button class="id-struct-tool" data-tool="pillar">🏛️ পিলার</button>
+        <button class="id-struct-tool" data-tool="erase">🗑️ মুছুন</button>
+      </div>
+
+      <div id="id-structStage">
+        <svg id="id-structSvg" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </section>
+
+    <!-- STEP 4: Surface -->
+    <section class="id-step" id="id-step-4" hidden>
+      <h2>৪. কোনটাতে ডিজাইন দেখতে চান?</h2>
+      <div class="id-grid">
+        <button class="id-surface-btn" data-surface="floor">🟫 শুধু মেঝে</button>
+        <button class="id-surface-btn" data-surface="wall">🧱 শুধু দেয়াল</button>
+        <button class="id-surface-btn" data-surface="both">🟫🧱 মেঝে + দেয়াল</button>
+        <button class="id-surface-btn" data-surface="ceiling">⬜ সিলিং</button>
+        <button class="id-surface-btn" data-surface="all">✨ সব</button>
+      </div>
+    </section>
+
+    <!-- STEP 5: Tiles -->
+    <section class="id-step" id="id-step-5" hidden>
+      <h2>৫. টাইল / গ্রানাইট সিলেকশন</h2>
+
+      <div class="id-tile-tabs">
+        <button class="id-tab active" data-tab="floor">🟫 ফ্লোর</button>
+        <button class="id-tab" data-tab="wall">🧱 ওয়াল</button>
+        <button class="id-tab" data-tab="accent">🎯 অ্যাকসেন্ট</button>
+      </div>
+
+      <div class="id-tile-source">
+        <label class="id-upload-box">
+          📤 টাইল ইমেজ আপলোড
+          <input type="file" id="id-tileFile" accept="image/*" hidden>
+        </label>
+        <button id="id-tileFromStock">📦 Stock থেকে নিন</button>
+        <button id="id-tileFromImgBB">🔗 ImgBB URL</button>
+      </div>
+
+      <div id="id-tileGallery" class="id-gallery">
+        <p class="id-empty">এখনো কোনো টাইল যোগ করা হয়নি।</p>
+      </div>
+
+      <div id="id-tileSizePanel" hidden>
+        <h3>টাইলের সাইজ</h3>
+        <div class="id-row">
+          <input type="number" id="id-tileW" placeholder="W (mm)" value="600">
+          <span>×</span>
+          <input type="number" id="id-tileH" placeholder="H (mm)" value="600">
+        </div>
+        <div class="id-row">
+          <label>রোটেশন</label>
+          <input type="range" id="id-tileRot" min="0" max="360" value="0">
+          <span id="id-tileRotVal">0°</span>
+        </div>
+        <div class="id-row">
+          <label>গ্রাউট (mm)</label>
+          <input type="range" id="id-grout" min="0" max="10" value="2">
+          <span id="id-groutVal">2mm</span>
+        </div>
+      </div>
+
+      <div id="id-cropModal" hidden>
+        <div class="id-crop-box">
+          <img id="id-cropImg" alt="crop">
+          <div class="id-crop-actions">
+            <button id="id-cropCancel">বাতিল</button>
+            <button id="id-cropOk">✔️ ঠিক আছে</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 6: Furniture + Outside -->
+    <section class="id-step" id="id-step-6" hidden>
+      <h2>৬. ফার্নিচার ও আউটসাইড</h2>
+
+      <div class="id-subtabs">
+        <button class="id-subtab active" data-cat="furniture">🛋️ ফার্নিচার</button>
+        <button class="id-subtab" data-cat="light">💡 লাইট</button>
+        <button class="id-subtab" data-cat="sanitary">🚿 স্যানিটারি</button>
+        <button class="id-subtab" data-cat="decor">🪴 ডেকোর</button>
+        <button class="id-subtab" data-cat="outside">🌤️ আউটসাইড ভিউ</button>
+      </div>
+
+      <div id="id-furnitureGrid" class="id-gallery"></div>
+
+      <div id="id-outsideGrid" class="id-gallery" hidden></div>
+
+      <div class="id-selected-items">
+        <h3>যোগ করা আইটেম</h3>
+        <ul id="id-selectedList"></ul>
+      </div>
+    </section>
+
+    <!-- STEP 7: Render -->
+    <section class="id-step" id="id-step-7" hidden>
+      <h2>৭. রেন্ডার</h2>
+
+      <div class="id-view-controls">
+        <label>ভিউ</label>
+        <select id="id-cameraView">
+          <option value="front">সামনে থেকে</option>
+          <option value="top">উপর থেকে</option>
+          <option value="iso">আইসোমেট্রিক</option>
+          <option value="corner">কর্নার</option>
+        </select>
+
+        <label>লাইটিং</label>
+        <select id="id-lightMode">
+          <option value="day">☀️ দিন</option>
+          <option value="sunset">🌅 সন্ধ্যা</option>
+          <option value="night">🌙 রাত</option>
+          <option value="studio">💡 স্টুডিও</option>
+        </select>
+      </div>
+
+      <div id="id-viewerWrap">
+        <canvas id="id-canvas"></canvas>
+        <div id="id-viewerOverlay">
+          <div id="id-renderProgress" hidden>
+            <div class="id-progress-spinner"></div>
+            <p id="id-renderStatus">রেন্ডার হচ্ছে…</p>
+            <p id="id-renderTime">0.0s</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="id-render-actions">
+        <button id="id-liveRender" class="id-primary">▶️ লাইভ প্রিভিউ</button>
+        <button id="id-finalRender" class="id-highlight">✨ ফাইনাল HD রেন্ডার</button>
+        <button id="id-downloadRender">⬇️ ডাউনলোড</button>
+        <button id="id-saveToFirebase">☁️ ক্লাউডে সেভ</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <footer id="id-navBar">
+    <button id="id-prevBtn">◀ পূর্ববর্তী</button>
+    <button id="id-nextBtn">পরবর্তী ▶</button>
+  </footer>
+
+</div>
+
+<!-- ============ MY DESIGNS PANEL ============ -->
+<aside id="id-myDesigns" hidden>
+  <header>
+    <h2>আমার ডিজাইন</h2>
+    <button id="id-myDesignsClose">✕</button>
+  </header>
+  <div id="id-myDesignsList"></div>
+</aside>
+
+<!-- ============ HELP MODAL ============ -->
+<div id="id-helpModal" hidden>
+  <div class="id-modal-box">
+    <h2>কীভাবে ব্যবহার করবেন</h2>
+    <ol>
+      <li>রুমের টাইপ ও মাপ দিন</li>
+      <li>আকৃতি বাছুন বা আঁকুন</li>
+      <li>দরজা/জানালা/সিঁড়ি বসান</li>
+      <li>মেঝে/দেয়াল কোনটাতে ডিজাইন দেখবেন বাছুন</li>
+      <li>টাইল ছবি আপলোড করে সাইজ/গ্রাউট ঠিক করুন</li>
+      <li>ফার্নিচার, লাইট, স্যানিটারি যোগ করুন</li>
+      <li>লাইভ দেখুন, তারপর HD রেন্ডার দিন</li>
+    </ol>
+    <button id="id-helpClose">বুঝেছি</button>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div id="id-toast" hidden></div>
+
+<!-- ============ SCRIPTS (order matters!) ============ -->
+<script type="module" src="./id-furniture-library.js"></script>
+<script type="module" src="./id-render-engine.js"></script>
+<script type="module" src="./id-app.js"></script>
+
+</body>
+</html>
