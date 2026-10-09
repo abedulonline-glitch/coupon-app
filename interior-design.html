@@ -26,16 +26,34 @@
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getAuth, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { firebaseConfig } from "./firebase-config-beta.js";
 
-  const app  = initializeApp(firebaseConfig);
-  window.__id_db   = getFirestore(app);
-  window.__id_auth = getAuth(app);
-  window.__id_fs   = { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp };
+  // Firebase config নানা ধরনের export pattern সাপোর্ট করে লোড
+  let firebaseConfig;
+  try {
+    const cfg = await import("./firebase-config-beta.js");
+    firebaseConfig = cfg.firebaseConfig
+                  || cfg.default
+                  || cfg.config
+                  || cfg.firebaseConfigBeta
+                  || window.firebaseConfig;
+  } catch (e) {
+    console.warn("firebase-config-beta.js import ব্যর্থ, window.firebaseConfig চেষ্টা করা হচ্ছে…", e);
+    firebaseConfig = window.firebaseConfig;
+  }
+
+  if (!firebaseConfig) {
+    console.error("❌ Firebase config পাওয়া যায়নি — firebase-config-beta.js চেক করুন।");
+  } else {
+    const app = initializeApp(firebaseConfig);
+    window.__id_db   = getFirestore(app);
+    window.__id_auth = getAuth(app);
+    window.__id_fs   = { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp };
+    console.log("✅ Interior Design — Firebase প্রস্তুত");
+  }
 </script>
 
 <!-- i18n -->
-<script src="./i18n.js"></script>
+<script type="module" src="./i18n.js"></script>
 
 <!-- Custom CSS -->
 <link rel="stylesheet" href="./id-style.css">
