@@ -596,7 +596,7 @@ $('#id-downloadRender')?.addEventListener('click', () => {
 // ============================================================
 // FIREBASE — AUTH + SAVE/LOAD
 // ============================================================
-const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+const { onAuthStateChanged } = window.__id_authHelpers;
 onAuthStateChanged(window.__id_auth, (user) => {
   if (user) adminId = user.uid;
   else {
