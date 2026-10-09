@@ -6,6 +6,9 @@
 /* ---------- RESET ---------- */
 /* hidden attribute সব সময় কাজ করবে — কোনো CSS এটা override করবে না */
 [hidden] { display: none !important; }
+#id-helpModal[hidden],
+#id-cropModal[hidden],
+#id-myDesigns[hidden] { display: none !important; }
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body {
