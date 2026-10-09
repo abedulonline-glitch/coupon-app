@@ -4,7 +4,36 @@
 
 A complete business management platform built with **Vanilla JavaScript**, **Firebase**, and **GitHub Pages**. Designed for manufacturers, wholesalers, retailers, and craftsmen (Mistri) across India.
 
-**Last Updated:** 2026-10-05
+**Last Updated:** 2026-10-09 14:30  
+**Next Review:** 2026-10-16  
+**README Version:** 3.5
+
+---
+
+## ⏰ Update Timeline
+
+> README.md-এর সাম্প্রতিক আপডেট ট্র্যাকিং। প্রতি বড় পরিবর্তনে এই টাইমলাইন আপডেট হবে।
+
+| Date | Time | Session | Files Changed | Status |
+|:---|:---|:---|:---|:---|
+| 2026-10-09 | 14:30 | Session 15 | `stock-beta.html`, `README.md` | ✅ Synced |
+| 2026-10-08 | 18:45 | Session 14 | `stock-beta.html` | ✅ Synced |
+| 2026-10-07 | 22:00 | Session 13 | `stock-beta.html` | ✅ Synced |
+| 2026-10-06 | 18:00 | Session 12 | `stock-beta.html` | ✅ Synced |
+| 2026-10-05 | 15:00 | Session 11 | `stock-beta.html` | ⚠️ Partial |
+| 2026-10-04 | 20:00 | Session 10 | `stock-beta.html` | ✅ Synced |
+
+**Legend:**
+- ✅ **Synced:** README এবং Code সম্পূর্ণ মিলে আছে
+- ⚠️ **Partial:** কিছু পরিবর্তন README-তে যোগ করা হয়নি
+- 🔴 **Outdated:** README-তে বড় আপডেট প্রয়োজন
+
+---
+
+**📌 নোট:** এই Timeline সাপ্তাহিক রিভিউ করা উচিত। `Next Review` তারিখের আগে README আপ-টু-ডেট রাখলে ভালো।
+
+---
+
 
 ---
 
@@ -17,11 +46,12 @@ A complete business management platform built with **Vanilla JavaScript**, **Fir
 5. [Features In Progress](#-features-in-progress)
 6. [Tech Stack](#-tech-stack)
 7. [Class & ID Registry](#-class--id-registry-developer-reference)
-8. [Database Structure](#-database-structure)
-9. [User Roles](#-user-roles)
-10. [Subscription Plans](#-subscription-plans)
-11. [How to Use This Repo](#-how-to-use-this-repo)
-12. [Update Log](#-update-log)
+8. [Deprecated Classes](#-deprecated-classes)
+9. [Database Structure](#-database-structure)
+10. [User Roles](#-user-roles)
+11. [Subscription Plans](#-subscription-plans)
+12. [How to Use This Repo](#-how-to-use-this-repo)
+13. [Update Log](#-update-log)
 
 ---
 
@@ -214,6 +244,46 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | **Cost** | ₹0 (সম্পূর্ণ ফ্রি) |
 
 ---
+## 🗑️ Deprecated Classes & IDs
+
+> ডিলিট করা Class/ID — শুধু রেফারেন্সের জন্য রাখা হয়েছে। নতুন কোডে এগুলো ব্যবহার করবেন না।
+
+### 📦 Stock System (`stock-beta.html`)
+
+| Class/ID | Reason for Removal | Removed On | Replaced By |
+|:---|:---|:---|:---|
+| `.per-sqft-combined` | Duplicate ডিজাইন (পার্ট ১-২ কনফ্লিক্ট) | 2026-10-09 | `.calc-per-box` + `.calc-per-piece` |
+| `.calc-per-sqft-actual` | ভুল স্ট্রাকচার (DOM ব্রোকেন) | 2026-10-08 | `.calc-per-actual-sqft` |
+| `.calc-measure-benefit` (পুরনো) | নতুন স্ট্রাকচারে স্থানান্তর | 2026-10-08 | `.calc-measure-benefit` (নতুন) |
+| `input.capture = 'environment'` | মোবাইলে সরাসরি ক্যামেরা খুলত | 2026-10-09 | `#imageSourcePicker` |
+| `.allow-cell` (পুরনো) | Simple Mode-এ দরকার নেই | 2026-10-08 | (বাদ) |
+| `.d-l`, `.d-w`, `.d-al`, `.d-aw` (Simple Mode-এ) | Simple Mode-এ প্রযোজ্য নয় | 2026-10-06 | `.s-total-sqft`, `.s-allowance` |
+| `.calc-per-sqft-actual` (পুরনো) | ভুল হিসাব | 2026-10-08 | `.calc-per-actual-sqft` |
+
+### 🎫 Coupon System (`beta.html`)
+
+| Class/ID | Reason for Removal | Removed On | Replaced By |
+|:---|:---|:---|:---|
+| _(এখনো কোনো ডেপ্রিকেটেড নেই)_ | — | — | — |
+
+### 🌐 Language System (`i18n.js`)
+
+| Key/Function | Reason for Removal | Removed On | Replaced By |
+|:---|:---|:---|:---|
+| _(এখনো কোনো ডেপ্রিকেটেড নেই)_ | — | — | — |
+
+---
+
+### 📋 ডেপ্রিকেটেড Class/ID যোগ করার নিয়ম
+
+1. **ডিলিট করার আগে** এখানে যোগ করুন (তারিখ ও কারণ সহ)।
+2. **Replaced By** কলামে নতুন Class/ID লিখুন (যদি থাকে)।
+3. **Deprecated** ক্লাসটি কোড থেকে **সম্পূর্ণ ডিলিট** করুন (তবে README-এ রাখুন)।
+4. **৬ মাস পর** ডেপ্রিকেটেড ক্লাসটি এই টেবিল থেকে সরিয়ে দিতে পারেন (ঐচ্ছিক)।
+
+---
+
+
 ## 🏷️ Class & ID Registry (Developer Reference)
 
 > **⚠️ গুরুত্বপূর্ণ:** এই সেকশনটি প্রতিটি ফাইলের গুরুত্বপূর্ণ Class, ID এবং Local Storage Key-এর রেফারেন্স। নতুন কোড যোগ করার আগে এখানে খুঁজে নিন, যাতে ডুপ্লিকেট না হয়।
@@ -314,6 +384,10 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Calc Extra Pct | `.calc-extra-pct` | Extra % |
 | Calc Savings Pct | `.calc-savings-pct` | Savings % |
 | Calc Real Rate | `.calc-real-rate` | প্রকৃত/sqft |
+| Per Piece Landing | `.calc-per-piece` | প্রতি পিস (Landing) |
+| Per Piece No Tax | `.calc-per-piece-no-tax` | প্রতি পিস (Tax ছাড়া) |
+| Per Unit Label Landing | `.per-unit-label-landing` | Dynamic Label (Landing) |
+| Per Unit Label No Tax | `.per-unit-label-no-tax` | Dynamic Label (Tax ছাড়া) |
 
 #### 🧮 Simple Mode (Marble/Granite)
 
@@ -362,6 +436,16 @@ Each admin can manage their own business with separate coupons, stock, team, and
 | Icon Main | `#icon-main-{id}` | Main Icon |
 | Icon Gallery | `#icon-gallery-{id}` | Gallery Icon |
 | Icon Video | `#icon-video-{id}` | Video Icon |
+
+#### 📷 Image Source Picker
+
+| Element | Class / ID | Purpose |
+|:---|:---|:---|
+| Source Picker | `#imageSourcePicker` | Camera/Gallery Bottom Sheet |
+| Camera Option | `onclick="pickImageSource('camera')"` | Camera সিলেক্ট |
+| Gallery Option | `onclick="pickImageSource('gallery')"` | Gallery সিলেক্ট |
+| Last Source | `localStorage.lastImageSource` | গতবারের পছন্দ |
+
 
 #### 🖼️ Crop Modal
 
@@ -707,24 +791,34 @@ This project is deployed via GitHub Pages:
 
 ## 📊 Update Log
 
-| Date | File(s) | Changes |
-|:---|:---|:---|
-| 2026-10-05 | `README.md` | Fresh restructured Master Context with Class/ID Registry, Features List, Update Log |
-| 2026-10-05 | `stock-beta.html` | Added Simple Mode with Slab Count, Total Sqft, Allowance |
-| 2026-10-05 | `stock-beta.html` | Added Allowance Profit Calculator (Marble/Granite) |
-| 2026-10-04 | `stock-beta.html` | Implemented Quick Add System (Design, Qty, Image, Gallery, Video) |
-| 2026-10-04 | `stock-beta.html` | Implemented ImgBB + Cropper.js Image Upload |
-| 2026-10-04 | `stock-beta.html` | Implemented Supplier WhatsApp Field with Validation |
-| 2026-10-04 | `stock-beta.html` | Implemented Smart Button System (Add/Quick/View/Finish) |
-| 2026-10-03 | `stock-beta.html` | Implemented Local Storage Auto-Save (Draft Protection) |
-| 2026-10-03 | `stock-beta.html` | Implemented Temporary Buffer + Restore Popup |
-| 2026-10-02 | `stock-beta.html` | Implemented Others Mode + Timer + Panic Button |
-| 2026-10-02 | `stock-beta.html` | Implemented Slider Drag System for Timer |
-| 2026-10-02 | `README.md` | Restructured Master Context with Auto-Update Tags |
-| 2026-10-02 | `stock-beta.html` | Fixed Role Rates, Allowance, Cash Hide/Show |
-| 2026-10-01 | `stock-beta.html` | Fixed Marble/Granite Transport & Weight Share |
+## 📊 Update Log
 
----
+| Date | Time | File | Changes |
+|:---|:---|:---|:---|
+| 2026-10-09 | 14:30 | `README.md` | Added Update Timeline, Deprecated Classes সেকশন |
+| 2026-10-09 | 14:30 | `stock-beta.html` | Others Mode OFF → Cash সম্পূর্ণ বাদ (perUnit হিসাবেও) |
+| 2026-10-09 | 14:30 | `stock-beta.html` | `stopOthersMode` → Auto-recalc সব প্রোডাক্ট |
+| 2026-10-09 | 14:30 | `stock-beta.html` | Camera/Gallery পিকার (Bottom Sheet) যোগ |
+| 2026-10-08 | 18:45 | `stock-beta.html` | Tiles-এ প্রতি পিস লাইন যোগ (Landing + Tax ছাড়া) |
+| 2026-10-08 | 18:45 | `stock-beta.html` | Marble/Granite-এ প্রতি sqft (Dynamic Label) |
+| 2026-10-08 | 16:20 | `stock-beta.html` | `getCalcBox` ডুপ্লিকেট ফিল্ড পরিষ্কার |
+| 2026-10-08 | 12:00 | `stock-beta.html` | Simple Mode-এ Total Sqft, Allowance যোগ |
+| 2026-10-07 | 22:00 | `stock-beta.html` | Allowance Profit Calculator |
+| 2026-10-07 | 20:00 | `stock-beta.html` | Slider Drag System (Timer Bar) |
+| 2026-10-06 | 18:00 | `stock-beta.html` | Quick Add-এ Marble Allowance |
+| 2026-10-05 | 15:00 | `stock-beta.html` | `getMarbleTemplateFields` রিস্ট্রাকচার |
+| 2026-10-05 | 12:00 | `README.md` | Fresh restructured Master Context |
+| 2026-10-04 | 20:00 | `stock-beta.html` | ImgBB + Cropper.js Image Upload |
+| 2026-10-04 | 16:00 | `stock-beta.html` | Supplier WhatsApp Field |
+| 2026-10-04 | 14:00 | `stock-beta.html` | Smart Button System (Add/Quick/View/Finish) |
+| 2026-10-03 | 20:00 | `stock-beta.html` | Local Storage Auto-Save (Draft Protection) |
+| 2026-10-03 | 16:00 | `stock-beta.html` | Temporary Buffer + Restore Popup |
+| 2026-10-02 | 20:00 | `stock-beta.html` | Slider Drag System for Timer |
+| 2026-10-02 | 18:00 | `stock-beta.html` | Others Mode + Timer + Panic Button |
+| 2026-10-02 | 14:00 | `README.md` | Master Context রিস্ট্রাকচার |
+| 2026-10-02 | 12:00 | `stock-beta.html` | Role Rates, Allowance, Cash Hide/Show |
+| 2026-10-01 | 18:00 | `stock-beta.html` | Marble/Granite Transport & Weight Share Fix |
+
 
 ## 🤝 Contributions
 
