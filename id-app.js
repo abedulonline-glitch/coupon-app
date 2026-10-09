@@ -385,6 +385,7 @@ function openCrop(file) {
 $('#id-cropCancel')?.addEventListener('click', () => {
   if (cropper) { cropper.destroy(); cropper = null; }
   $('#id-cropModal').hidden = true;
+  $('#id-cropModal').style.display = 'none'; 
 });
 $('#id-cropOk')?.addEventListener('click', async () => {
   if (!cropper) return;
@@ -393,6 +394,7 @@ $('#id-cropOk')?.addEventListener('click', async () => {
   const url  = await uploadToImgBB(blob);
   if (cropper) { cropper.destroy(); cropper = null; }
   $('#id-cropModal').hidden = true;
+  $('#id-cropModal').style.display = 'none'; 
   if (url) { setTile(url); toast('আপলোড হয়েছে', 'success'); }
 });
 
@@ -658,19 +660,35 @@ $('#id-loadBtn')?.addEventListener('click', async () => {
       });
     }
     $('#id-myDesigns').hidden = false;
+    $('#id-myDesigns').style.display = 'flex'; 
   } catch (e) {
     toast('লোড ব্যর্থ', 'error');
   }
 });
 $('#id-myDesignsClose')?.addEventListener('click', () => {
   $('#id-myDesigns').hidden = true;
+  $('#id-myDesigns').style.display = 'none';
 });
 
 // ============================================================
 // HELP MODAL
 // ============================================================
-$('#id-helpBtn')?.addEventListener('click', () => { $('#id-helpModal').hidden = false; });
-$('#id-helpClose')?.addEventListener('click', () => { $('#id-helpModal').hidden = true; });
+$('#id-helpBtn')?.addEventListener('click', () => {
+  $('#id-helpModal').hidden = false;
+  $('#id-helpModal').style.display = 'flex';
+});
+$('#id-helpClose')?.addEventListener('click', () => {
+  $('#id-helpModal').hidden = true;
+  $('#id-helpModal').style.display = 'none';
+});
+
+// ============================================================
+// FORCE-HIDE MODALS ON LOAD (CSS override-proof)
+// ============================================================
+['id-helpModal', 'id-cropModal', 'id-myDesigns'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+});
 
 // ============================================================
 // INIT
