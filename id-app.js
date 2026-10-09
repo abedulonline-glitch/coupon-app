@@ -371,6 +371,7 @@ function openCrop(file) {
     const modal = $('#id-cropModal');
     const img   = $('#id-cropImg');
     modal.hidden = false;
+    modal.style.display = 'flex';   // ← এই লাইনটাই আগে ছিল না
     img.src = e.target.result;
     if (cropper) { cropper.destroy(); cropper = null; }
     cropper = new Cropper(img, {
@@ -385,7 +386,7 @@ function openCrop(file) {
 $('#id-cropCancel')?.addEventListener('click', () => {
   if (cropper) { cropper.destroy(); cropper = null; }
   $('#id-cropModal').hidden = true;
-  $('#id-cropModal').style.display = 'none'; 
+  $('#id-cropModal').style.display = 'none';
 });
 $('#id-cropOk')?.addEventListener('click', async () => {
   if (!cropper) return;
@@ -394,7 +395,7 @@ $('#id-cropOk')?.addEventListener('click', async () => {
   const url  = await uploadToImgBB(blob);
   if (cropper) { cropper.destroy(); cropper = null; }
   $('#id-cropModal').hidden = true;
-  $('#id-cropModal').style.display = 'none'; 
+  $('#id-cropModal').style.display = 'none';
   if (url) { setTile(url); toast('আপলোড হয়েছে', 'success'); }
 });
 
