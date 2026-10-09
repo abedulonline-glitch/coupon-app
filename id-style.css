@@ -4,6 +4,9 @@
    ============================================================ */
 
 /* ---------- RESET ---------- */
+/* hidden attribute সব সময় কাজ করবে — কোনো CSS এটা override করবে না */
+[hidden] { display: none !important; }
+
 *, *::before, *::after { box-sizing: border-box; }
 html, body {
   margin: 0; padding: 0;
