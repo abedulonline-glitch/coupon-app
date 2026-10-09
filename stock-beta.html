@@ -51,7 +51,7 @@
   
   /* Tabs */
   .tabs { display: flex; background: white; border-radius: 10px; padding: 6px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-  .tab { flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; border-radius: 8px; }
+  .tab {flex: 1; min-width: 0; padding: 10px 6px; text-align: center; font-size: 11px; font-weight: 600; color: #666; cursor: pointer; border-radius: 8px; }
   .tab.active { background: #1a73e8; color: white; }
   
   /* Cards */
@@ -924,11 +924,12 @@ body:not(.others-mode-active) .role-rates-section {
   <!-- ============ MAIN APP ============ -->
   <div id="mainAppPage" class="page">
     
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('add', this)">➕ Add Stock</div>
-      <div class="tab" onclick="switchTab('list', this)">📋 Stock List</div>
-      <div class="tab" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
-    </div>
+   <div class="tabs">
+  <div class="tab active" onclick="switchTab('add', this)">➕ Add Stock</div>
+  <div class="tab" onclick="switchTab('list', this)">📋 Stock List</div>
+  <div class="tab" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
+  <a href="./interior-design.html" class="tab" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">🎨Interior</a>
+</div>
 
     <!-- ============ ADD STOCK TAB ============ -->
     <div id="tab-add" class="tab-content page active">
