@@ -26,7 +26,11 @@ class InteriorEngine {
     this.transformMode = 'translate';
     this._onDown = this._onDown.bind(this);
     this._onKey  = this._onKey.bind(this);
-    this._init();
+    this.structGrp = null;
+    this.selectedStruct = null;
+    this.structLabels = [];
+    this.dimOverlay = null;
+     this._init();
   }
 
   _init() {
@@ -91,24 +95,37 @@ class InteriorEngine {
   }
 
   // ---------- SELECTION / TRANSFORM ----------
-  _onDown(e) {
+   _onDown(e) {
     if (this.transform.dragging) return;
     const rect = this.canvas.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    const targets = [];
-    this.furnitureGrp.children.forEach(g => {
-      g.traverse(c => { if (c.isMesh) targets.push(c); });
-    });
-    const hits = this.raycaster.intersectObjects(targets, false);
-    if (hits.length) {
-      let obj = hits[0].object;
+    // 1. Furniture
+    const furnTargets = [];
+    this.furnitureGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) furnTargets.push(c); }));
+    const furnHits = this.raycaster.intersectObjects(furnTargets, false);
+    if (furnHits.length) {
+      let obj = furnHits[0].object;
       while (obj && obj.parent !== this.furnitureGrp) obj = obj.parent;
-      if (obj) { this.selectFurniture(obj); return; }
+      if (obj) { this.selectFurniture(obj); this._clearStructSelection(); return; }
     }
+
+    // 2. Structure (door/window/pillar/stairs)
+    if (this.structGrp) {
+      const structTargets = [];
+      this.structGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) structTargets.push(c); }));
+      const sHits = this.raycaster.intersectObjects(structTargets, false);
+      if (sHits.length) {
+        let obj = sHits[0].object;
+        while (obj && obj.parent !== this.structGrp) obj = obj.parent;
+        if (obj) { this.selectStructure(obj); this.deselectFurniture(); return; }
+      }
+    }
+
     this.deselectFurniture();
+    this._clearStructSelection();
   }
 
   _onKey(e) {
@@ -488,7 +505,93 @@ class InteriorEngine {
     return light;
   }
 
-  // ---------- LIGHTS / OUTSIDE / CAMERA ----------
+    // ---------- STRUCTURE SELECTION ----------
+  selectStructure(grp) {
+    this._clearStructSelection();
+    this.selectedStruct = grp;
+    this._showDimensions(grp);
+    const idx = grp.userData.stateIndex;
+    window.__id_onSelectStructure?.(idx);
+  }
+
+  _clearStructSelection() {
+    this._removeDimLabels();
+    this.selectedStruct = null;
+    window.__id_onSelectStructure?.(-1);
+  }
+
+  _removeDimLabels() {
+    this.structLabels.forEach(l => { l.remove(); l.element?.remove(); });
+    this.structLabels = [];
+  }
+
+  _showDimensions(grp) {
+    const p = grp.userData.params || {};
+    const H = grp.userData.roomH || 3;
+    const info = grp.userData.info || {};
+
+    // Build label list based on type
+    const labels = [];
+    const t = grp.userData.structType;
+
+    if (t === 'door') {
+      labels.push({ text: `প্রস্থ: ${(p.width || 0.9).toFixed(2)}m (${((p.width || 0.9) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, (p.height || 2.1) + 0.2, 0) });
+      labels.push({ text: `উচ্চতা: ${(p.height || 2.1).toFixed(2)}m (${((p.height || 2.1) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3((p.width || 0.9) / 2 + 0.3, (p.height || 2.1) / 2, 0) });
+    } else if (t === 'window') {
+      labels.push({ text: `প্রস্থ: ${(p.width || 1.2).toFixed(2)}m (${((p.width || 1.2) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, (p.sill || 0.9) + (p.height || 1.2) + 0.25, 0) });
+      labels.push({ text: `সিল: ${(p.sill || 0.9).toFixed(2)}m (${((p.sill || 0.9) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(-(p.width || 1.2) / 2 - 0.4, (p.sill || 0.9) / 2, 0) });
+      labels.push({ text: `উচ্চতা: ${(p.height || 1.2).toFixed(2)}m`, localPos: new THREE.Vector3((p.width || 1.2) / 2 + 0.3, (p.sill || 0.9) + (p.height || 1.2) / 2, 0) });
+    } else if (t === 'pillar') {
+      labels.push({ text: `ব্যাস: ${((p.radius || 0.15) * 2).toFixed(2)}m`, localPos: new THREE.Vector3((p.radius || 0.15) + 0.3, H / 2, 0) });
+      labels.push({ text: `উচ্চতা: ${H.toFixed(2)}m (${(H / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
+    } else if (t === 'stairs') {
+      labels.push({ text: `${p.steps || 6} ধাপ · প্রস্থ ${(p.width || 1.2).toFixed(1)}m`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
+    }
+
+    // Create HTML labels + anchor points
+    const overlay = this._getOverlay();
+    labels.forEach(({ text, localPos }) => {
+      const worldPos = grp.localToWorld(localPos.clone());
+      const el = document.createElement('div');
+      el.className = 'id-dim-label';
+      el.textContent = text;
+      overlay.appendChild(el);
+      this.structLabels.push({ element: el, worldPos, remove: () => el.remove() });
+    });
+
+    // Update loop for label positioning
+    if (!this._dimLoop) {
+      this._dimLoop = () => {
+        if (!this.structLabels.length) { this._dimLoop = null; return; }
+        const rect = this.canvas.getBoundingClientRect();
+        this.structLabels.forEach(({ element, worldPos }) => {
+          const v = worldPos.clone().project(this.camera);
+          const x = (v.x * 0.5 + 0.5) * rect.width;
+          const y = (-v.y * 0.5 + 0.5) * rect.height;
+          element.style.left = x + 'px';
+          element.style.top  = y + 'px';
+          element.style.display = v.z < 1 ? 'block' : 'none';
+        });
+        requestAnimationFrame(this._dimLoop);
+      };
+      this._dimLoop();
+    }
+  }
+
+  _getOverlay() {
+    let ov = this.canvas.parentElement.querySelector('.id-dim-overlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.className = 'id-dim-overlay';
+      Object.assign(ov.style, {
+        position: 'absolute', inset: '0', pointerEvents: 'none', overflow: 'hidden'
+      });
+      this.canvas.parentElement.appendChild(ov);
+    }
+    return ov;
+  }
+   
+   // ---------- LIGHTS / OUTSIDE / CAMERA ----------
   _setupLights(state) {
     this.lights.forEach(l => this.scene.remove(l));
     this.lights = [];
