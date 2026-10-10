@@ -84,6 +84,7 @@ $('#id-nextBtn').addEventListener('click', () => {
     if (!STATE.room.length || !STATE.room.width) { toast('মাপ দিন', 'error'); return; }
   }
   showStep(STATE.step + 1);
+if (STATE.step + 1 === 7) refreshRender(true);  
 });
 $('#id-prevBtn').addEventListener('click', () => showStep(STATE.step - 1));
 
@@ -497,16 +498,18 @@ function addItem(def) {
     toast('আউটসাইড ভিউ সেট হয়েছে', 'success');
     return;
   }
-  // random position near center
   const L = STATE.room.length, W = STATE.room.width;
-  const x = (Math.random() - 0.5) * (L * 0.6);
-  const z = (Math.random() - 0.5) * (W * 0.6);
-  const y = def.snap === 'ceiling' ? STATE.room.height - 0.5 : 0;
+  const x = (Math.random() - 0.5) * (L * 0.5);
+  const z = (Math.random() - 0.5) * (W * 0.5);
+  const y = def.snap === 'ceiling' ? STATE.room.height - 1 : 0;
   STATE.furniture.push({
-    id: def.id, x, y, z, rot: 0, color: null
+    id: def.id, x, y, z, rot: 0, color: null,
+    sx: 1, sy: 1, sz: 1
   });
   refreshSelectedList();
-  toast(`${def.name} যোগ হয়েছে`, 'success');
+  toast(`${def.name} যোগ হয়েছে — 3D-তে ক্লিক করে মুভ/রোটেট/স্কেল করুন`, 'success', 3000);
+  // ক্যামেরা ধরে রেখে রিফ্রেশ
+  if (STATE.step === 7) refreshRender(true);
 }
 
 function refreshSelectedList() {
@@ -690,6 +693,71 @@ $('#id-helpClose')?.addEventListener('click', () => {
   const el = document.getElementById(id);
   if (el) el.style.display = 'none';
 });
+
+// ============================================================
+// FURNITURE SELECTION / TRANSFORM HOOKS
+// ============================================================
+window.__id_onSelectFurniture = (idx) => {
+  const bar = document.getElementById('id-transformBar');
+  if (!bar) return;
+  if (idx < 0) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const f = STATE.furniture[idx];
+  const def = window.__id_library?.getItemById(f?.id);
+  document.getElementById('id-transformInfo').textContent =
+    def ? `${def.emoji || ''} ${def.name}` : (f?.id || '—');
+};
+
+window.__id_onTransform = (idx, data) => {
+  if (idx < 0 || idx >= STATE.furniture.length) return;
+  Object.assign(STATE.furniture[idx], data);
+  refreshSelectedList();
+};
+
+window.__id_onDeleteFurniture = (idx) => {
+  if (idx < 0 || idx >= STATE.furniture.length) return;
+  STATE.furniture.splice(idx, 1);
+  refreshSelectedList();
+  toast('আইটেম মুছে ফেলা হয়েছে', 'info');
+};
+
+// Transform mode buttons
+function setActiveMode(activeId) {
+  ['id-modeMove', 'id-modeRotate', 'id-modeScale'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('active', id === activeId);
+  });
+}
+document.getElementById('id-modeMove')?.addEventListener('click', () => {
+  engine?.setTransformMode('translate');
+  setActiveMode('id-modeMove');
+});
+document.getElementById('id-modeRotate')?.addEventListener('click', () => {
+  engine?.setTransformMode('rotate');
+  setActiveMode('id-modeRotate');
+});
+document.getElementById('id-modeScale')?.addEventListener('click', () => {
+  engine?.setTransformMode('scale');
+  setActiveMode('id-modeScale');
+});
+document.getElementById('id-modeDeselect')?.addEventListener('click', () => {
+  engine?.deselectFurniture();
+});
+
+// ফার্নিচার যোগ করার সময় ক্যামেরা ধরে রাখা
+const _origRefreshRender = refreshRender;
+window.refreshRender = refreshRender = async function (preserve) {
+  if (!engine) return;
+  try {
+    if (preserve && engine.renderPreserveCamera) {
+      await engine.renderPreserveCamera(STATE);
+    } else {
+      await engine.render(STATE);
+    }
+  } catch (e) {
+    console.error(e);
+    toast('রেন্ডারে সমস্যা', 'error');
+  }
+};
 
 // ============================================================
 // INIT
