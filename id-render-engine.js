@@ -81,6 +81,7 @@ class InteriorEngine {
     this.scene.add(this.transform);
 
     canvas.addEventListener('pointerdown', this._onDown);
+    canvas.addEventListener('contextmenu', this._onContext.bind(this)); 
     window.addEventListener('keydown', this._onKey);
 
        const ro = new ResizeObserver(() => this._onResize());
@@ -186,8 +187,50 @@ class InteriorEngine {
       }
     }
 
+       this._selectedForCtx = null;
+    this._ctxType = null;
     this.deselectFurniture();
     this._clearStructSelection();
+  }
+
+  // ---------- RIGHT-CLICK CONTEXT ----------
+  _onContext(e) {
+    e.preventDefault();
+    const rect = this.canvas.getBoundingClientRect();
+    this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    // Furniture?
+    const fT = [];
+    this.furnitureGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) fT.push(c); }));
+    const fH = this.raycaster.intersectObjects(fT, false);
+    if (fH.length) {
+      let obj = fH[0].object;
+      while (obj && obj.parent !== this.furnitureGrp) obj = obj.parent;
+      if (obj) {
+        this.selectFurniture(obj);
+        window.__id_showContext?.(e.clientX, e.clientY, 'furniture', obj.userData.stateIndex);
+        return;
+      }
+    }
+    // Structure?
+    if (this.structGrp) {
+      const sT = [];
+      this.structGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) sT.push(c); }));
+      const sH = this.raycaster.intersectObjects(sT, false);
+      if (sH.length) {
+        let obj = sH[0].object;
+        while (obj && obj.parent !== this.structGrp) obj = obj.parent;
+        if (obj) {
+          this.selectStructure(obj);
+          window.__id_showContext?.(e.clientX, e.clientY, 'structure', obj.userData.stateIndex);
+          return;
+        }
+      }
+    }
+    // Empty space
+    window.__id_showContext?.(e.clientX, e.clientY, 'empty', -1);
   }
 
   _onKey(e) {
