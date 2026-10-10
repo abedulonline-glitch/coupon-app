@@ -1238,7 +1238,13 @@ $('#id-hdriSelect')?.addEventListener('change', async (e) => {
   if (!url) return;
   toast('🌅 আকাশ লোড হচ্ছে…', 'info');
   try {
-    await engine?.loadHDRI(url);
+     await engine?.loadHDRI(url);
+  if (engine.scene && 'environmentIntensity' in engine.scene) {
+    engine.scene.environmentIntensity = 0.35;
+  }
+  if (engine.renderer) {
+    engine.renderer.toneMappingExposure = 0.62;
+  }
     toast('✅ আকাশ সেট হয়েছে', 'success');
   } catch (err) {
     console.error(err);
