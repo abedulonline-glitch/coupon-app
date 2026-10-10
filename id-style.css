@@ -890,3 +890,24 @@ input[type="range"]::-moz-range-thumb {
   border-color: var(--id-accent);
   color: #1a1a1a;
 }
+
+/* ---------- Shape Tools ---------- */
+#id-shapeTools button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: var(--id-bg-3) !important;
+  border-color: var(--id-border) !important;
+}
+#id-shapeHint {
+  font-size: 11px;
+  color: var(--id-text-dim);
+  margin-left: auto;
+  align-self: center;
+  padding: 0 6px;
+}
+#id-shapeTools {
+  flex-wrap: wrap;
+}
+#id-shapeCanvas {
+  cursor: crosshair;
+}
