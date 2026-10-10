@@ -406,14 +406,14 @@ class InteriorEngine {
     const ceilGeo = new THREE.ShapeGeometry(shape);
     ceilGeo.rotateX(Math.PI / 2);
     const ceiling = new THREE.Mesh(ceilGeo, new THREE.MeshStandardMaterial({
-      color: 0xf5f5f5, roughness: 0.9, side: THREE.DoubleSide
+           color: 0xc8c8c8, roughness: 0.95, side: THREE.DoubleSide
     }));
     ceiling.position.y = H;
     ceiling.name = 'ceiling';
     this.roomGroup.add(ceiling);
 
-    const wallMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff, roughness: 0.85, metalness: 0.02, side: THREE.DoubleSide
+        const wallMat = new THREE.MeshStandardMaterial({
+      color: 0xd8d8d8, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide
     });
     const walls = new THREE.Group();
     walls.name = 'walls';
