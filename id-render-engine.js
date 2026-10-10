@@ -307,9 +307,9 @@ class InteriorEngine {
         const fR = fL.clone(); fR.position.x = dw / 2; g.add(fR);
         const fT = new THREE.Mesh(new THREE.BoxGeometry(dw + 0.16, 0.08, 0.12), fm);
         fT.position.y = dh + 0.04; g.add(fT);
-        const panel = new THREE.Mesh(
+               const panel = new THREE.Mesh(
           new THREE.BoxGeometry(dw - 0.04, dh - 0.06, 0.06),
-          new THREE.MeshStandardMaterial({ color: 0xa08060, roughness: 0.55 })
+          new THREE.MeshStandardMaterial({ color: 0xc9a876, roughness: 0.5 })
         );
         panel.position.y = dh / 2; g.add(panel);
         const knob = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8),
@@ -655,11 +655,11 @@ class InteriorEngine {
       case 'sunset': hemiSky=0xffa060; hemiGround=0x504030; hemiInt=0.65; sunColor=0xffb37a; sunInt=2.2; sunPos=[-12,4,10]; ambient=0x2a1f1a; break;
       case 'night':  hemiSky=0x4a5a8a; hemiGround=0x101018; hemiInt=0.25; sunColor=0xc0d0ff; sunInt=0.4; sunPos=[-8,10,6];  ambient=0x101828; break;
       case 'studio': hemiSky=0xffffff; hemiGround=0xdddddd; hemiInt=1.0;  sunColor=0xffffff; sunInt=1.6; sunPos=[8,12,8];   ambient=0x404040; break;
-      default:       hemiSky=0xcfe4ff; hemiGround=0x8a7a68; hemiInt=0.75; sunColor=0xfff4e0; sunInt=2.4; sunPos=[14,16,10]; ambient=0x404050;
+           default:       hemiSky=0xd8ecff; hemiGround=0xa89880; hemiInt=0.85; sunColor=0xfff4e0; sunInt=2.2; sunPos=[14,16,10]; ambient=0x505060;
     }
     const hemi = new THREE.HemisphereLight(hemiSky, hemiGround, hemiInt);
     this.scene.add(hemi); this.lights.push(hemi);
-    const amb = new THREE.AmbientLight(ambient, 0.35);
+        const amb = new THREE.AmbientLight(ambient, 0.55);
     this.scene.add(amb); this.lights.push(amb);
     const sun = new THREE.DirectionalLight(sunColor, sunInt);
     sun.position.set(...sunPos);
@@ -690,32 +690,64 @@ class InteriorEngine {
     this.scene.background = tex;
   }
 
-  _setupCamera(state) {
+    _setupCamera(state) {
     const b = this._roomBounds;
-    const H = b.H, cy = H / 2;
-    const size = Math.max(6, H * 2);
+    const L = b.L, W = b.W, H = b.H;
+    const cy = H / 2;
+    this._roomCenter = new THREE.Vector3(0, cy, 0);
+
     let pos, target;
     switch (state.cameraView || 'iso') {
-      case 'front':  pos=[0, cy, size*1.6]; target=[0, cy, 0]; break;
-      case 'top':    pos=[0, size*1.8, 0.01]; target=[0, 0, 0]; break;
-      case 'corner': pos=[size, size, size]; target=[0, cy*0.7, 0]; break;
-      default:       pos=[size*0.9, size*0.8, size*0.9]; target=[0, cy*0.6, 0];
+      case 'front':
+        pos    = [0, cy * 1.4, W * 1.3];
+        target = [0, cy * 0.9, -W * 0.4];
+        break;
+      case 'top':
+        pos    = [0.001, Math.max(L, W) * 1.6, 0.001];
+        target = [0, 0, 0];
+        break;
+      case 'corner':
+        pos    = [L * 0.7, H * 0.85, W * 0.7];
+        target = [0, cy * 0.4, 0];
+        break;
+      default: // iso — dollhouse view
+        pos    = [L * 0.85, H * 1.3, W * 0.85];
+        target = [0, cy * 0.4, 0];
     }
     this.camera.position.set(...pos);
     this.controls.target.set(...target);
     this.controls.update();
   }
 
-  async render(state) {
-    this.currentState = state;
-    await this._buildRoom(state);
-    await this._buildTiles(state);
-    await this._buildFurniture(state);
-    this._setupLights(state);
-    this._setupOutside(state);
-    this._setupCamera(state);
-    this._renderOnce();
-    this.controls.update();
+   // ---------- DOLLHOUSE WALL CULLING ----------
+  _cullWalls() {
+    if (!this.roomGroup || !this._roomCenter) return;
+    const walls = this.roomGroup.getObjectByName('walls');
+    if (!walls) return;
+    const cam = this.camera.position;
+    const center = this._roomCenter;
+
+    walls.children.forEach(w => {
+      // wall's inward normal (threejs plane default normal is +z)
+      const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(w.quaternion).normalize();
+      const toCam    = new THREE.Vector3().subVectors(cam, w.position).normalize();
+      const toCenter = new THREE.Vector3().subVectors(center, w.position).normalize();
+
+      const camSide    = normal.dot(toCam);
+      const centerSide = normal.dot(toCenter);
+
+      // Camera & room center on the SAME side → we see the interior face
+      w.visible = (camSide * centerSide) >= 0;
+    });
+  }
+   
+   _renderOnce() {
+    if (!this.renderer || !this.scene || !this.camera) return;
+    this._cullWalls();
+    const wrap = this.canvas.parentElement;
+    if (!wrap) return;
+    this.renderer.setSize(wrap.clientWidth, wrap.clientHeight, false);
+    this.renderer.render(this.scene, this.camera);
   }
 
      // ---------- LOAD GLB/GLTF (free models) ----------
@@ -793,6 +825,7 @@ class InteriorEngine {
     const loop = () => {
       if (!this.animating) return;
       this.controls.update();
+      this._cullWalls();
       this.renderer.render(this.scene, this.camera);
       requestAnimationFrame(loop);
     };
