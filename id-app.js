@@ -936,18 +936,28 @@ window.__id_onSelectStructure = (idx) => {
   if (s.type === 'door') {
     html += row('প্রস্থ (m)', 'width', p.width, 0.4, 3, 0.05);
     html += row('উচ্চতা (m)', 'height', p.height, 1.0, 3, 0.05);
+    html += row('দেয়ালে অবস্থান (m)', 'offsetX', p.offsetX || 0, -8, 8, 0.05);
   } else if (s.type === 'window') {
     html += row('প্রস্থ (m)', 'width', p.width, 0.3, 5, 0.05);
     html += row('উচ্চতা (m)', 'height', p.height, 0.3, 3, 0.05);
-    html += row('সিল উচ্চতা (m)', 'sill', p.sill, 0, 2, 0.05);
+    html += row('সিল উচ্চতা (m)', 'sill', p.sill, 0, 2.5, 0.05);
+    html += row('দেয়ালে অবস্থান (m)', 'offsetX', p.offsetX || 0, -8, 8, 0.05);
   } else if (s.type === 'pillar') {
     html += row('ব্যাসার্ধ (m)', 'radius', p.radius, 0.05, 1, 0.01);
+    html += row('X অফসেট (m)', 'offsetX', p.offsetX || 0, -5, 5, 0.05);
+    html += row('Z অফসেট (m)', 'offsetZ', p.offsetZ || 0, -5, 5, 0.05);
   } else if (s.type === 'stairs') {
-    html += row('ধাপ সংখ্যা', 'steps', p.steps, 2, 20, 1);
+    html += row('ধাপ সংখ্যা', 'steps', p.steps, 2, 30, 1);
     html += row('প্রস্থ (m)', 'width', p.width, 0.5, 3, 0.05);
+    html += row('প্রতিটি ধাপের গভীরতা (m)', 'depth', p.depth || 0.28, 0.15, 0.6, 0.01);
+    html += selectRow('মেটেরিয়াল', 'materialSource', p.materialSource || 'solid', [
+      ['solid', 'সাদামাটা (ধূসর)'],
+      ['floor', '🟫 ফ্লোর টাইল/গ্রানাইট'],
+      ['wall',  '🧱 ওয়াল টাইল']
+    ]);
   }
   html += `<div class="id-struct-row" style="margin-top:12px">
-    <button id="id-structDelete" style="background:#e74c3c;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer">🗑️ এই আইটেম মুছুন</button>
+    <button id="id-structDelete" style="background:#e74c3c;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;flex:1">🗑️ এই আইটেম মুছুন</button>
   </div>`;
 
   $('#id-structBody').innerHTML = html;
@@ -962,6 +972,13 @@ window.__id_onSelectStructure = (idx) => {
     });
   });
 
+     $('#id-structBody').querySelectorAll('select[data-param]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const key = sel.dataset.param;
+      engine?.updateStructure(idx, { [key]: sel.value });
+    });
+  });
+
   $('#id-structDelete')?.addEventListener('click', () => {
     engine?.deleteStructure(idx);
     panel.hidden = true;
@@ -972,6 +989,15 @@ window.__id_onSelectStructure = (idx) => {
     return `<div class="id-struct-row">
       <label>${label}</label>
       <input type="number" data-param="${key}" value="${val}" min="${min}" max="${max}" step="${step}">
+    </div>`;
+  }
+  function selectRow(label, key, val, options) {
+    const opts = options.map(([v, t]) =>
+      `<option value="${v}" ${v === val ? 'selected' : ''}>${t}</option>`
+    ).join('');
+    return `<div class="id-struct-row">
+      <label>${label}</label>
+      <select data-param="${key}">${opts}</select>
     </div>`;
   }
 };
