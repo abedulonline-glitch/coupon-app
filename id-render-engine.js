@@ -1,14 +1,12 @@
 /* ============================================================
-   INTERIOR DESIGN STUDIO — id-render-engine.js  (v2)
-   নতুন: টাইল ক্যালক ফিক্স, 3D দরজা/জানালা/পিলার/সিঁড়ি,
-         ফার্নিচার TransformControls (G/R/S), scale support
+   INTERIOR DESIGN STUDIO — id-render-engine.js  (v3 — clean)
    ============================================================ */
 
 import * as THREE from 'three';
-import { RoomEnvironment }    from 'three/addons/environments/RoomEnvironment.js';
-import { OrbitControls }      from 'three/addons/controls/OrbitControls.js';
-import { TransformControls }  from 'three/addons/controls/TransformControls.js';
-import { GLTFLoader }          from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment }   from 'three/addons/environments/RoomEnvironment.js';
+import { OrbitControls }     from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { GLTFLoader }        from 'three/addons/loaders/GLTFLoader.js';
 
 const FT  = 0.3048;
 const DEG = Math.PI / 180;
@@ -18,20 +16,19 @@ class InteriorEngine {
     this.canvas = canvas;
     this.renderer = null; this.scene = null; this.camera = null;
     this.controls = null; this.transform = null;
-    this.roomGroup = null; this.furnitureGrp = null;
+    this.roomGroup = null; this.furnitureGrp = null; this.structGrp = null;
     this.lights = []; this.currentState = null;
     this.envTexture = null; this.animating = false;
-    this.selected = null;
+    this.selected = null; this.selectedStruct = null;
+    this.structLabels = []; this._dimLoop = null;
+    this._roomBounds = null; this._roomCenter = null;
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
     this.transformMode = 'translate';
+    this._hdCanvas = null;
     this._onDown = this._onDown.bind(this);
     this._onKey  = this._onKey.bind(this);
-    this.structGrp = null;
-    this.selectedStruct = null;
-    this.structLabels = [];
-    this.dimOverlay = null;
-     this._init();
+    this._init();
   }
 
   _init() {
@@ -56,7 +53,7 @@ class InteriorEngine {
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
-    this.controls.minDistance = 2;
+    this.controls.minDistance = 1.5;
     this.controls.maxDistance = 60;
     this.controls.maxPolarAngle = Math.PI * 0.495;
 
@@ -95,29 +92,27 @@ class InteriorEngine {
     this._renderOnce();
   }
 
-  // ---------- SELECTION / TRANSFORM ----------
-   _onDown(e) {
+  // ---------- SELECTION ----------
+  _onDown(e) {
     if (this.transform.dragging) return;
     const rect = this.canvas.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    // 1. Furniture
     const furnTargets = [];
     this.furnitureGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) furnTargets.push(c); }));
-    const furnHits = this.raycaster.intersectObjects(furnTargets, false);
-    if (furnHits.length) {
-      let obj = furnHits[0].object;
+    const fHits = this.raycaster.intersectObjects(furnTargets, false);
+    if (fHits.length) {
+      let obj = fHits[0].object;
       while (obj && obj.parent !== this.furnitureGrp) obj = obj.parent;
       if (obj) { this.selectFurniture(obj); this._clearStructSelection(); return; }
     }
 
-    // 2. Structure (door/window/pillar/stairs)
     if (this.structGrp) {
-      const structTargets = [];
-      this.structGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) structTargets.push(c); }));
-      const sHits = this.raycaster.intersectObjects(structTargets, false);
+      const sTargets = [];
+      this.structGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) sTargets.push(c); }));
+      const sHits = this.raycaster.intersectObjects(sTargets, false);
       if (sHits.length) {
         let obj = sHits[0].object;
         while (obj && obj.parent !== this.structGrp) obj = obj.parent;
@@ -130,17 +125,16 @@ class InteriorEngine {
   }
 
   _onKey(e) {
+    if (e.key === 'Escape') { this.deselectFurniture(); this._clearStructSelection(); }
     if (!this.selected) return;
     if (e.key === 'g' || e.key === 'G') this.setTransformMode('translate');
     if (e.key === 'r' || e.key === 'R') this.setTransformMode('rotate');
     if (e.key === 's' || e.key === 'S') this.setTransformMode('scale');
-    if (e.key === 'Escape') this.deselectFurniture();
     if (e.key === 'Delete' || e.key === 'Backspace') {
       const idx = this.selected.userData.stateIndex;
       if (idx != null) {
-        const g = this.selected;
         this.transform.detach();
-        this.furnitureGrp.remove(g);
+        this.furnitureGrp.remove(this.selected);
         this.selected = null;
         window.__id_onDeleteFurniture?.(idx);
       }
@@ -169,12 +163,81 @@ class InteriorEngine {
     const idx = grp.userData.stateIndex;
     if (idx == null) return;
     window.__id_onTransform?.(idx, {
-      x: grp.position.x / FT,
-      y: grp.position.y / FT,
-      z: grp.position.z / FT,
+      x: grp.position.x / FT, y: grp.position.y / FT, z: grp.position.z / FT,
       rot: grp.rotation.y / DEG,
       sx: grp.scale.x, sy: grp.scale.y, sz: grp.scale.z
     });
+  }
+
+  // ---------- STRUCTURE SELECTION ----------
+  selectStructure(grp) {
+    this._clearStructSelection();
+    this.selectedStruct = grp;
+    this._showDimensions(grp);
+    window.__id_onSelectStructure?.(grp.userData.stateIndex);
+  }
+  _clearStructSelection() {
+    this._removeDimLabels();
+    this.selectedStruct = null;
+    window.__id_onSelectStructure?.(-1);
+  }
+  _removeDimLabels() {
+    this.structLabels.forEach(l => l.element?.remove());
+    this.structLabels = [];
+  }
+  _showDimensions(grp) {
+    const p = grp.userData.params || {};
+    const H = grp.userData.roomH || 3;
+    const t = grp.userData.structType;
+    const labels = [];
+    if (t === 'door') {
+      labels.push({ text: `প্রস্থ: ${p.width.toFixed(2)}m (${(p.width/FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, p.height + 0.2, 0) });
+      labels.push({ text: `উচ্চতা: ${p.height.toFixed(2)}m (${(p.height/FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(p.width/2 + 0.3, p.height/2, 0) });
+    } else if (t === 'window') {
+      labels.push({ text: `প্রস্থ: ${p.width.toFixed(2)}m`, localPos: new THREE.Vector3(0, p.sill + p.height + 0.25, 0) });
+      labels.push({ text: `সিল: ${p.sill.toFixed(2)}m`, localPos: new THREE.Vector3(-p.width/2 - 0.4, p.sill/2, 0) });
+      labels.push({ text: `উচ্চতা: ${p.height.toFixed(2)}m`, localPos: new THREE.Vector3(p.width/2 + 0.3, p.sill + p.height/2, 0) });
+    } else if (t === 'pillar') {
+      labels.push({ text: `ব্যাস: ${(p.radius*2).toFixed(2)}m`, localPos: new THREE.Vector3(p.radius + 0.3, H/2, 0) });
+      labels.push({ text: `উচ্চতা: ${H.toFixed(2)}m (${(H/FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
+    } else if (t === 'stairs') {
+      labels.push({ text: `${p.steps} ধাপ · প্রস্থ ${p.width.toFixed(2)}m`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
+    }
+
+    const overlay = this._getOverlay();
+    labels.forEach(({ text, localPos }) => {
+      const worldPos = grp.localToWorld(localPos.clone());
+      const el = document.createElement('div');
+      el.className = 'id-dim-label';
+      el.textContent = text;
+      overlay.appendChild(el);
+      this.structLabels.push({ element: el, worldPos });
+    });
+
+    if (!this._dimLoop) {
+      this._dimLoop = () => {
+        if (!this.structLabels.length) { this._dimLoop = null; return; }
+        const rect = this.canvas.getBoundingClientRect();
+        this.structLabels.forEach(({ element, worldPos }) => {
+          const v = worldPos.clone().project(this.camera);
+          element.style.left = ((v.x * 0.5 + 0.5) * rect.width) + 'px';
+          element.style.top  = ((-v.y * 0.5 + 0.5) * rect.height) + 'px';
+          element.style.display = v.z < 1 ? 'block' : 'none';
+        });
+        requestAnimationFrame(this._dimLoop);
+      };
+      this._dimLoop();
+    }
+  }
+  _getOverlay() {
+    let ov = this.canvas.parentElement.querySelector('.id-dim-overlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.className = 'id-dim-overlay';
+      Object.assign(ov.style, { position: 'absolute', inset: '0', pointerEvents: 'none', overflow: 'hidden' });
+      this.canvas.parentElement.appendChild(ov);
+    }
+    return ov;
   }
 
   // ---------- ROOM SHAPE ----------
@@ -182,18 +245,12 @@ class InteriorEngine {
     const { shape, room, customPoints } = state;
     const L = room.length * FT, W = room.width * FT;
     const hL = L / 2, hW = W / 2;
-
     if (shape === 'custom' && customPoints?.length >= 3) {
-      const cxs = customPoints.map(p => p.x);
-      const cys = customPoints.map(p => p.y);
+      const cxs = customPoints.map(p => p.x), cys = customPoints.map(p => p.y);
       const minX = Math.min(...cxs), maxX = Math.max(...cxs);
       const minY = Math.min(...cys), maxY = Math.max(...cys);
-      const sx = L / Math.max(maxX - minX, 1);
-      const sy = W / Math.max(maxY - minY, 1);
-      return customPoints.map(p => new THREE.Vector2(
-        (p.x - minX) * sx - L / 2,
-        (p.y - minY) * sy - W / 2
-      ));
+      const sx = L / Math.max(maxX - minX, 1), sy = W / Math.max(maxY - minY, 1);
+      return customPoints.map(p => new THREE.Vector2((p.x - minX) * sx - L/2, (p.y - minY) * sy - W/2));
     }
     if (shape === 'hex' || shape === 'oct') {
       const n = shape === 'hex' ? 6 : 8;
@@ -218,38 +275,34 @@ class InteriorEngine {
     ];
   }
 
-  // ---------- ROOM BUILD ----------
-  async _buildRoom(state) {
+  _buildRoom(state) {
     this._disposeGroup(this.roomGroup);
     this._disposeGroup(this.furnitureGrp);
+    this._removeDimLabels();
+    this.structGrp = null;
 
     const H = state.room.height * FT;
     const pts = this._roomPoints(state);
     const shape = new THREE.Shape(pts);
 
-    // FLOOR
     const floorGeo = new THREE.ShapeGeometry(shape);
     floorGeo.rotateX(-Math.PI / 2);
-    const floor = new THREE.Mesh(
-      floorGeo,
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.05 })
-    );
+    const floor = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({
+      color: 0xffffff, roughness: 0.55, metalness: 0.05
+    }));
     floor.receiveShadow = true;
     floor.name = 'floor';
     this.roomGroup.add(floor);
 
-    // CEILING
     const ceilGeo = new THREE.ShapeGeometry(shape);
     ceilGeo.rotateX(Math.PI / 2);
-    const ceiling = new THREE.Mesh(
-      ceilGeo,
-      new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.9 })
-    );
+    const ceiling = new THREE.Mesh(ceilGeo, new THREE.MeshStandardMaterial({
+      color: 0xf5f5f5, roughness: 0.9, side: THREE.DoubleSide
+    }));
     ceiling.position.y = H;
     ceiling.name = 'ceiling';
     this.roomGroup.add(ceiling);
 
-    // WALLS
     const wallMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, roughness: 0.85, metalness: 0.02, side: THREE.DoubleSide
     });
@@ -265,86 +318,86 @@ class InteriorEngine {
       m.rotation.y = Math.atan2(dx, dz) - Math.PI / 2;
       m.receiveShadow = true;
       m.userData.wallLen = len;
-      m.userData.wallIndex = i;
       walls.add(m);
     }
     this.roomGroup.add(walls);
-    this._roomBounds = { pts, H, L: state.room.length * FT, W: state.room.width * FT };
 
-    // STRUCTURE — 3D doors/windows/pillars/stairs
+    this._roomBounds = { pts, H, L: state.room.length * FT, W: state.room.width * FT };
+    this._roomCenter = new THREE.Vector3(0, H / 2, 0);
+
     this._buildStructure3D(state, pts, H);
   }
 
-   _buildStructure3D(state, pts, H) {
+  _defaultsForType(type) {
+    if (type === 'door')   return { width: 0.9, height: 2.1 };
+    if (type === 'window') return { width: 1.2, height: 1.2, sill: 0.9 };
+    if (type === 'pillar') return { radius: 0.15 };
+    if (type === 'stairs') return { steps: 6, width: 1.2 };
+    return {};
+  }
+
+  _buildStructure3D(state, pts, H) {
     const items = state.structure || [];
     if (!items.length) return;
-
     const grp = new THREE.Group();
     grp.name = 'structure';
     this.structGrp = grp;
-    this._structRoomH = H;
 
-    const xs = pts.map(p => p.x);
-    const zs = pts.map(p => p.y);
+    const xs = pts.map(p => p.x), zs = pts.map(p => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minZ = Math.min(...zs), maxZ = Math.max(...zs);
     const Rw = maxX - minX, Rd = maxZ - minZ;
 
     items.forEach((s, idx) => {
-      const nx = (s.x - 40) / 520;
-      const nz = (s.y - 40) / 320;
-      const wx = minX + nx * Rw;
-      const wz = minZ + nz * Rd;
-
-      const params = s.params || this._defaultsForType(s.type);
+      const nx = (s.x - 40) / 520, nz = (s.y - 40) / 320;
+      const wx = minX + nx * Rw, wz = minZ + nz * Rd;
+      const params = Object.assign({}, this._defaultsForType(s.type), s.params || {});
       const g = new THREE.Group();
 
       if (s.type === 'door') {
         const dw = params.width, dh = params.height;
         const fm = new THREE.MeshStandardMaterial({ color: 0x8b6f47, roughness: 0.6 });
         const fL = new THREE.Mesh(new THREE.BoxGeometry(0.08, dh, 0.12), fm);
-        fL.position.set(-dw / 2, dh / 2, 0); g.add(fL);
-        const fR = fL.clone(); fR.position.x = dw / 2; g.add(fR);
+        fL.position.set(-dw/2, dh/2, 0); g.add(fL);
+        const fR = fL.clone(); fR.position.x = dw/2; g.add(fR);
         const fT = new THREE.Mesh(new THREE.BoxGeometry(dw + 0.16, 0.08, 0.12), fm);
         fT.position.y = dh + 0.04; g.add(fT);
-               const panel = new THREE.Mesh(
+        const panel = new THREE.Mesh(
           new THREE.BoxGeometry(dw - 0.04, dh - 0.06, 0.06),
           new THREE.MeshStandardMaterial({ color: 0xc9a876, roughness: 0.5 })
         );
-        panel.position.y = dh / 2; g.add(panel);
-        const knob = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8),
-          new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 }));
-        knob.position.set(dw / 2 - 0.12, dh / 2, 0.06); g.add(knob);
-      }
-      else if (s.type === 'window') {
+        panel.position.y = dh/2; g.add(panel);
+        const knob = new THREE.Mesh(
+          new THREE.SphereGeometry(0.04, 12, 8),
+          new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 })
+        );
+        knob.position.set(dw/2 - 0.12, dh/2, 0.06); g.add(knob);
+      } else if (s.type === 'window') {
         const ww = params.width, wh = params.height, sill = params.sill;
         const fm = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5, metalness: 0.1 });
         const hTop = new THREE.Mesh(new THREE.BoxGeometry(ww + 0.1, 0.06, 0.1), fm);
         hTop.position.set(0, sill + wh, 0);
         const hBot = hTop.clone(); hBot.position.set(0, sill, 0);
         const vL = new THREE.Mesh(new THREE.BoxGeometry(0.06, wh + 0.06, 0.1), fm);
-        vL.position.set(-ww / 2, sill + wh / 2, 0);
-        const vR = vL.clone(); vR.position.set(ww / 2, sill + wh / 2, 0);
+        vL.position.set(-ww/2, sill + wh/2, 0);
+        const vR = vL.clone(); vR.position.set(ww/2, sill + wh/2, 0);
         g.add(hTop, hBot, vL, vR);
         const glass = new THREE.Mesh(
           new THREE.PlaneGeometry(ww, wh),
           new THREE.MeshPhysicalMaterial({
             color: 0x88bbdd, transparent: true, opacity: 0.35,
-            roughness: 0.05, metalness: 0.1, transmission: 0.9, thickness: 0.02
+            roughness: 0.05, metalness: 0.1, transmission: 0.9, thickness: 0.02, side: THREE.DoubleSide
           })
         );
-        glass.position.set(0, sill + wh / 2, 0);
+        glass.position.set(0, sill + wh/2, 0);
         g.add(glass);
-      }
-      else if (s.type === 'pillar') {
+      } else if (s.type === 'pillar') {
         const cyl = new THREE.Mesh(
           new THREE.CylinderGeometry(params.radius, params.radius, H, 16),
           new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.7 })
         );
-        cyl.position.set(0, H / 2, 0);
-        g.add(cyl);
-      }
-      else if (s.type === 'stairs') {
+        cyl.position.set(0, H/2, 0); g.add(cyl);
+      } else if (s.type === 'stairs') {
         const steps = params.steps, stepW = params.width;
         const stepH = H / (steps + 2), stepD = 0.28;
         const mat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.75 });
@@ -368,38 +421,24 @@ class InteriorEngine {
     this.roomGroup.add(grp);
   }
 
-  _defaultsForType(type) {
-    if (type === 'door')   return { width: 0.9, height: 2.1 };
-    if (type === 'window') return { width: 1.2, height: 1.2, sill: 0.9 };
-    if (type === 'pillar') return { radius: 0.15 };
-    if (type === 'stairs') return { steps: 6, width: 1.2 };
-    return {};
-  }
-
-  // Update a structure item + rebuild
   updateStructure(index, newParams) {
     if (!this.currentState?.structure?.[index]) return;
     this.currentState.structure[index].params =
       Object.assign({}, this.currentState.structure[index].params, newParams);
-    const H = this._roomBounds.H;
-    const pts = this._roomBounds.pts;
-    // Remove existing struct group
+    const H = this._roomBounds.H, pts = this._roomBounds.pts;
     const old = this.roomGroup.getObjectByName('structure');
     if (old) this.roomGroup.remove(old);
     this.structGrp = null;
     this._removeDimLabels();
     this._buildStructure3D(this.currentState, pts, H);
     this._renderOnce();
-    // Re-select the same index
     const newGrp = this.structGrp?.children.find(c => c.userData.stateIndex === index);
     if (newGrp) this.selectStructure(newGrp);
   }
-
   deleteStructure(index) {
     if (!this.currentState?.structure) return;
     this.currentState.structure.splice(index, 1);
-    const H = this._roomBounds.H;
-    const pts = this._roomBounds.pts;
+    const H = this._roomBounds.H, pts = this._roomBounds.pts;
     const old = this.roomGroup.getObjectByName('structure');
     if (old) this.roomGroup.remove(old);
     this.structGrp = null;
@@ -408,7 +447,7 @@ class InteriorEngine {
     this._renderOnce();
   }
 
-  // ---------- TILES (FIXED) ----------
+  // ---------- TILES ----------
   async _buildTiles(state) {
     const { tiles = {}, surfaces = {} } = state;
     const texCache = {};
@@ -431,14 +470,10 @@ class InteriorEngine {
       if (!t?.url || !mesh) return;
       const tex = await loadTex(t.url);
       if (!tex) return;
-
-      const tileW = (t.size?.w || 600) / 1000;   // mm → m
+      const tileW = (t.size?.w || 600) / 1000;
       const tileH = (t.size?.h || 600) / 1000;
-
-      // ✅ সরাসরি room dimension থেকে হিসাব — সঠিক
       const repX = wMeters / tileW;
       const repY = hMeters / tileH;
-
       const clone = tex.clone();
       clone.wrapS = clone.wrapT = THREE.RepeatWrapping;
       clone.colorSpace = THREE.SRGBColorSpace;
@@ -447,7 +482,6 @@ class InteriorEngine {
       clone.rotation = (t.rot || 0) * DEG;
       clone.center.set(0.5, 0.5);
       clone.needsUpdate = true;
-
       mesh.material.map = clone;
       mesh.material.color.set(0xffffff);
       mesh.material.roughness = 0.35;
@@ -455,26 +489,15 @@ class InteriorEngine {
       mesh.material.needsUpdate = true;
     };
 
-    const L = state.room.length * FT;
-    const W = state.room.width * FT;
-    const H = state.room.height * FT;
-
+    const L = state.room.length * FT, W = state.room.width * FT, H = state.room.height * FT;
     const floor = this.roomGroup.getObjectByName('floor');
     const ceil  = this.roomGroup.getObjectByName('ceiling');
     const walls = this.roomGroup.getObjectByName('walls');
 
-    if (surfaces.floor !== false && tiles.floor && floor)
-      await apply('floor', floor, L, W);
-    if (surfaces.ceiling && tiles.ceiling && ceil)
-      await apply('ceiling', ceil, L, W);
+    if (surfaces.floor !== false && tiles.floor && floor) await apply('floor', floor, L, W);
+    if (surfaces.ceiling && tiles.ceiling && ceil)          await apply('ceiling', ceil, L, W);
     if (tiles.wall && walls) {
-      for (const w of walls.children) {
-        await apply('wall', w, w.userData.wallLen || L, H);
-      }
-    }
-    if (tiles.accent && walls) {
-      const first = walls.children[0];
-      if (first) await apply('accent', first, first.userData.wallLen || L, H);
+      for (const w of walls.children) await apply('wall', w, w.userData.wallLen || L, H);
     }
   }
 
@@ -487,18 +510,19 @@ class InteriorEngine {
 
     for (let i = 0; i < items.length; i++) {
       const placed = items[i];
-      const def = lib(placed.id);
-             if (placed.isCustom && placed.customUrl) {
-        // load from URL each time (or cache later)
+
+      if (placed.isCustom && placed.customUrl) {
         try {
           const grp = await this.loadModelFromURL(placed.customUrl, placed.customName, { targetMeters: 1.5 });
           grp.position.set((placed.x || 0) * FT, (placed.y || 0) * FT, (placed.z || 0) * FT);
           grp.rotation.y = (placed.rot || 0) * DEG;
           grp.scale.multiply(new THREE.Vector3(placed.sx || 1, placed.sy || 1, placed.sz || 1));
           grp.userData.stateIndex = i;
-          continue;
-        } catch (e) { console.warn('custom model load failed:', e); continue; }
+        } catch (e) { console.warn('custom model load failed:', e); }
+        continue;
       }
+
+      const def = lib(placed.id);
       if (!def?.parts) continue;
       const grp = new THREE.Group();
       grp.position.set((placed.x || 0) * FT, (placed.y || 0) * FT, (placed.z || 0) * FT);
@@ -522,8 +546,7 @@ class InteriorEngine {
   _buildPart(p, overrideColor) {
     const color = overrideColor || p.c;
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(color || '#cccccc'),
-      roughness: 0.6, metalness: 0.08
+      color: new THREE.Color(color || '#cccccc'), roughness: 0.6, metalness: 0.08
     });
     let geo;
     switch (p.t) {
@@ -537,9 +560,7 @@ class InteriorEngine {
     }
     const mesh = new THREE.Mesh(geo, mat);
     if (p.p) mesh.position.set(p.p[0]*FT, p.p[1]*FT, p.p[2]*FT);
-    if (p.r) mesh.rotation.set(
-      (p.r[0]||0)*DEG, (p.r[1]||0)*DEG, (p.r[2]||0)*DEG
-    );
+    if (p.r) mesh.rotation.set((p.r[0]||0)*DEG, (p.r[1]||0)*DEG, (p.r[2]||0)*DEG);
     return mesh;
   }
 
@@ -559,93 +580,43 @@ class InteriorEngine {
     return light;
   }
 
-    // ---------- STRUCTURE SELECTION ----------
-  selectStructure(grp) {
-    this._clearStructSelection();
-    this.selectedStruct = grp;
-    this._showDimensions(grp);
-    const idx = grp.userData.stateIndex;
-    window.__id_onSelectStructure?.(idx);
-  }
+  // ---------- FREE MODEL LOADER ----------
+  async loadModelFromURL(url, name, opts = {}) {
+    return new Promise((resolve, reject) => {
+      const loader = new GLTFLoader();
+      loader.load(url, (gltf) => {
+        const model = gltf.scene;
+        model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+        const bbox = new THREE.Box3().setFromObject(model);
+        const size = bbox.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const targetSize = opts.targetMeters || 1.5;
+        const scale = targetSize / Math.max(maxDim, 0.001);
+        model.scale.setScalar(scale);
+        bbox.setFromObject(model);
+        const center = bbox.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+        bbox.setFromObject(model);
+        model.position.y -= bbox.min.y;
 
-  _clearStructSelection() {
-    this._removeDimLabels();
-    this.selectedStruct = null;
-    window.__id_onSelectStructure?.(-1);
-  }
-
-  _removeDimLabels() {
-    this.structLabels.forEach(l => { l.remove(); l.element?.remove(); });
-    this.structLabels = [];
-  }
-
-  _showDimensions(grp) {
-    const p = grp.userData.params || {};
-    const H = grp.userData.roomH || 3;
-    const info = grp.userData.info || {};
-
-    // Build label list based on type
-    const labels = [];
-    const t = grp.userData.structType;
-
-    if (t === 'door') {
-      labels.push({ text: `প্রস্থ: ${(p.width || 0.9).toFixed(2)}m (${((p.width || 0.9) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, (p.height || 2.1) + 0.2, 0) });
-      labels.push({ text: `উচ্চতা: ${(p.height || 2.1).toFixed(2)}m (${((p.height || 2.1) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3((p.width || 0.9) / 2 + 0.3, (p.height || 2.1) / 2, 0) });
-    } else if (t === 'window') {
-      labels.push({ text: `প্রস্থ: ${(p.width || 1.2).toFixed(2)}m (${((p.width || 1.2) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, (p.sill || 0.9) + (p.height || 1.2) + 0.25, 0) });
-      labels.push({ text: `সিল: ${(p.sill || 0.9).toFixed(2)}m (${((p.sill || 0.9) / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(-(p.width || 1.2) / 2 - 0.4, (p.sill || 0.9) / 2, 0) });
-      labels.push({ text: `উচ্চতা: ${(p.height || 1.2).toFixed(2)}m`, localPos: new THREE.Vector3((p.width || 1.2) / 2 + 0.3, (p.sill || 0.9) + (p.height || 1.2) / 2, 0) });
-    } else if (t === 'pillar') {
-      labels.push({ text: `ব্যাস: ${((p.radius || 0.15) * 2).toFixed(2)}m`, localPos: new THREE.Vector3((p.radius || 0.15) + 0.3, H / 2, 0) });
-      labels.push({ text: `উচ্চতা: ${H.toFixed(2)}m (${(H / FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
-    } else if (t === 'stairs') {
-      labels.push({ text: `${p.steps || 6} ধাপ · প্রস্থ ${(p.width || 1.2).toFixed(1)}m`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
-    }
-
-    // Create HTML labels + anchor points
-    const overlay = this._getOverlay();
-    labels.forEach(({ text, localPos }) => {
-      const worldPos = grp.localToWorld(localPos.clone());
-      const el = document.createElement('div');
-      el.className = 'id-dim-label';
-      el.textContent = text;
-      overlay.appendChild(el);
-      this.structLabels.push({ element: el, worldPos, remove: () => el.remove() });
+        const grp = new THREE.Group();
+        grp.add(model);
+        const L = this.currentState.room.length, W = this.currentState.room.width;
+        grp.position.set(
+          (Math.random() - 0.5) * (L * FT * 0.4),
+          0,
+          (Math.random() - 0.5) * (W * FT * 0.4)
+        );
+        grp.userData.id = 'custom-' + Date.now();
+        grp.userData.customName = name || 'Custom Model';
+        grp.userData.isCustom = true;
+        this.furnitureGrp.add(grp);
+        resolve(grp);
+      }, undefined, (err) => reject(err));
     });
-
-    // Update loop for label positioning
-    if (!this._dimLoop) {
-      this._dimLoop = () => {
-        if (!this.structLabels.length) { this._dimLoop = null; return; }
-        const rect = this.canvas.getBoundingClientRect();
-        this.structLabels.forEach(({ element, worldPos }) => {
-          const v = worldPos.clone().project(this.camera);
-          const x = (v.x * 0.5 + 0.5) * rect.width;
-          const y = (-v.y * 0.5 + 0.5) * rect.height;
-          element.style.left = x + 'px';
-          element.style.top  = y + 'px';
-          element.style.display = v.z < 1 ? 'block' : 'none';
-        });
-        requestAnimationFrame(this._dimLoop);
-      };
-      this._dimLoop();
-    }
   }
 
-  _getOverlay() {
-    let ov = this.canvas.parentElement.querySelector('.id-dim-overlay');
-    if (!ov) {
-      ov = document.createElement('div');
-      ov.className = 'id-dim-overlay';
-      Object.assign(ov.style, {
-        position: 'absolute', inset: '0', pointerEvents: 'none', overflow: 'hidden'
-      });
-      this.canvas.parentElement.appendChild(ov);
-    }
-    return ov;
-  }
-   
-   // ---------- LIGHTS / OUTSIDE / CAMERA ----------
+  // ---------- LIGHTS / OUTSIDE / CAMERA ----------
   _setupLights(state) {
     this.lights.forEach(l => this.scene.remove(l));
     this.lights = [];
@@ -655,11 +626,11 @@ class InteriorEngine {
       case 'sunset': hemiSky=0xffa060; hemiGround=0x504030; hemiInt=0.65; sunColor=0xffb37a; sunInt=2.2; sunPos=[-12,4,10]; ambient=0x2a1f1a; break;
       case 'night':  hemiSky=0x4a5a8a; hemiGround=0x101018; hemiInt=0.25; sunColor=0xc0d0ff; sunInt=0.4; sunPos=[-8,10,6];  ambient=0x101828; break;
       case 'studio': hemiSky=0xffffff; hemiGround=0xdddddd; hemiInt=1.0;  sunColor=0xffffff; sunInt=1.6; sunPos=[8,12,8];   ambient=0x404040; break;
-           default:       hemiSky=0xd8ecff; hemiGround=0xa89880; hemiInt=0.85; sunColor=0xfff4e0; sunInt=2.2; sunPos=[14,16,10]; ambient=0x505060;
+      default:       hemiSky=0xd8ecff; hemiGround=0xa89880; hemiInt=0.85; sunColor=0xfff4e0; sunInt=2.2; sunPos=[14,16,10]; ambient=0x505060;
     }
     const hemi = new THREE.HemisphereLight(hemiSky, hemiGround, hemiInt);
     this.scene.add(hemi); this.lights.push(hemi);
-        const amb = new THREE.AmbientLight(ambient, 0.55);
+    const amb = new THREE.AmbientLight(ambient, 0.55);
     this.scene.add(amb); this.lights.push(amb);
     const sun = new THREE.DirectionalLight(sunColor, sunInt);
     sun.position.set(...sunPos);
@@ -690,117 +661,61 @@ class InteriorEngine {
     this.scene.background = tex;
   }
 
-    _setupCamera(state) {
+  _setupCamera(state) {
     const b = this._roomBounds;
     const L = b.L, W = b.W, H = b.H;
     const cy = H / 2;
-    this._roomCenter = new THREE.Vector3(0, cy, 0);
-
     let pos, target;
     switch (state.cameraView || 'iso') {
       case 'front':
-        pos    = [0, cy * 1.4, W * 1.3];
-        target = [0, cy * 0.9, -W * 0.4];
-        break;
+        pos = [0, cy * 1.4, W * 1.3]; target = [0, cy * 0.9, -W * 0.4]; break;
       case 'top':
-        pos    = [0.001, Math.max(L, W) * 1.6, 0.001];
-        target = [0, 0, 0];
-        break;
+        pos = [0.001, Math.max(L, W) * 1.6, 0.001]; target = [0, 0, 0]; break;
       case 'corner':
-        pos    = [L * 0.7, H * 0.85, W * 0.7];
-        target = [0, cy * 0.4, 0];
-        break;
-      default: // iso — dollhouse view
-        pos    = [L * 0.85, H * 1.3, W * 0.85];
-        target = [0, cy * 0.4, 0];
+        pos = [L * 0.7, H * 0.85, W * 0.7]; target = [0, cy * 0.4, 0]; break;
+      default:
+        pos = [L * 0.85, H * 1.3, W * 0.85]; target = [0, cy * 0.4, 0];
     }
     this.camera.position.set(...pos);
     this.controls.target.set(...target);
     this.controls.update();
   }
 
-   // ---------- DOLLHOUSE WALL CULLING ----------
+  // ---------- DOLLHOUSE WALL CULLING ----------
   _cullWalls() {
     if (!this.roomGroup || !this._roomCenter) return;
     const walls = this.roomGroup.getObjectByName('walls');
     if (!walls) return;
     const cam = this.camera.position;
     const center = this._roomCenter;
-
     walls.children.forEach(w => {
-      // wall's inward normal (threejs plane default normal is +z)
       const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(w.quaternion).normalize();
       const toCam    = new THREE.Vector3().subVectors(cam, w.position).normalize();
       const toCenter = new THREE.Vector3().subVectors(center, w.position).normalize();
-
       const camSide    = normal.dot(toCam);
       const centerSide = normal.dot(toCenter);
-
-      // Camera & room center on the SAME side → we see the interior face
       w.visible = (camSide * centerSide) >= 0;
     });
   }
-   
-   _renderOnce() {
-    if (!this.renderer || !this.scene || !this.camera) return;
-    this._cullWalls();
-    const wrap = this.canvas.parentElement;
-    if (!wrap) return;
-    this.renderer.setSize(wrap.clientWidth, wrap.clientHeight, false);
-    this.renderer.render(this.scene, this.camera);
+
+  // ---------- RENDER API ----------
+  async render(state) {
+    this.currentState = state;
+    this._buildRoom(state);
+    await this._buildTiles(state);
+    await this._buildFurniture(state);
+    this._setupLights(state);
+    this._setupOutside(state);
+    this._setupCamera(state);
+    this._renderOnce();
+    this.controls.update();
   }
 
-     // ---------- LOAD GLB/GLTF (free models) ----------
-  async loadModelFromURL(url, name, opts = {}) {
-    return new Promise((resolve, reject) => {
-      const loader = new GLTFLoader();
-      loader.load(url, (gltf) => {
-        const model = gltf.scene;
-        model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-
-        // Auto-scale to reasonable size
-        const bbox = new THREE.Box3().setFromObject(model);
-        const size = bbox.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const targetSize = opts.targetMeters || 1.5;
-        const scale = targetSize / Math.max(maxDim, 0.001);
-        model.scale.setScalar(scale);
-
-        // Recenter
-        bbox.setFromObject(model);
-        const center = bbox.getCenter(new THREE.Vector3());
-        model.position.sub(center);
-        // Place on floor
-        bbox.setFromObject(model);
-        model.position.y -= bbox.min.y;
-
-        const grp = new THREE.Group();
-        grp.add(model);
-
-        const L = this.currentState.room.length, W = this.currentState.room.width;
-        grp.position.set(
-          (Math.random() - 0.5) * (L * FT * 0.4),
-          0,
-          (Math.random() - 0.5) * (W * FT * 0.4)
-        );
-
-        grp.userData.id = 'custom-' + Date.now();
-        grp.userData.customName = name || 'Custom Model';
-        grp.userData.stateIndex = -1; // will be assigned by app
-        grp.userData.isCustom = true;
-
-        this.furnitureGrp.add(grp);
-        resolve(grp);
-      }, undefined, (err) => reject(err));
-    });
-  }
- 
-   // ফার্নিচার যোগ করলে ক্যামেরা না সরিয়ে রিফ্রেশ
   async renderPreserveCamera(state) {
     const camPos = this.camera.position.clone();
     const camTarget = this.controls.target.clone();
     this.currentState = state;
-    await this._buildRoom(state);
+    this._buildRoom(state);
     await this._buildTiles(state);
     await this._buildFurniture(state);
     this._setupLights(state);
@@ -813,6 +728,7 @@ class InteriorEngine {
 
   _renderOnce() {
     if (!this.renderer || !this.scene || !this.camera) return;
+    this._cullWalls();
     const wrap = this.canvas.parentElement;
     if (!wrap) return;
     this.renderer.setSize(wrap.clientWidth, wrap.clientHeight, false);
@@ -833,14 +749,15 @@ class InteriorEngine {
   }
   stopLive() { this.animating = false; }
 
+  // ---------- HD RENDER ----------
   async renderHD(onProgress) {
     this.stopLive();
     const wrap = this.canvas.parentElement;
     const cssW = wrap.clientWidth, cssH = wrap.clientHeight;
     const SS = 2;
-    const TARGET_W = cssW * SS, TARGET_H = cssH * SS;
+    const TW = cssW * SS, TH = cssH * SS;
 
-    const rt = new THREE.WebGLRenderTarget(TARGET_W, TARGET_H, {
+    const rt = new THREE.WebGLRenderTarget(TW, TH, {
       minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
       format: THREE.RGBAFormat, type: THREE.UnsignedByteType,
       colorSpace: THREE.SRGBColorSpace
@@ -851,11 +768,11 @@ class InteriorEngine {
     this.camera.updateProjectionMatrix();
     const oldPR = this.renderer.getPixelRatio();
     this.renderer.setPixelRatio(1);
-    this.renderer.setSize(TARGET_W, TARGET_H, false);
+    this.renderer.setSize(TW, TH, false);
 
     const FRAMES = 24;
-    const accum = new Float32Array(TARGET_W * TARGET_H * 4);
-    const buf = new Uint8Array(TARGET_W * TARGET_H * 4);
+    const accum = new Float32Array(TW * TH * 4);
+    const buf = new Uint8Array(TW * TH * 4);
     const camBase = this.camera.position.clone();
     const tgtBase = this.controls.target.clone();
     const t0 = performance.now();
@@ -868,7 +785,7 @@ class InteriorEngine {
       this.renderer.setRenderTarget(rt);
       this.renderer.render(this.scene, this.camera);
       this.renderer.setRenderTarget(null);
-      this.renderer.readRenderTargetPixels(rt, 0, 0, TARGET_W, TARGET_H, buf);
+      this.renderer.readRenderTargetPixels(rt, 0, 0, TW, TH, buf);
       for (let k = 0; k < buf.length; k++) accum[k] += buf[k];
       const elapsed = (performance.now() - t0) / 1000;
       onProgress?.({ frame: i + 1, total: FRAMES, percent: ((i + 1) / FRAMES) * 100, elapsed });
@@ -877,13 +794,13 @@ class InteriorEngine {
     for (let k = 0; k < accum.length; k++) accum[k] /= FRAMES;
 
     const out = document.createElement('canvas');
-    out.width = TARGET_W; out.height = TARGET_H;
+    out.width = TW; out.height = TH;
     const ctx = out.getContext('2d');
-    const imgData = ctx.createImageData(TARGET_W, TARGET_H);
-    for (let y = 0; y < TARGET_H; y++) {
-      for (let x = 0; x < TARGET_W; x++) {
-        const src = ((TARGET_H - 1 - y) * TARGET_W + x) * 4;
-        const dst = (y * TARGET_W + x) * 4;
+    const imgData = ctx.createImageData(TW, TH);
+    for (let y = 0; y < TH; y++) {
+      for (let x = 0; x < TW; x++) {
+        const src = ((TH - 1 - y) * TW + x) * 4;
+        const dst = (y * TW + x) * 4;
         imgData.data[dst]   = accum[src];
         imgData.data[dst+1] = accum[src+1];
         imgData.data[dst+2] = accum[src+2];
@@ -896,10 +813,10 @@ class InteriorEngine {
     this.camera.aspect = oldAspect;
     this.camera.updateProjectionMatrix();
     this._hdCanvas = out;
-    this.renderer.render(this.scene, this.camera);
+    this._renderOnce();
     rt.dispose();
     const total = (performance.now() - t0) / 1000;
-    return { canvas: out, seconds: total, width: TARGET_W, height: TARGET_H };
+    return { canvas: out, seconds: total, width: TW, height: TH };
   }
 
   downloadHD(filename = `interior-render-${Date.now()}.png`) {
