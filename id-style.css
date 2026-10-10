@@ -850,3 +850,43 @@ input[type="range"]::-moz-range-thumb {
 @media (min-width: 1024px) {
   #id-wizard { padding: 24px 32px 100px; }
 }
+
+/* ===== Transform Bar ===== */
+#id-transformBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--id-bg-2);
+  border: 1px solid var(--id-accent);
+  border-radius: var(--id-radius);
+  margin-bottom: 12px;
+}
+#id-transformBar[hidden] { display: none !important; }
+#id-transformInfo {
+  flex: 1;
+  min-width: 120px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--id-accent);
+}
+#id-transformBar button {
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  color: var(--id-text);
+  padding: 8px 12px;
+  border-radius: var(--id-radius);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+#id-transformBar button:hover {
+  background: var(--id-primary);
+  border-color: var(--id-primary);
+}
+#id-transformBar button.active {
+  background: var(--id-accent);
+  border-color: var(--id-accent);
+  color: #1a1a1a;
+}
