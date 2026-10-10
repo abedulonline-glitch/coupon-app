@@ -488,6 +488,17 @@ class InteriorEngine {
     for (let i = 0; i < items.length; i++) {
       const placed = items[i];
       const def = lib(placed.id);
+             if (placed.isCustom && placed.customUrl) {
+        // load from URL each time (or cache later)
+        try {
+          const grp = await this.loadModelFromURL(placed.customUrl, placed.customName, { targetMeters: 1.5 });
+          grp.position.set((placed.x || 0) * FT, (placed.y || 0) * FT, (placed.z || 0) * FT);
+          grp.rotation.y = (placed.rot || 0) * DEG;
+          grp.scale.multiply(new THREE.Vector3(placed.sx || 1, placed.sy || 1, placed.sz || 1));
+          grp.userData.stateIndex = i;
+          continue;
+        } catch (e) { console.warn('custom model load failed:', e); continue; }
+      }
       if (!def?.parts) continue;
       const grp = new THREE.Group();
       grp.position.set((placed.x || 0) * FT, (placed.y || 0) * FT, (placed.z || 0) * FT);
