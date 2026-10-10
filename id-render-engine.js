@@ -800,24 +800,50 @@ class InteriorEngine {
   async renderHD(onProgress) {
     this.stopLive();
     const wrap = this.canvas.parentElement;
-    const cssW = wrap.clientWidth, cssH = wrap.clientHeight;
-    const SS = 2;
-    const TW = cssW * SS, TH = cssH * SS;
+    const cssW = wrap.clientWidth || 800;
+    const cssH = wrap.clientHeight || 600;
 
-    const rt = new THREE.WebGLRenderTarget(TW, TH, {
-      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat, type: THREE.UnsignedByteType,
-      colorSpace: THREE.SRGBColorSpace
-    });
+    // Safe max resolution based on device
+    const maxDim = this.renderer.capabilities.maxTextureSize || 4096;
+    let TW = Math.min(cssW * 2, maxDim);
+    let TH = Math.min(cssH * 2, maxDim);
+    // Force power-of-two-ish sizes for max compat
+    TW = Math.floor(TW / 4) * 4;
+    TH = Math.floor(TH / 4) * 4;
+    if (TW < 16 || TH < 16) { TW = 1024; TH = 768; }
 
     const oldAspect = this.camera.aspect;
     this.camera.aspect = cssW / cssH;
     this.camera.updateProjectionMatrix();
     const oldPR = this.renderer.getPixelRatio();
+
+    // save old render target / size
+    const oldSize = new THREE.Vector2();
+    this.renderer.getSize(oldSize);
+    const oldRT = this.renderer.getRenderTarget();
+
+    let rt;
+    try {
+      rt = new THREE.WebGLRenderTarget(TW, TH, {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+        colorSpace: THREE.SRGBColorSpace,
+        depthBuffer: true,
+        stencilBuffer: false
+      });
+    } catch (e) {
+      console.error('RT create failed', e);
+      this.camera.aspect = oldAspect;
+      this.camera.updateProjectionMatrix();
+      return null;
+    }
+
     this.renderer.setPixelRatio(1);
     this.renderer.setSize(TW, TH, false);
 
-    const FRAMES = 24;
+    const FRAMES = 16;
     const accum = new Float32Array(TW * TH * 4);
     const buf = new Uint8Array(TW * TH * 4);
     const camBase = this.camera.position.clone();
@@ -829,16 +855,24 @@ class InteriorEngine {
       const jy = (Math.random() - 0.5) * 0.006;
       this.camera.position.copy(camBase).add(new THREE.Vector3(jx, jy, 0));
       this.camera.lookAt(tgtBase);
-      this.renderer.setRenderTarget(rt);
-      this.renderer.render(this.scene, this.camera);
-      this.renderer.setRenderTarget(null);
-      this.renderer.readRenderTargetPixels(rt, 0, 0, TW, TH, buf);
+
+      try {
+        this.renderer.setRenderTarget(rt);
+        this.renderer.render(this.scene, this.camera);
+        this.renderer.readRenderTargetPixels(rt, 0, 0, TW, TH, buf);
+      } catch (e) {
+        console.warn('readRenderTargetPixels failed, falling back', e);
+        break;
+      }
+
       for (let k = 0; k < buf.length; k++) accum[k] += buf[k];
       const elapsed = (performance.now() - t0) / 1000;
       onProgress?.({ frame: i + 1, total: FRAMES, percent: ((i + 1) / FRAMES) * 100, elapsed });
       await new Promise(r => setTimeout(r, 0));
     }
-    for (let k = 0; k < accum.length; k++) accum[k] /= FRAMES;
+
+    const divisor = FRAMES;
+    for (let k = 0; k < accum.length; k++) accum[k] /= divisor;
 
     const out = document.createElement('canvas');
     out.width = TW; out.height = TH;
@@ -855,13 +889,16 @@ class InteriorEngine {
       }
     }
     ctx.putImageData(imgData, 0, 0);
-    this.renderer.setSize(cssW, cssH, false);
+
     this.renderer.setPixelRatio(oldPR);
+    this.renderer.setSize(oldSize.x, oldSize.y, false);
+    this.renderer.setRenderTarget(oldRT);
     this.camera.aspect = oldAspect;
     this.camera.updateProjectionMatrix();
     this._hdCanvas = out;
     this._renderOnce();
     rt.dispose();
+
     const total = (performance.now() - t0) / 1000;
     return { canvas: out, seconds: total, width: TW, height: TH };
   }
