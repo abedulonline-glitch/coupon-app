@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { RoomEnvironment }    from 'three/addons/environments/RoomEnvironment.js';
 import { OrbitControls }      from 'three/addons/controls/OrbitControls.js';
 import { TransformControls }  from 'three/addons/controls/TransformControls.js';
+import { GLTFLoader }          from 'three/addons/loaders/GLTFLoader.js';
 
 const FT  = 0.3048;
 const DEG = Math.PI / 180;
@@ -274,12 +275,14 @@ class InteriorEngine {
     this._buildStructure3D(state, pts, H);
   }
 
-  _buildStructure3D(state, pts, H) {
+   _buildStructure3D(state, pts, H) {
     const items = state.structure || [];
     if (!items.length) return;
 
     const grp = new THREE.Group();
     grp.name = 'structure';
+    this.structGrp = grp;
+    this._structRoomH = H;
 
     const xs = pts.map(p => p.x);
     const zs = pts.map(p => p.y);
@@ -287,82 +290,122 @@ class InteriorEngine {
     const minZ = Math.min(...zs), maxZ = Math.max(...zs);
     const Rw = maxX - minX, Rd = maxZ - minZ;
 
-    for (const s of items) {
+    items.forEach((s, idx) => {
       const nx = (s.x - 40) / 520;
       const nz = (s.y - 40) / 320;
       const wx = minX + nx * Rw;
       const wz = minZ + nz * Rd;
 
+      const params = s.params || this._defaultsForType(s.type);
+      const g = new THREE.Group();
+
       if (s.type === 'door') {
-        const g = new THREE.Group();
-        const doorW = 0.9, doorH = 2.1;
+        const dw = params.width, dh = params.height;
         const fm = new THREE.MeshStandardMaterial({ color: 0x8b6f47, roughness: 0.6 });
-        const fL = new THREE.Mesh(new THREE.BoxGeometry(0.08, doorH, 0.12), fm);
-        fL.position.set(-doorW / 2, doorH / 2, 0); g.add(fL);
-        const fR = fL.clone(); fR.position.x = doorW / 2; g.add(fR);
-        const fT = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.16, 0.08, 0.12), fm);
-        fT.position.y = doorH + 0.04; g.add(fT);
+        const fL = new THREE.Mesh(new THREE.BoxGeometry(0.08, dh, 0.12), fm);
+        fL.position.set(-dw / 2, dh / 2, 0); g.add(fL);
+        const fR = fL.clone(); fR.position.x = dw / 2; g.add(fR);
+        const fT = new THREE.Mesh(new THREE.BoxGeometry(dw + 0.16, 0.08, 0.12), fm);
+        fT.position.y = dh + 0.04; g.add(fT);
         const panel = new THREE.Mesh(
-          new THREE.BoxGeometry(doorW - 0.04, doorH - 0.06, 0.06),
+          new THREE.BoxGeometry(dw - 0.04, dh - 0.06, 0.06),
           new THREE.MeshStandardMaterial({ color: 0xa08060, roughness: 0.55 })
         );
-        panel.position.y = doorH / 2; g.add(panel);
+        panel.position.y = dh / 2; g.add(panel);
         const knob = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 8),
           new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 }));
-        knob.position.set(doorW / 2 - 0.12, 1.05, 0.06); g.add(knob);
-        g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-        g.position.set(wx, 0, wz);
-        grp.add(g);
+        knob.position.set(dw / 2 - 0.12, dh / 2, 0.06); g.add(knob);
       }
       else if (s.type === 'window') {
-        const g = new THREE.Group();
-        const winW = 1.2, winH = 1.2, sill = 0.9;
+        const ww = params.width, wh = params.height, sill = params.sill;
         const fm = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5, metalness: 0.1 });
-        const hTop = new THREE.Mesh(new THREE.BoxGeometry(winW + 0.1, 0.06, 0.1), fm);
-        const hBot = hTop.clone();
-        hTop.position.set(0, sill + winH, 0); hBot.position.set(0, sill, 0);
-        const vL = new THREE.Mesh(new THREE.BoxGeometry(0.06, winH + 0.06, 0.1), fm);
-        const vR = vL.clone();
-        vL.position.set(-winW / 2, sill + winH / 2, 0);
-        vR.position.set( winW / 2, sill + winH / 2, 0);
+        const hTop = new THREE.Mesh(new THREE.BoxGeometry(ww + 0.1, 0.06, 0.1), fm);
+        hTop.position.set(0, sill + wh, 0);
+        const hBot = hTop.clone(); hBot.position.set(0, sill, 0);
+        const vL = new THREE.Mesh(new THREE.BoxGeometry(0.06, wh + 0.06, 0.1), fm);
+        vL.position.set(-ww / 2, sill + wh / 2, 0);
+        const vR = vL.clone(); vR.position.set(ww / 2, sill + wh / 2, 0);
         g.add(hTop, hBot, vL, vR);
         const glass = new THREE.Mesh(
-          new THREE.PlaneGeometry(winW, winH),
+          new THREE.PlaneGeometry(ww, wh),
           new THREE.MeshPhysicalMaterial({
             color: 0x88bbdd, transparent: true, opacity: 0.35,
             roughness: 0.05, metalness: 0.1, transmission: 0.9, thickness: 0.02
           })
         );
-        glass.position.set(0, sill + winH / 2, 0);
+        glass.position.set(0, sill + wh / 2, 0);
         g.add(glass);
-        g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-        g.position.set(wx, 0, wz);
-        grp.add(g);
       }
       else if (s.type === 'pillar') {
         const cyl = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.15, 0.15, H, 16),
+          new THREE.CylinderGeometry(params.radius, params.radius, H, 16),
           new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.7 })
         );
-        cyl.position.set(wx, H / 2, wz);
-        cyl.castShadow = true; cyl.receiveShadow = true;
-        grp.add(cyl);
+        cyl.position.set(0, H / 2, 0);
+        g.add(cyl);
       }
       else if (s.type === 'stairs') {
-        const g = new THREE.Group();
-        const steps = 6, stepH = H / (steps + 2), stepD = 0.28, stepW = 1.2;
+        const steps = params.steps, stepW = params.width;
+        const stepH = H / (steps + 2), stepD = 0.28;
         const mat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.75 });
         for (let i = 0; i < steps; i++) {
           const sBox = new THREE.Mesh(new THREE.BoxGeometry(stepW, stepH, stepD), mat);
           sBox.position.set(0, stepH * (i + 0.5), -i * stepD);
-          sBox.castShadow = true; sBox.receiveShadow = true;
           g.add(sBox);
         }
-        g.position.set(wx, 0, wz);
-        grp.add(g);
       }
-    }
+
+      g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      g.position.set(wx, 0, wz);
+      g.rotation.y = (s.rot || 0) * DEG;
+      g.userData.structType = s.type;
+      g.userData.stateIndex = idx;
+      g.userData.params = params;
+      g.userData.roomH = H;
+      grp.add(g);
+    });
+
     this.roomGroup.add(grp);
+  }
+
+  _defaultsForType(type) {
+    if (type === 'door')   return { width: 0.9, height: 2.1 };
+    if (type === 'window') return { width: 1.2, height: 1.2, sill: 0.9 };
+    if (type === 'pillar') return { radius: 0.15 };
+    if (type === 'stairs') return { steps: 6, width: 1.2 };
+    return {};
+  }
+
+  // Update a structure item + rebuild
+  updateStructure(index, newParams) {
+    if (!this.currentState?.structure?.[index]) return;
+    this.currentState.structure[index].params =
+      Object.assign({}, this.currentState.structure[index].params, newParams);
+    const H = this._roomBounds.H;
+    const pts = this._roomBounds.pts;
+    // Remove existing struct group
+    const old = this.roomGroup.getObjectByName('structure');
+    if (old) this.roomGroup.remove(old);
+    this.structGrp = null;
+    this._removeDimLabels();
+    this._buildStructure3D(this.currentState, pts, H);
+    this._renderOnce();
+    // Re-select the same index
+    const newGrp = this.structGrp?.children.find(c => c.userData.stateIndex === index);
+    if (newGrp) this.selectStructure(newGrp);
+  }
+
+  deleteStructure(index) {
+    if (!this.currentState?.structure) return;
+    this.currentState.structure.splice(index, 1);
+    const H = this._roomBounds.H;
+    const pts = this._roomBounds.pts;
+    const old = this.roomGroup.getObjectByName('structure');
+    if (old) this.roomGroup.remove(old);
+    this.structGrp = null;
+    this._removeDimLabels();
+    this._buildStructure3D(this.currentState, pts, H);
+    this._renderOnce();
   }
 
   // ---------- TILES (FIXED) ----------
@@ -664,7 +707,52 @@ class InteriorEngine {
     this.controls.update();
   }
 
-  // ফার্নিচার যোগ করলে ক্যামেরা না সরিয়ে রিফ্রেশ
+     // ---------- LOAD GLB/GLTF (free models) ----------
+  async loadModelFromURL(url, name, opts = {}) {
+    return new Promise((resolve, reject) => {
+      const loader = new GLTFLoader();
+      loader.load(url, (gltf) => {
+        const model = gltf.scene;
+        model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+
+        // Auto-scale to reasonable size
+        const bbox = new THREE.Box3().setFromObject(model);
+        const size = bbox.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const targetSize = opts.targetMeters || 1.5;
+        const scale = targetSize / Math.max(maxDim, 0.001);
+        model.scale.setScalar(scale);
+
+        // Recenter
+        bbox.setFromObject(model);
+        const center = bbox.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+        // Place on floor
+        bbox.setFromObject(model);
+        model.position.y -= bbox.min.y;
+
+        const grp = new THREE.Group();
+        grp.add(model);
+
+        const L = this.currentState.room.length, W = this.currentState.room.width;
+        grp.position.set(
+          (Math.random() - 0.5) * (L * FT * 0.4),
+          0,
+          (Math.random() - 0.5) * (W * FT * 0.4)
+        );
+
+        grp.userData.id = 'custom-' + Date.now();
+        grp.userData.customName = name || 'Custom Model';
+        grp.userData.stateIndex = -1; // will be assigned by app
+        grp.userData.isCustom = true;
+
+        this.furnitureGrp.add(grp);
+        resolve(grp);
+      }, undefined, (err) => reject(err));
+    });
+  }
+ 
+   // ফার্নিচার যোগ করলে ক্যামেরা না সরিয়ে রিফ্রেশ
   async renderPreserveCamera(state) {
     const camPos = this.camera.position.clone();
     const camTarget = this.controls.target.clone();
