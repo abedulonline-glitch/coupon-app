@@ -224,7 +224,18 @@
 
       <div id="id-outsideGrid" class="id-gallery" hidden></div>
 
-      <div class="id-selected-items">
+      <!-- Free 3D Model Loader -->
+<div id="id-freeModelBox">
+  <h3>🌐 ফ্রি 3D মডেল URL দিয়ে লোড করুন</h3>
+  <p class="id-hint">Sketchfab / Poly Pizza / Khronos থেকে .glb / .gltf URL পেস্ট করুন</p>
+  <div class="id-row">
+    <input type="text" id="id-modelUrl" placeholder="https://.../model.glb">
+    <input type="text" id="id-modelName" placeholder="নাম" style="max-width:120px">
+    <button id="id-modelLoad">➕ লোড</button>
+  </div>
+</div>
+
+    <div class="id-selected-items">
         <h3>যোগ করা আইটেম</h3>
         <ul id="id-selectedList"></ul>
       </div>
@@ -270,7 +281,15 @@
   <button id="id-modeDeselect">✕ ডিসিলেক্ট (Esc)</button>
 </div>
      
-      <div class="id-render-actions">
+    <!-- Structure Property Panel -->
+<div id="id-structPanel" hidden>
+  <div class="id-struct-head">
+    <span id="id-structTitle">—</span>
+    <button id="id-structClose">✕</button>
+  </div>
+  <div class="id-struct-body" id="id-structBody"></div>
+</div>
+  <div class="id-render-actions">
         <button id="id-liveRender" class="id-primary">▶️ লাইভ প্রিভিউ</button>
         <button id="id-finalRender" class="id-highlight">✨ ফাইনাল HD রেন্ডার</button>
         <button id="id-downloadRender">⬇️ ডাউনলোড</button>
