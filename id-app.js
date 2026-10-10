@@ -138,7 +138,35 @@ $$('#id-shapeGrid .id-shape-btn').forEach(btn => {
 $('#id-shapeGrid .id-shape-btn')?.classList.add('active');
 
 // ---------- Custom polygon canvas ----------
+// ============================================================
+// CUSTOM SHAPE CANVAS — with Undo / Redo / Live Preview
+// ============================================================
 let shapeCtx = null;
+let shapeHistory = [];   // past states
+let shapeRedo    = [];   // future states
+let shapeHover   = null; // {x,y} in canvas units
+
+function snapPoint(p) {
+  // avoid duplicates within 6 px
+  for (const q of STATE.customPoints) {
+    if (Math.hypot(q.x - p.x, q.y - p.y) < 6) return null;
+  }
+  return p;
+}
+
+function pushShapeHistory() {
+  shapeHistory.push(JSON.parse(JSON.stringify(STATE.customPoints)));
+  if (shapeHistory.length > 50) shapeHistory.shift();
+  shapeRedo = [];
+  updateShapeButtons();
+}
+
+function updateShapeButtons() {
+  const u = $('#id-shapeUndo'), r = $('#id-shapeRedo');
+  if (u) u.disabled = shapeHistory.length === 0;
+  if (r) r.disabled = shapeRedo.length === 0;
+}
+
 function initShapeCanvas() {
   const canvas = $('#id-shapeCanvas');
   const dpr = window.devicePixelRatio || 1;
@@ -146,62 +174,187 @@ function initShapeCanvas() {
   canvas.width  = rect.width  * dpr;
   canvas.height = rect.height * dpr;
   shapeCtx = canvas.getContext('2d');
-  shapeCtx.scale(dpr, dpr);
-  redrawShape();
+  shapeCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+  // Reset history when entering
+  shapeHistory = [];
+  shapeRedo = [];
+  updateShapeButtons();
+
+  // Place
   canvas.onclick = (e) => {
     const r = canvas.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width  * 600;
     const y = (e.clientY - r.top)  / r.height * 400;
-    STATE.customPoints.push({ x, y });
+    const p = snapPoint({ x, y });
+    if (!p) return;
+    pushShapeHistory();
+    STATE.customPoints.push(p);
     redrawShape();
   };
+
+  // Live preview line
+  canvas.onmousemove = (e) => {
+    const r = canvas.getBoundingClientRect();
+    shapeHover = {
+      x: (e.clientX - r.left) / r.width  * 600,
+      y: (e.clientY - r.top)  / r.height * 400
+    };
+    redrawShape();
+  };
+  canvas.onmouseleave = () => { shapeHover = null; redrawShape(); };
+
+  redrawShape();
+  updateShapeButtons();
 }
+
 function redrawShape() {
   if (!shapeCtx) return;
   const canvas = $('#id-shapeCanvas');
   const w = canvas.getBoundingClientRect().width;
   const h = canvas.getBoundingClientRect().height;
+  const sx = w / 600, sy = h / 400;
+
   shapeCtx.clearRect(0, 0, w, h);
   shapeCtx.fillStyle = '#1f232e';
   shapeCtx.fillRect(0, 0, w, h);
+
+  // grid
+  shapeCtx.strokeStyle = 'rgba(79,140,255,0.08)';
+  shapeCtx.lineWidth = 1;
+  for (let i = 50; i < 600; i += 50) {
+    shapeCtx.beginPath(); shapeCtx.moveTo(i * sx, 0); shapeCtx.lineTo(i * sx, h); shapeCtx.stroke();
+  }
+  for (let j = 50; j < 400; j += 50) {
+    shapeCtx.beginPath(); shapeCtx.moveTo(0, j * sy); shapeCtx.lineTo(w, j * sy); shapeCtx.stroke();
+  }
+
   const pts = STATE.customPoints;
+
   if (pts.length === 0) {
     shapeCtx.fillStyle = '#8a90a2';
     shapeCtx.font = '14px sans-serif';
     shapeCtx.fillText('এখানে ক্লিক করে কোণা বসান (min 3)', 20, 30);
     return;
   }
+
+  // filled polygon
   shapeCtx.beginPath();
   pts.forEach((p, i) => {
-    const px = p.x / 600 * w;
-    const py = p.y / 400 * h;
+    const px = p.x * sx, py = p.y * sy;
     i === 0 ? shapeCtx.moveTo(px, py) : shapeCtx.lineTo(px, py);
   });
-  shapeCtx.closePath();
+  if (pts.length >= 3) shapeCtx.closePath();
   shapeCtx.fillStyle   = 'rgba(79,140,255,0.15)';
   shapeCtx.strokeStyle = '#4f8cff';
   shapeCtx.lineWidth   = 2;
-  shapeCtx.fill(); shapeCtx.stroke();
-  pts.forEach(p => {
-    const px = p.x / 600 * w;
-    const py = p.y / 400 * h;
+  shapeCtx.fill();
+  shapeCtx.stroke();
+
+  // live preview line from last point to cursor
+  if (shapeHover && pts.length > 0) {
+    const last = pts[pts.length - 1];
     shapeCtx.beginPath();
-    shapeCtx.arc(px, py, 5, 0, Math.PI * 2);
-    shapeCtx.fillStyle = '#ffb347';
+    shapeCtx.moveTo(last.x * sx, last.y * sy);
+    shapeCtx.lineTo(shapeHover.x * sx, shapeHover.y * sy);
+    shapeCtx.strokeStyle = 'rgba(255,179,71,0.7)';
+    shapeCtx.setLineDash([5, 5]);
+    shapeCtx.lineWidth = 2;
+    shapeCtx.stroke();
+    shapeCtx.setLineDash([]);
+  }
+
+  // closing line preview (to first)
+  if (pts.length >= 2 && shapeHover) {
+    const first = pts[0];
+    shapeCtx.beginPath();
+    shapeCtx.moveTo(shapeHover.x * sx, shapeHover.y * sy);
+    shapeCtx.lineTo(first.x * sx, first.y * sy);
+    shapeCtx.strokeStyle = 'rgba(255,179,71,0.35)';
+    shapeCtx.setLineDash([3, 4]);
+    shapeCtx.lineWidth = 1.5;
+    shapeCtx.stroke();
+    shapeCtx.setLineDash([]);
+  }
+
+  // vertices
+  pts.forEach((p, i) => {
+    const px = p.x * sx, py = p.y * sy;
+    shapeCtx.beginPath();
+    shapeCtx.arc(px, py, i === 0 ? 7 : 5, 0, Math.PI * 2);
+    shapeCtx.fillStyle = i === 0 ? '#2ecc71' : '#ffb347';
     shapeCtx.fill();
+    shapeCtx.strokeStyle = '#0f1117';
+    shapeCtx.lineWidth = 2;
+    shapeCtx.stroke();
   });
+
+  // area calculation
+  if (pts.length >= 3) {
+    let area = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      area += a.x * b.y - b.x * a.y;
+    }
+    area = Math.abs(area / 2);
+    const fW = STATE.room.width  / 600;
+    const fH = STATE.room.length / 400;
+    const areaFt = area * fW * fH;
+    shapeCtx.fillStyle = '#ffb347';
+    shapeCtx.font = 'bold 13px sans-serif';
+    shapeCtx.fillText(`≈ ${areaFt.toFixed(0)} sqft (${pts.length} কোণা)`, 12, h - 14);
+  }
 }
+
+// ---------- Buttons ----------
 $('#id-shapeUndo')?.addEventListener('click', () => {
-  STATE.customPoints.pop(); redrawShape();
+  if (!shapeHistory.length) return;
+  shapeRedo.push(JSON.parse(JSON.stringify(STATE.customPoints)));
+  STATE.customPoints = shapeHistory.pop();
+  redrawShape();
+  updateShapeButtons();
 });
+
+$('#id-shapeRedo')?.addEventListener('click', () => {
+  if (!shapeRedo.length) return;
+  shapeHistory.push(JSON.parse(JSON.stringify(STATE.customPoints)));
+  STATE.customPoints = shapeRedo.pop();
+  redrawShape();
+  updateShapeButtons();
+});
+
 $('#id-shapeClear')?.addEventListener('click', () => {
-  STATE.customPoints = []; redrawShape();
+  if (!STATE.customPoints.length) return;
+  pushShapeHistory();
+  STATE.customPoints = [];
+  redrawShape();
+  updateShapeButtons();
 });
+
 $('#id-shapeDone')?.addEventListener('click', () => {
-  if (STATE.customPoints.length < 3) { toast('কমপক্ষে ৩ কোণা লাগবে', 'error'); return; }
-  toast('আকৃতি সেভ হয়েছে', 'success');
+  if (STATE.customPoints.length < 3) {
+    toast('কমপক্ষে ৩ কোণা লাগবে', 'error');
+    return;
+  }
+  toast('✅ আকৃতি সেভ হয়েছে — পরবর্তী ধাপে যান', 'success');
 });
+
+// ---------- Keyboard Shortcuts ----------
+document.addEventListener('keydown', (e) => {
+  if (STATE.step !== 2) return;
+  if (STATE.shape !== 'custom') return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    $('#id-shapeUndo')?.click();
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' ||
+      (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+    e.preventDefault();
+    $('#id-shapeRedo')?.click();
+  }
+});
+
+
 
 // ============================================================
 // STEP 3 — STRUCTURE SVG
