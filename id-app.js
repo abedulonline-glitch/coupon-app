@@ -592,22 +592,15 @@ function refreshTileGallery() {
   $('#id-tileRotVal').textContent = cur.rot + '°';
   $('#id-grout').value = cur.grout;
   $('#id-groutVal').textContent = cur.grout + 'mm';
+  if ($('#id-tileOffsetX')) {
+    $('#id-tileOffsetX').value = cur.offsetX || 0;
+    $('#id-tileOffXVal').textContent = (cur.offsetX || 0) + 'mm';
+  }
+  if ($('#id-tileOffsetY')) {
+    $('#id-tileOffsetY').value = cur.offsetY || 0;
+    $('#id-tileOffYVal').textContent = (cur.offsetY || 0) + 'mm';
+  }
 }
-
-$('#id-tileW').addEventListener('input', (e) => {
-  STATE.tiles[STATE.activeTab].size.w = parseFloat(e.target.value) || 600;
-});
-$('#id-tileH').addEventListener('input', (e) => {
-  STATE.tiles[STATE.activeTab].size.h = parseFloat(e.target.value) || 600;
-});
-$('#id-tileRot').addEventListener('input', (e) => {
-  STATE.tiles[STATE.activeTab].rot = parseFloat(e.target.value);
-  $('#id-tileRotVal').textContent = e.target.value + '°';
-});
-$('#id-grout').addEventListener('input', (e) => {
-  STATE.tiles[STATE.activeTab].grout = parseFloat(e.target.value);
-  $('#id-groutVal').textContent = e.target.value + 'mm';
-});
 refreshTileGallery();
 
 // ============================================================
@@ -673,12 +666,42 @@ function refreshSelectedList() {
   }
   STATE.furniture.forEach((f, i) => {
     const def = window.__id_library?.getItemById(f.id);
+    const label = f.isCustom ? `🌐 ${f.customName || 'Custom'}` : `${def?.emoji || '📦'} ${def?.name || f.id}`;
+    const rot = (f.rot || 0).toFixed(0);
+    const scale = (f.sx || 1).toFixed(2);
     const li = document.createElement('li');
-    li.innerHTML = `<span>${def?.emoji || '📦'} ${def?.name || f.id}</span>
-      <button data-i="${i}" title="মুছুন">✕</button>`;
-    li.querySelector('button').addEventListener('click', () => {
-      STATE.furniture.splice(i, 1);
-      refreshSelectedList();
+    li.style.flexWrap = 'wrap';
+    li.innerHTML = `
+      <span style="flex:1;min-width:100px">${label}
+        <small style="color:#8a90a2"> (${rot}° · ×${scale})</small>
+      </span>
+      <button data-act="rotL" title="বামে ৪৫°">↺</button>
+      <button data-act="rotR" title="ডানে ৪৫°">↻</button>
+      <button data-act="rot90" title="৯০°">⟳</button>
+      <button data-act="bigger" title="বড়">➕</button>
+      <button data-act="smaller" title="ছোট">➖</button>
+      <button data-act="reset" title="রিসেট">⟲</button>
+      <button data-act="del" title="মুছুন" style="color:#e74c3c">✕</button>
+    `;
+    li.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const a = btn.dataset.act;
+        const item = STATE.furniture[i];
+        if (a === 'del') {
+          STATE.furniture.splice(i, 1);
+          refreshSelectedList();
+          if (STATE.step === 7) refreshRender(true);
+          return;
+        }
+        if (a === 'rotL')  item.rot = (item.rot || 0) - 45;
+        if (a === 'rotR')  item.rot = (item.rot || 0) + 45;
+        if (a === 'rot90') item.rot = (item.rot || 0) + 90;
+        if (a === 'bigger')  { item.sx = Math.min((item.sx||1)*1.1, 3); item.sy = item.sx; item.sz = item.sx; }
+        if (a === 'smaller') { item.sx = Math.max((item.sx||1)*0.9, 0.3); item.sy = item.sx; item.sz = item.sx; }
+        if (a === 'reset')   { item.rot = 0; item.sx = item.sy = item.sz = 1; }
+        refreshSelectedList();
+        if (STATE.step === 7) refreshRender(true);
+      });
     });
     list.appendChild(li);
   });
@@ -1014,8 +1037,9 @@ $('#id-modelLoad')?.addEventListener('click', async () => {
   const url = $('#id-modelUrl')?.value.trim();
   const name = $('#id-modelName')?.value.trim() || 'Custom Model';
   if (!url) { toast('URL দিন', 'error'); return; }
-  if (!/\.(glb|gltf)(\?|$)/i.test(url)) {
-    toast('শুধু .glb বা .gltf সাপোর্টেড', 'error'); return;
+    if (!/\.(glb|gltf)(\?|$)/i.test(url)) {
+    toast('❌ সরাসরি .glb / .gltf লিংক দিন। Sketchfab পেজের URL কাজ করবে না — ডাউনলোড বাটন থেকে .glb নামান।', 'error', 5000);
+    return;
   }
   if (!engine) { toast('প্রথমে ধাপ ৭-এ যান', 'error'); return; }
   toast('লোড হচ্ছে…', 'info');
