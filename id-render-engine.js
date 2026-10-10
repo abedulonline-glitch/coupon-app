@@ -47,7 +47,7 @@ class InteriorEngine {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 0.62;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -111,8 +111,8 @@ class InteriorEngine {
     this.composer.addPass(this.ssaoPass);
 
     // Bloom — soft glow around lights
-    this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(w, h), 0.35, 0.6, 0.85
+       this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(w, h), 0.12, 0.5, 0.95
     );
     this.composer.addPass(this.bloomPass);
 
@@ -778,15 +778,15 @@ class InteriorEngine {
     this.lights = [];
     const mode = state.lightMode || 'day';
     let hemiSky, hemiGround, hemiInt, sunColor, sunInt, sunPos, ambient;
-    switch (mode) {
-      case 'sunset': hemiSky=0xffa060; hemiGround=0x504030; hemiInt=0.65; sunColor=0xffb37a; sunInt=2.2; sunPos=[-12,4,10]; ambient=0x2a1f1a; break;
-      case 'night':  hemiSky=0x4a5a8a; hemiGround=0x101018; hemiInt=0.25; sunColor=0xc0d0ff; sunInt=0.4; sunPos=[-8,10,6];  ambient=0x101828; break;
-      case 'studio': hemiSky=0xffffff; hemiGround=0xdddddd; hemiInt=1.0;  sunColor=0xffffff; sunInt=1.6; sunPos=[8,12,8];   ambient=0x404040; break;
-      default:       hemiSky=0xd8ecff; hemiGround=0xa89880; hemiInt=0.85; sunColor=0xfff4e0; sunInt=2.2; sunPos=[14,16,10]; ambient=0x505060;
+       switch (mode) {
+      case 'sunset': hemiSky=0xffa060; hemiGround=0x403020; hemiInt=0.28; sunColor=0xffb37a; sunInt=1.0; sunPos=[-12,4,10]; ambient=0x1a1208; break;
+      case 'night':  hemiSky=0x3a4a6a; hemiGround=0x080808; hemiInt=0.12; sunColor=0xc0d0ff; sunInt=0.18; sunPos=[-8,10,6];  ambient=0x080810; break;
+      case 'studio': hemiSky=0xffffff; hemiGround=0xcccccc; hemiInt=0.45; sunColor=0xffffff; sunInt=0.9;  sunPos=[8,12,8];   ambient=0x282828; break;
+      default:       hemiSky=0xb8d0e8; hemiGround=0x807060; hemiInt=0.32; sunColor=0xffeed0; sunInt=0.9; sunPos=[14,16,10]; ambient=0x282830;
     }
     const hemi = new THREE.HemisphereLight(hemiSky, hemiGround, hemiInt);
     this.scene.add(hemi); this.lights.push(hemi);
-    const amb = new THREE.AmbientLight(ambient, 0.55);
+    const amb = new THREE.AmbientLight(ambient, 0.18);
     this.scene.add(amb); this.lights.push(amb);
     const sun = new THREE.DirectionalLight(sunColor, sunInt);
     sun.position.set(...sunPos);
@@ -796,7 +796,7 @@ class InteriorEngine {
     sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
     sun.shadow.camera.top = 20;   sun.shadow.camera.bottom = -20;
     sun.shadow.bias = -0.0004;
-    sun.shadow.normalBias = 0.02;
+    sun.shadow.normalBias = 0.05;
     this.scene.add(sun); this.lights.push(sun);
   }
 
@@ -814,7 +814,12 @@ class InteriorEngine {
     const tex = new THREE.CanvasTexture(cvs);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.mapping = THREE.EquirectangularReflectionMapping;
-    this.scene.background = tex;
+    tex.colorSpace = THREE.SRGBColorSpace;
+     this.scene.background = tex;
+         // Wall material প্রতিফলন কমাতে environment intensity কমানো
+    if ('environmentIntensity' in this.scene) {
+      this.scene.environmentIntensity = 0.35;
+    }
   }
 
   _setupCamera(state) {
