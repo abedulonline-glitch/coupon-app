@@ -1002,3 +1002,39 @@ input[type="range"]::-moz-range-thumb {
   transform: translate(-50%, -50%);
   z-index: 10;
 }
+
+/* ===== Model Links ===== */
+.id-model-links {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.id-model-links a {
+  display: inline-block;
+  padding: 6px 12px;
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  color: var(--id-text);
+  border-radius: 20px;
+  font-size: 12px;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.id-model-links a:hover {
+  background: var(--id-primary);
+  border-color: var(--id-primary);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.id-struct-row select {
+  flex: 1;
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  color: var(--id-text);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
