@@ -7,6 +7,13 @@ import { RoomEnvironment }   from 'three/addons/environments/RoomEnvironment.js'
 import { OrbitControls }     from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { GLTFLoader }        from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer }    from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }        from 'three/addons/postprocessing/RenderPass.js';
+import { SSAOPass }          from 'three/addons/postprocessing/SSAOPass.js';
+import { UnrealBloomPass }   from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SMAAPass }          from 'three/addons/postprocessing/SMAAPass.js';
+import { OutputPass }        from 'three/addons/postprocessing/OutputPass.js';
+import { RGBELoader }        from 'three/addons/loaders/RGBELoader.js';
 
 const FT  = 0.3048;
 const DEG = Math.PI / 180;
@@ -76,9 +83,59 @@ class InteriorEngine {
     canvas.addEventListener('pointerdown', this._onDown);
     window.addEventListener('keydown', this._onKey);
 
-    const ro = new ResizeObserver(() => this._onResize());
+       const ro = new ResizeObserver(() => this._onResize());
     ro.observe(canvas.parentElement);
+    this._setupPostFX();
     this._onResize();
+  }
+
+  _setupPostFX() {
+    const wrap = this.canvas.parentElement;
+    const w = wrap.clientWidth || 800;
+    const h = wrap.clientHeight || 600;
+
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.setSize(w, h);
+
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+    // SSAO — soft contact shadows
+    this.ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
+    this.ssaoPass.kernelRadius = 0.5;
+    this.ssaoPass.minDistance = 0.002;
+    this.ssaoPass.maxDistance = 0.15;
+    this.ssaoPass.output = SSAOPass.OUTPUT.Default;
+    this.composer.addPass(this.ssaoPass);
+
+    // Bloom — soft glow around lights
+    this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(w, h), 0.35, 0.6, 0.85
+    );
+    this.composer.addPass(this.bloomPass);
+
+    // SMAA anti-aliasing
+    this.smaaPass = new SMAAPass(w, h);
+    this.composer.addPass(this.smaaPass);
+
+    // Final output (tone mapping + colorspace)
+    this.composer.addPass(new OutputPass());
+  }
+
+  async loadHDRI(url) {
+    const loader = new RGBELoader();
+    loader.setCrossOrigin('anonymous');
+    return new Promise((resolve, reject) => {
+      loader.load(url, (hdr) => {
+        hdr.mapping = THREE.EquirectangularReflectionMapping;
+        const pmrem = new THREE.PMREMGenerator(this.renderer);
+        const envMap = pmrem.fromEquirectangular(hdr).texture;
+        this.scene.environment = envMap;
+        this.scene.background = envMap;
+        hdr.dispose();
+        pmrem.dispose();
+        resolve(envMap);
+      }, undefined, reject);
+    });
   }
 
   _onResize() {
@@ -89,6 +146,12 @@ class InteriorEngine {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    if (this.composer) {
+      this.composer.setSize(w, h);
+      if (this.ssaoPass)  this.ssaoPass.setSize(w, h);
+      if (this.bloomPass) this.bloomPass.setSize(w, h);
+      if (this.smaaPass)  this.smaaPass.setSize(w, h);
+    }
     this._renderOnce();
   }
 
@@ -773,13 +836,14 @@ class InteriorEngine {
     this._renderOnce();
   }
 
-  _renderOnce() {
+   _renderOnce() {
     if (!this.renderer || !this.scene || !this.camera) return;
     this._cullWalls();
     const wrap = this.canvas.parentElement;
     if (!wrap) return;
     this.renderer.setSize(wrap.clientWidth, wrap.clientHeight, false);
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   startLive() {
@@ -789,7 +853,8 @@ class InteriorEngine {
       if (!this.animating) return;
       this.controls.update();
       this._cullWalls();
-      this.renderer.render(this.scene, this.camera);
+      if (this.composer) this.composer.render();
+      else this.renderer.render(this.scene, this.camera);
       requestAnimationFrame(loop);
     };
     loop();
