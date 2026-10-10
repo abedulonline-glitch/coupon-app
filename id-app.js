@@ -660,8 +660,7 @@ function addItem(def) {
     sx: 1, sy: 1, sz: 1
   });
   refreshSelectedList();
-  toast(`${def.name} যোগ হয়েছে — 3D-তে ক্লিক করে মুভ/রোটেট/স্কেল করুন`, 'success', 3000);
-  // ক্যামেরা ধরে রেখে রিফ্রেশ
+  toast(`${def.name} যোগ হয়েছে — 3D-তে ক্লিক করে এডিট করুন`, 'success', 3000);
   if (STATE.step === 7) refreshRender(true);
 }
 
@@ -911,6 +910,113 @@ window.refreshRender = refreshRender = async function (preserve) {
     toast('রেন্ডারে সমস্যা', 'error');
   }
 };
+
+// ============================================================
+// STRUCTURE EDITING
+// ============================================================
+window.__id_onSelectStructure = (idx) => {
+  const panel = $('#id-structPanel');
+  if (!panel) return;
+  if (idx < 0) { panel.hidden = true; return; }
+  const s = STATE.structure[idx];
+  if (!s) { panel.hidden = true; return; }
+
+  panel.hidden = false;
+  const names = { door: '🚪 দরজা', window: '🪟 জানালা', pillar: '🏛️ পিলার', stairs: '🪜 সিঁড়ি' };
+  $('#id-structTitle').textContent = `${names[s.type] || s.type} — #${idx + 1}`;
+
+  const def = { door: { width: 0.9, height: 2.1 },
+                window: { width: 1.2, height: 1.2, sill: 0.9 },
+                pillar: { radius: 0.15 },
+                stairs: { steps: 6, width: 1.2 } }[s.type] || {};
+  const p = Object.assign({}, def, s.params || {});
+  s.params = p;
+
+  let html = '';
+  if (s.type === 'door') {
+    html += row('প্রস্থ (m)', 'width', p.width, 0.4, 3, 0.05);
+    html += row('উচ্চতা (m)', 'height', p.height, 1.0, 3, 0.05);
+  } else if (s.type === 'window') {
+    html += row('প্রস্থ (m)', 'width', p.width, 0.3, 5, 0.05);
+    html += row('উচ্চতা (m)', 'height', p.height, 0.3, 3, 0.05);
+    html += row('সিল উচ্চতা (m)', 'sill', p.sill, 0, 2, 0.05);
+  } else if (s.type === 'pillar') {
+    html += row('ব্যাসার্ধ (m)', 'radius', p.radius, 0.05, 1, 0.01);
+  } else if (s.type === 'stairs') {
+    html += row('ধাপ সংখ্যা', 'steps', p.steps, 2, 20, 1);
+    html += row('প্রস্থ (m)', 'width', p.width, 0.5, 3, 0.05);
+  }
+  html += `<div class="id-struct-row" style="margin-top:12px">
+    <button id="id-structDelete" style="background:#e74c3c;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer">🗑️ এই আইটেম মুছুন</button>
+  </div>`;
+
+  $('#id-structBody').innerHTML = html;
+
+  // Wire inputs
+  $('#id-structBody').querySelectorAll('input[data-param]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const key = inp.dataset.param;
+      const val = parseFloat(inp.value);
+      if (isNaN(val)) return;
+      engine?.updateStructure(idx, { [key]: val });
+    });
+  });
+
+  $('#id-structDelete')?.addEventListener('click', () => {
+    engine?.deleteStructure(idx);
+    panel.hidden = true;
+    buildStructureSVG();
+  });
+
+  function row(label, key, val, min, max, step) {
+    return `<div class="id-struct-row">
+      <label>${label}</label>
+      <input type="number" data-param="${key}" value="${val}" min="${min}" max="${max}" step="${step}">
+    </div>`;
+  }
+};
+
+$('#id-structClose')?.addEventListener('click', () => {
+  engine?._clearStructSelection();
+  $('#id-structPanel').hidden = true;
+});
+
+// ============================================================
+// FREE 3D MODEL LOADER
+// ============================================================
+$('#id-modelLoad')?.addEventListener('click', async () => {
+  const url = $('#id-modelUrl')?.value.trim();
+  const name = $('#id-modelName')?.value.trim() || 'Custom Model';
+  if (!url) { toast('URL দিন', 'error'); return; }
+  if (!/\.(glb|gltf)(\?|$)/i.test(url)) {
+    toast('শুধু .glb বা .gltf সাপোর্টেড', 'error'); return;
+  }
+  if (!engine) { toast('প্রথমে ধাপ ৭-এ যান', 'error'); return; }
+  toast('লোড হচ্ছে…', 'info');
+  try {
+    const grp = await engine.loadModelFromURL(url, name, { targetMeters: 1.5 });
+    const idx = STATE.furniture.length;
+    grp.userData.stateIndex = idx;
+    // Save to state
+    STATE.furniture.push({
+      id: grp.userData.id,
+      customName: name,
+      customUrl: url,
+      isCustom: true,
+      x: grp.position.x / 0.3048,
+      y: 0,
+      z: grp.position.z / 0.3048,
+      rot: 0, sx: 1, sy: 1, sz: 1
+    });
+    refreshSelectedList();
+    toast(`✅ ${name} যোগ হয়েছে`, 'success');
+    $('#id-modelUrl').value = '';
+    $('#id-modelName').value = '';
+  } catch (err) {
+    console.error(err);
+    toast('❌ লোড ব্যর্থ: CORS বা URL সমস্যা', 'error', 4000);
+  }
+});
 
 // ============================================================
 // INIT
