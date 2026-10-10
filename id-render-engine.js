@@ -95,6 +95,8 @@ class InteriorEngine {
     const h = wrap.clientHeight || 600;
 
     this.composer = new EffectComposer(this.renderer);
+       const pr = Math.min(window.devicePixelRatio, 2);
+    this.composer.setPixelRatio(pr);
     this.composer.setSize(w, h);
 
     this.composer.addPass(new RenderPass(this.scene, this.camera));
@@ -147,7 +149,8 @@ class InteriorEngine {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     if (this.composer) {
-      this.composer.setSize(w, h);
+       this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+       this.composer.setSize(w, h);
       if (this.ssaoPass)  this.ssaoPass.setSize(w, h);
       if (this.bloomPass) this.bloomPass.setSize(w, h);
       if (this.smaaPass)  this.smaaPass.setSize(w, h);
