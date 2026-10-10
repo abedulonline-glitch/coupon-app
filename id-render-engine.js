@@ -328,11 +328,11 @@ class InteriorEngine {
     this._buildStructure3D(state, pts, H);
   }
 
-  _defaultsForType(type) {
-    if (type === 'door')   return { width: 0.9, height: 2.1 };
-    if (type === 'window') return { width: 1.2, height: 1.2, sill: 0.9 };
-    if (type === 'pillar') return { radius: 0.15 };
-    if (type === 'stairs') return { steps: 6, width: 1.2 };
+   _defaultsForType(type) {
+    if (type === 'door')   return { width: 0.9, height: 2.1, offsetX: 0 };
+    if (type === 'window') return { width: 1.2, height: 1.2, sill: 0.9, offsetX: 0 };
+    if (type === 'pillar') return { radius: 0.15, offsetX: 0, offsetZ: 0 };
+    if (type === 'stairs') return { steps: 6, width: 1.2, depth: 0.28, materialSource: 'solid' };
     return {};
   }
 
@@ -397,9 +397,9 @@ class InteriorEngine {
           new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.7 })
         );
         cyl.position.set(0, H/2, 0); g.add(cyl);
-      } else if (s.type === 'stairs') {
+           } else if (s.type === 'stairs') {
         const steps = params.steps, stepW = params.width;
-        const stepH = H / (steps + 2), stepD = 0.28;
+        const stepH = H / (steps + 2), stepD = params.depth || 0.28;
         const mat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.75 });
         for (let i = 0; i < steps; i++) {
           const sBox = new THREE.Mesh(new THREE.BoxGeometry(stepW, stepH, stepD), mat);
@@ -409,8 +409,21 @@ class InteriorEngine {
       }
 
       g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-      g.position.set(wx, 0, wz);
+           // Local offset (position along wall / custom X-Z)
+      if (s.type === 'door' || s.type === 'window') {
+        g.position.x = 0; // temporary — will be offset after rotation
+      }
+       g.position.set(wx, 0, wz);
       g.rotation.y = (s.rot || 0) * DEG;
+             // apply offset along local axes
+      if (s.type === 'door' || s.type === 'window') {
+        const ox = params.offsetX || 0;
+        g.position.x += Math.cos(-g.rotation.y) * ox;
+        g.position.z += Math.sin(-g.rotation.y) * ox;
+      } else if (s.type === 'pillar') {
+        g.position.x += (params.offsetX || 0);
+        g.position.z += (params.offsetZ || 0);
+      }
       g.userData.structType = s.type;
       g.userData.stateIndex = idx;
       g.userData.params = params;
@@ -498,6 +511,36 @@ class InteriorEngine {
     if (surfaces.ceiling && tiles.ceiling && ceil)          await apply('ceiling', ceil, L, W);
     if (tiles.wall && walls) {
       for (const w of walls.children) await apply('wall', w, w.userData.wallLen || L, H);
+    }
+
+    // ---------- Apply material to stairs ----------
+    if (this.structGrp) {
+      const applyToGroup = async (grp, tileKey) => {
+        const t = tiles[tileKey];
+        if (!t?.url) return;
+        const tex = await loadTex(t.url);
+        if (!tex) return;
+        grp.traverse(c => {
+          if (!c.isMesh) return;
+          const clone = tex.clone();
+          clone.wrapS = clone.wrapT = THREE.RepeatWrapping;
+          clone.colorSpace = THREE.SRGBColorSpace;
+          clone.repeat.set(1.5, 1.5);
+          clone.needsUpdate = true;
+          c.material.map = clone;
+          c.material.color.set(0xffffff);
+          c.material.roughness = 0.4;
+          c.material.metalness = 0.06;
+          c.material.needsUpdate = true;
+        });
+      };
+
+      for (const g of this.structGrp.children) {
+        if (g.userData.structType !== 'stairs') continue;
+        const src = g.userData.params?.materialSource;
+        if (!src || src === 'solid') continue;
+        await applyToGroup(g, src);
+      }
     }
   }
 
