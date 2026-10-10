@@ -492,6 +492,10 @@ class InteriorEngine {
       clone.colorSpace = THREE.SRGBColorSpace;
       clone.anisotropy = tex.anisotropy;
       clone.repeat.set(Math.max(repX, 0.01), Math.max(repY, 0.01));
+      // Tile offset — individual positioning
+      const offX = (t.offsetX || 0) / 1000 / tileW;
+      const offY = (t.offsetY || 0) / 1000 / tileH;
+      clone.offset.set(offX, offY);
       clone.rotation = (t.rot || 0) * DEG;
       clone.center.set(0.5, 0.5);
       clone.needsUpdate = true;
