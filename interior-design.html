@@ -275,6 +275,19 @@
           <option value="corner">কর্নার</option>
         </select>
 
+               <label>আকাশ (HDRI)</label>
+        <select id="id-hdriSelect">
+          <option value="none">— ডিফল্ট —</option>
+          <option value="venice">🌅 ভেনিস সানসেট</option>
+          <option value="kloppenheim">☀️ পরিষ্কার আকাশ</option>
+          <option value="studio">💡 স্টুডিও</option>
+          <option value="sunflowers">🌻 সানফ্লাওয়ার ফিল্ড</option>
+          <option value="rooitou">🌲 রুইটু পার্ক</option>
+          <option value="quarry">⛰️ পাথরের খনি</option>
+          <option value="spruit">🌾 স্প্রুইট সকাল</option>
+          <option value="night">🌙 তারাভরা রাত</option>
+        </select>
+        
         <label>লাইটিং</label>
         <select id="id-lightMode">
           <option value="day">☀️ দিন</option>
@@ -354,8 +367,13 @@
   </div>
 </div>
 
-<!-- ============ TOAST ============ -->
-<div id="id-toast" hidden></div>
+<!-- ============ CONTEXT MENU ============ -->
+<div id="id-ctxMenu" hidden></div>
+
+<!-- ============ HDRI Row (Step 7-এ যোগ হবে) ============ -->
+  
+  <!-- ============ TOAST ============ -->
+  <div id="id-toast" hidden></div>
 
 <!-- ============ SCRIPTS (order matters!) ============ -->
 <script type="module" src="./id-furniture-library.js"></script>
