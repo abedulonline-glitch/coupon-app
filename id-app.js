@@ -1071,4 +1071,178 @@ $('#id-modelLoad')?.addEventListener('click', async () => {
 // ============================================================
 // INIT
 // ============================================================
+
+// ============================================================
+// RIGHT-CLICK CONTEXT MENU
+// ============================================================
+const ctxMenu = $('#id-ctxMenu');
+let ctxTarget = { type: null, idx: -1 };
+
+function hideCtx() { ctxMenu.hidden = true; }
+document.addEventListener('click', hideCtx);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideCtx(); });
+
+function buildCtxItems(type, idx) {
+  const items = [];
+  if (type === 'furniture') {
+    const f = STATE.furniture[idx];
+    if (!f) return [];
+    const def = window.__id_library?.getItemById(f.id);
+    const name = f.isCustom ? `🌐 ${f.customName}` : `${def?.emoji || ''} ${def?.name || f.id}`;
+    items.push({ kind: 'title', label: name });
+    items.push({ icon: '↔️', label: 'মুভ মোড', val: 'G', act: () => engine?.setTransformMode('translate') });
+    items.push({ icon: '🔁', label: 'রোটেট মোড', val: 'R', act: () => engine?.setTransformMode('rotate') });
+    items.push({ icon: '🔍', label: 'স্কেল মোড', val: 'S', act: () => engine?.setTransformMode('scale') });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '↺', label: 'বামে ৪৫°', act: () => changeFurniture(idx, { rot: (f.rot || 0) - 45 }) });
+    items.push({ icon: '↻', label: 'ডানে ৪৫°', act: () => changeFurniture(idx, { rot: (f.rot || 0) + 45 }) });
+    items.push({ icon: '⟳', label: '৯০° রোটেট', act: () => changeFurniture(idx, { rot: (f.rot || 0) + 90 }) });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '➕', label: 'বড় করুন', act: () => changeFurniture(idx, { sx: Math.min((f.sx||1)*1.15, 3) }) });
+    items.push({ icon: '➖', label: 'ছোট করুন', act: () => changeFurniture(idx, { sx: Math.max((f.sx||1)*0.87, 0.3) }) });
+    items.push({ icon: '🧍', label: 'আসল সাইজে ফেরান', act: () => changeFurniture(idx, { sx: 1 }) });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '🎯', label: 'রুমের মাঝে বসান', act: () => changeFurniture(idx, { x: 0, z: 0 }) });
+    items.push({ icon: '📋', label: 'কপি তৈরি করুন', act: () => duplicateFurniture(idx) });
+    items.push({ icon: '⟲', label: 'সব রিসেট', act: () => changeFurniture(idx, { rot: 0, sx: 1, sy: 1, sz: 1 }) });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '✕', label: 'মুছুন', danger: true, act: () => deleteFurnitureAt(idx) });
+  }
+  else if (type === 'structure') {
+    const s = STATE.structure[idx];
+    if (!s) return [];
+    const names = { door: '🚪 দরজা', window: '🪟 জানালা', pillar: '🏛️ পিলার', stairs: '🪜 সিঁড়ি' };
+    items.push({ kind: 'title', label: `${names[s.type]} #${idx+1}` });
+    items.push({ icon: '⚙️', label: 'মাপ/সেটিংস এডিট', act: () => { window.__id_onSelectStructure?.(idx); } });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '↺', label: 'বামে ৪৫°', act: () => changeStructure(idx, { rot: (s.rot || 0) - 45 }) });
+    items.push({ icon: '↻', label: 'ডানে ৪৫°', act: () => changeStructure(idx, { rot: (s.rot || 0) + 45 }) });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '✕', label: 'মুছুন', danger: true, act: () => deleteStructureAt(idx) });
+  }
+  else {
+    items.push({ kind: 'title', label: 'রুম অপশন' });
+    items.push({ icon: '🎥', label: 'সামনে থেকে দেখুন', act: () => { STATE.cameraView='front'; refreshRender(); } });
+    items.push({ icon: '🔝', label: 'উপর থেকে দেখুন', act: () => { STATE.cameraView='top'; refreshRender(); } });
+    items.push({ icon: '📐', label: 'আইসোমেট্রিক ভিউ', act: () => { STATE.cameraView='iso'; refreshRender(); } });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '☀️', label: 'দিন', act: () => { STATE.lightMode='day'; $('#id-lightMode').value='day'; refreshRender(); } });
+    items.push({ icon: '🌅', label: 'সন্ধ্যা', act: () => { STATE.lightMode='sunset'; $('#id-lightMode').value='sunset'; refreshRender(); } });
+    items.push({ icon: '🌙', label: 'রাত', act: () => { STATE.lightMode='night'; $('#id-lightMode').value='night'; refreshRender(); } });
+    items.push({ kind: 'sep' });
+    items.push({ icon: '✨', label: 'ফাইনাল HD রেন্ডার', act: () => $('#id-finalRender')?.click() });
+  }
+  return items;
+}
+
+function renderCtx(x, y, items) {
+  ctxMenu.innerHTML = '';
+  items.forEach(it => {
+    if (it.kind === 'title') {
+      const d = document.createElement('div');
+      d.className = 'id-ctx-title';
+      d.textContent = it.label;
+      ctxMenu.appendChild(d);
+      return;
+    }
+    if (it.kind === 'sep') {
+      const d = document.createElement('div');
+      d.className = 'id-ctx-sep';
+      ctxMenu.appendChild(d);
+      return;
+    }
+    const d = document.createElement('div');
+    d.className = 'id-ctx-item' + (it.danger ? ' danger' : '');
+    d.innerHTML = `<span class="id-ctx-icon">${it.icon}</span><span>${it.label}</span>${it.val ? `<span class="id-ctx-value">${it.val}</span>` : ''}`;
+    d.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCtx();
+      it.act?.();
+    });
+    ctxMenu.appendChild(d);
+  });
+  ctxMenu.hidden = false;
+  // smart position
+  const rect = ctxMenu.getBoundingClientRect();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  ctxMenu.style.left = Math.min(x, vw - rect.width - 8) + 'px';
+  ctxMenu.style.top  = Math.min(y, vh - rect.height - 8) + 'px';
+}
+
+window.__id_showContext = (x, y, type, idx) => {
+  ctxTarget = { type, idx };
+  const items = buildCtxItems(type, idx);
+  if (!items.length) return hideCtx();
+  renderCtx(x, y, items);
+};
+
+// ---- Actions ----
+function changeFurniture(idx, patch) {
+  const f = STATE.furniture[idx];
+  if (!f) return;
+  Object.assign(f, patch);
+  if (patch.sx != null) { f.sy = patch.sx; f.sz = patch.sx; }
+  refreshSelectedList();
+  if (STATE.step === 7) refreshRender(true);
+}
+function deleteFurnitureAt(idx) {
+  STATE.furniture.splice(idx, 1);
+  engine?.deselectFurniture();
+  refreshSelectedList();
+  if (STATE.step === 7) refreshRender(true);
+  toast('মুছে ফেলা হয়েছে', 'info');
+}
+function duplicateFurniture(idx) {
+  const f = STATE.furniture[idx];
+  if (!f) return;
+  const copy = Object.assign({}, f, {
+    x: (f.x || 0) + 1.5,
+    z: (f.z || 0) + 1.5
+  });
+  STATE.furniture.push(copy);
+  refreshSelectedList();
+  if (STATE.step === 7) refreshRender(true);
+  toast('কপি তৈরি হয়েছে', 'success');
+}
+function changeStructure(idx, patch) {
+  const s = STATE.structure[idx];
+  if (!s) return;
+  if (patch.rot != null) s.rot = patch.rot;
+  engine?.updateStructure(idx, s.params || {});
+}
+function deleteStructureAt(idx) {
+  engine?.deleteStructure(idx);
+  $('#id-structPanel').hidden = true;
+  buildStructureSVG();
+  toast('স্ট্রাকচার মুছে ফেলা হয়েছে', 'info');
+}
+
+// ============================================================
+// HDRI LOADER UI
+// ============================================================
+const HDRI_MAP = {
+  venice:       'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/venice_sunset_1k.hdr',
+  kloppenheim:  'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloppenheim_06_puresky_1k.hdr',
+  studio:       'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_03_1k.hdr',
+  sunflowers:   'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/sunflowers_puresky_1k.hdr',
+  rooitou:      'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/rooitou_park_1k.hdr',
+  quarry:       'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/quarry_01_1k.hdr',
+  spruit:       'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/spruit_sunrise_1k.hdr',
+  night:        'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/dikhololo_night_1k.hdr'
+};
+
+$('#id-hdriSelect')?.addEventListener('change', async (e) => {
+  const v = e.target.value;
+  if (v === 'none') return;
+  const url = HDRI_MAP[v];
+  if (!url) return;
+  toast('🌅 আকাশ লোড হচ্ছে…', 'info');
+  try {
+    await engine?.loadHDRI(url);
+    toast('✅ আকাশ সেট হয়েছে', 'success');
+  } catch (err) {
+    console.error(err);
+    toast('❌ HDRI লোড ব্যর্থ', 'error');
+  }
+});
 showStep(1);
