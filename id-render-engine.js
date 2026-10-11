@@ -735,8 +735,10 @@ class InteriorEngine {
       if (!tex) return;
       const tileW = (t.size?.w || 600) / 1000;
       const tileH = (t.size?.h || 600) / 1000;
-      const repX = wMeters / tileW;
-      const repY = hMeters / tileH;
+         // ShapeGeometry UV মিটারে, PlaneGeometry UV 0-1 এ
+      const isShape = mesh.geometry.type === 'ShapeGeometry';
+      const repX = isShape ? (1 / tileW) : (wMeters / tileW);
+      const repY = isShape ? (1 / tileH) : (hMeters / tileH);
       const clone = tex.clone();
       clone.wrapS = clone.wrapT = THREE.RepeatWrapping;
       clone.colorSpace = THREE.SRGBColorSpace;
