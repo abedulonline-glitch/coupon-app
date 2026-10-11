@@ -758,8 +758,7 @@ function openCrop(file) {
     if (cropper) { cropper.destroy(); cropper = null; }
 
     const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
-    console.log('🎯 Crop ratio:', tw, ':', th, '=', ratio); 
-    const tw = cur.size?.w || 600;
+     const tw = cur.size?.w || 600;
     const th = cur.size?.h || 600;
     const ratio = tw / th;
 
