@@ -444,11 +444,25 @@ class InteriorEngine {
     this._buildStructure3D(state, pts, H);
   }
 
-   _defaultsForType(type) {
-    if (type === 'door')   return { width: 0.9, height: 2.1, offsetX: 0 };
-    if (type === 'window') return { width: 1.2, height: 1.2, sill: 0.9, offsetX: 0 };
-    if (type === 'pillar') return { radius: 0.15, offsetX: 0, offsetZ: 0 };
-    if (type === 'stairs') return { steps: 6, width: 1.2, depth: 0.28, materialSource: 'solid' };
+     _defaultsForType(type) {
+    if (type === 'door')       return { width: 0.9, height: 2.1, offsetX: 0 };
+    if (type === 'window')     return { width: 1.2, height: 1.2, sill: 0.9, offsetX: 0 };
+    if (type === 'ventilator') return { width: 0.6, height: 0.4, sill: 2.0, offsetX: 0 };
+    if (type === 'pillar')     return { shape: 'round', size: 0.30, baseSize: 0.45, baseH: 0.15, capH: 0.12, offsetX: 0, offsetZ: 0 };
+    if (type === 'stairs')     return {
+      steps: 6,
+      width: 1.2,
+      depth: 0.28,
+      riserH: 0.18,
+      style: 'straight',      // straight | L | U
+      thickness: 'single',    // single | double
+      railing: 'none',        // none | wood | metal | glass
+      railingH: 0.9,
+      molding: 'none',        // none | simple | double
+      moldingH: 0.05,
+      treadMaterial: 'solid', // solid | floor | wall | accent
+      riserMaterial: 'solid'
+    };
     return {};
   }
 
@@ -513,42 +527,168 @@ class InteriorEngine {
           new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.7 })
         );
         cyl.position.set(0, H/2, 0); g.add(cyl);
-           } else if (s.type === 'stairs') {
-        const steps = params.steps, stepW = params.width;
-        const stepH = H / (steps + 2), stepD = params.depth || 0.28;
-        const mat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.75 });
+                } else if (s.type === 'stairs') {
+        const steps = Math.max(2, params.steps);
+        const stepW = params.width;
+        const stepD = params.depth;
+        const stepH = params.riserH;
+        const isDouble = params.thickness === 'double';
+        const treadThick = isDouble ? stepH * 0.55 : stepH;
+        const riserThick = isDouble ? stepH * 0.45 : stepH;
+
+        // 2 materials: tread + riser
+        const treadMat = new THREE.MeshStandardMaterial({ color: 0xd4cfc4, roughness: 0.6, metalness: 0.05 });
+        const riserMat = new THREE.MeshStandardMaterial({ color: 0xb8b0a0, roughness: 0.75, metalness: 0.02 });
+
+        g.userData.stairMaterials = { treadMat, riserMat };
+
         for (let i = 0; i < steps; i++) {
-          const sBox = new THREE.Mesh(new THREE.BoxGeometry(stepW, stepH, stepD), mat);
-          sBox.position.set(0, stepH * (i + 0.5), -i * stepD);
-          g.add(sBox);
+          // TREAD (horizontal slab)
+          const tread = new THREE.Mesh(
+            new THREE.BoxGeometry(stepW, treadThick, stepD),
+            treadMat
+          );
+          tread.position.set(0, stepH * (i + 1) - treadThick / 2, -i * stepD);
+          g.add(tread);
+
+          // RISER (vertical face) — only if double thick or always for realism
+          const riser = new THREE.Mesh(
+            new THREE.BoxGeometry(stepW, riserThick, 0.02),
+            riserMat
+          );
+          riser.position.set(0, stepH * i + riserThick / 2, -i * stepD - stepD / 2);
+          g.add(riser);
+
+          // MOLDING (edge trim under tread)
+          if (params.molding !== 'none') {
+            const moldH = params.moldingH;
+            const moldCount = params.molding === 'double' ? 2 : 1;
+            for (let m = 0; m < moldCount; m++) {
+              const mold = new THREE.Mesh(
+                new THREE.BoxGeometry(stepW + 0.02, moldH, 0.03),
+                new THREE.MeshStandardMaterial({ color: 0x8a7a60, roughness: 0.4, metalness: 0.15 })
+              );
+              mold.position.set(0, stepH * (i + 1) - treadThick - moldH / 2 - m * moldH, -i * stepD + stepD / 2 + 0.015);
+              g.add(mold);
+            }
+          }
         }
-      }
 
-      g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-           // Local offset (position along wall / custom X-Z)
-      if (s.type === 'door' || s.type === 'window') {
-        g.position.x = 0; // temporary — will be offset after rotation
-      }
-       g.position.set(wx, 0, wz);
-      g.rotation.y = (s.rot || 0) * DEG;
-             // apply offset along local axes
-      if (s.type === 'door' || s.type === 'window') {
-        const ox = params.offsetX || 0;
-        g.position.x += Math.cos(-g.rotation.y) * ox;
-        g.position.z += Math.sin(-g.rotation.y) * ox;
+        // RAILING
+        if (params.railing !== 'none') {
+          const rH = params.railingH;
+          const topTotalH = steps * stepH;
+          const totalD = steps * stepD;
+
+          // two rails — left and right
+          for (const side of [-1, 1]) {
+            const rx = side * (stepW / 2 + 0.02);
+
+            // handrail (sloped box)
+            const railLen = Math.hypot(totalD, topTotalH);
+            const angle = Math.atan2(topTotalH, totalD);
+            const rail = new THREE.Mesh(
+              new THREE.BoxGeometry(0.05, 0.06, railLen),
+              new THREE.MeshStandardMaterial({
+                color: params.railing === 'wood' ? 0x8b5a3a : 0xcccccc,
+                roughness: 0.4, metalness: params.railing === 'metal' ? 0.85 : 0.15
+              })
+            );
+            rail.position.set(rx, topTotalH / 2 + rH, -totalD / 2);
+            rail.rotation.x = -angle;
+            g.add(rail);
+
+            // balusters (vertical bars)
+            if (params.railing === 'metal') {
+              const balCount = steps * 2;
+              for (let b = 0; b <= balCount; b++) {
+                const t = b / balCount;
+                const bY = t * topTotalH + rH * 0.5;
+                const bZ = -t * totalD;
+                const bal = new THREE.Mesh(
+                  new THREE.CylinderGeometry(0.012, 0.012, rH, 8),
+                  new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.9, roughness: 0.25 })
+                );
+                bal.position.set(rx, bY, bZ);
+                g.add(bal);
+              }
+            } else if (params.railing === 'wood') {
+              const balCount = Math.max(3, Math.floor(steps / 2));
+              for (let b = 0; b <= balCount; b++) {
+                const t = b / balCount;
+                const bal = new THREE.Mesh(
+                  new THREE.BoxGeometry(0.05, rH, 0.05),
+                  new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.6 })
+                );
+                bal.position.set(rx, t * topTotalH + rH / 2, -t * totalD);
+                g.add(bal);
+              }
+            } else if (params.railing === 'glass') {
+              // glass panel following slope
+              const glass = new THREE.Mesh(
+                new THREE.PlaneGeometry(railLen, rH * 0.9),
+                new THREE.MeshPhysicalMaterial({
+                  color: 0xcfe8f5, transparent: true, opacity: 0.35,
+                  roughness: 0.05, transmission: 0.9, thickness: 0.01, side: THREE.DoubleSide
+                })
+              );
+              glass.rotation.x = -angle;
+              glass.rotation.y = Math.PI / 2;
+              glass.position.set(rx, topTotalH / 2 + rH / 2, -totalD / 2);
+              g.add(glass);
+            }
+          }
+        }
+      } else if (s.type === 'ventilator') {
+        const vw = params.width, vh = params.height, sill = params.sill;
+        const fm = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5, metalness: 0.15 });
+        const hTop = new THREE.Mesh(new THREE.BoxGeometry(vw + 0.06, 0.04, 0.08), fm);
+        hTop.position.set(0, sill + vh, 0);
+        const hBot = hTop.clone(); hBot.position.set(0, sill, 0);
+        const vL = new THREE.Mesh(new THREE.BoxGeometry(0.04, vh, 0.08), fm);
+        vL.position.set(-vw / 2, sill + vh / 2, 0);
+        const vR = vL.clone(); vR.position.set(vw / 2, sill + vh / 2, 0);
+        g.add(hTop, hBot, vL, vR);
+        // louver blades
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.4, metalness: 0.2 });
+        for (let b = 0; b < 3; b++) {
+          const blade = new THREE.Mesh(new THREE.BoxGeometry(vw, 0.03, 0.06), bladeMat);
+          blade.position.set(0, sill + vh * (0.2 + b * 0.3), 0);
+          blade.rotation.x = -0.35;
+          g.add(blade);
+        }
       } else if (s.type === 'pillar') {
-        g.position.x += (params.offsetX || 0);
-        g.position.z += (params.offsetZ || 0);
-      }
-      g.userData.structType = s.type;
-      g.userData.stateIndex = idx;
-      g.userData.params = params;
-      g.userData.roomH = H;
-      grp.add(g);
-    });
+        const size = params.size || 0.30;
+        const baseSize = params.baseSize || 0.45;
+        const baseH = params.baseH || 0.15;
+        const capH = params.capH || 0.12;
+        const mat = new THREE.MeshStandardMaterial({ color: 0xdedede, roughness: 0.65, metalness: 0.05 });
 
-    this.roomGroup.add(grp);
-  }
+        // Base
+        const baseGeo = params.shape === 'round'
+          ? new THREE.CylinderGeometry(baseSize, baseSize, baseH, 24)
+          : new THREE.BoxGeometry(baseSize * 2, baseH, baseSize * 2);
+        const baseMesh = new THREE.Mesh(baseGeo, mat);
+        baseMesh.position.y = baseH / 2;
+        g.add(baseMesh);
+
+        // Shaft
+        const shaftH = H - baseH - capH;
+        const shaftGeo = params.shape === 'round'
+          ? new THREE.CylinderGeometry(size, size, shaftH, 24)
+          : new THREE.BoxGeometry(size * 2, shaftH, size * 2);
+        const shaft = new THREE.Mesh(shaftGeo, mat);
+        shaft.position.y = baseH + shaftH / 2;
+        g.add(shaft);
+
+        // Capital
+        const capGeo = params.shape === 'round'
+          ? new THREE.CylinderGeometry(baseSize, baseSize * 0.9, capH, 24)
+          : new THREE.BoxGeometry(baseSize * 2, capH, baseSize * 2);
+        const cap = new THREE.Mesh(capGeo, mat);
+        cap.position.y = H - capH / 2;
+        g.add(cap);
+      }
 
   updateStructure(index, newParams) {
     if (!this.currentState?.structure?.[index]) return;
@@ -633,36 +773,50 @@ class InteriorEngine {
       for (const w of walls.children) await apply('wall', w, w.userData.wallLen || L, H);
     }
 
-    // ---------- Apply material to stairs ----------
+     // ---------- Apply material to stairs ----------
     if (this.structGrp) {
-      const applyToGroup = async (grp, tileKey) => {
+      const makeMat = async (tileKey) => {
         const t = tiles[tileKey];
-        if (!t?.url) return;
+        if (!t?.url) return null;
         const tex = await loadTex(t.url);
-        if (!tex) return;
-        grp.traverse(c => {
-          if (!c.isMesh) return;
-          const clone = tex.clone();
-          clone.wrapS = clone.wrapT = THREE.RepeatWrapping;
-          clone.colorSpace = THREE.SRGBColorSpace;
-          clone.repeat.set(1.5, 1.5);
-          clone.needsUpdate = true;
-          c.material.map = clone;
-          c.material.color.set(0xffffff);
-          c.material.roughness = 0.4;
-          c.material.metalness = 0.06;
-          c.material.needsUpdate = true;
+        if (!tex) return null;
+        const clone = tex.clone();
+        clone.wrapS = clone.wrapT = THREE.RepeatWrapping;
+        clone.colorSpace = THREE.SRGBColorSpace;
+        clone.repeat.set(1.5, 1.5);
+        clone.needsUpdate = true;
+        return new THREE.MeshStandardMaterial({
+          map: clone, color: 0xffffff, roughness: 0.4, metalness: 0.06
         });
       };
 
       for (const g of this.structGrp.children) {
         if (g.userData.structType !== 'stairs') continue;
-        const src = g.userData.params?.materialSource;
-        if (!src || src === 'solid') continue;
-        await applyToGroup(g, src);
+        const tKey = g.userData.params?.treadMaterial;
+        const rKey = g.userData.params?.riserMaterial;
+        const tMat = (tKey && tKey !== 'solid') ? await makeMat(tKey) : null;
+        const rMat = (rKey && rKey !== 'solid') ? await makeMat(rKey) : null;
+
+        if (!tMat && !rMat) continue;
+
+        let stepIdx = 0;
+        g.children.forEach(child => {
+          if (!child.isMesh) return;
+          // crude identification: tread is wide-flat, riser is thin-z
+          const geo = child.geometry;
+          if (!geo?.parameters) return;
+          const p = geo.parameters;
+          // BoxGeometry has width/height/depth
+          if (p.depth != null && p.depth < 0.05) {
+            // riser
+            if (rMat) child.material = rMat.clone();
+          } else {
+            // tread
+            if (tMat) child.material = tMat.clone();
+          }
+        });
       }
     }
-  }
 
   // ---------- FURNITURE ----------
   async _buildFurniture(state) {
