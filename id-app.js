@@ -606,6 +606,101 @@ $$('.id-tab').forEach(tab => {
   });
 });
 
+// ============================================================
+// TILE SIZE / INPUT LISTENERS
+// ============================================================
+function updateRatioBadge() {
+  const cur = STATE.tiles[STATE.activeTab];
+  const gcd = (a, b) => b ? gcd(b, a % b) : a;
+  const g = gcd(cur.size.w, cur.size.h) || 1;
+  const badge = document.getElementById('id-cropRatioBadge');
+  if (badge) badge.textContent = `${cur.size.w/g}:${cur.size.h/g}`;
+}
+
+function syncTilePreset() {
+  const cur = STATE.tiles[STATE.activeTab];
+  const key = `${cur.size.w},${cur.size.h}`;
+  const sel = document.getElementById('id-tilePreset');
+  if (!sel) return;
+  const has = Array.from(sel.options).some(o => o.value === key);
+  sel.value = has ? key : 'custom';
+}
+
+$('#id-tileW')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.size.w = Math.max(50, parseFloat(e.target.value) || 600);
+  updateRatioBadge();
+  syncTilePreset();
+  reinitCropRatio();
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tileH')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.size.h = Math.max(50, parseFloat(e.target.value) || 600);
+  updateRatioBadge();
+  syncTilePreset();
+  reinitCropRatio();
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tilePreset')?.addEventListener('change', (e) => {
+  const v = e.target.value;
+  if (v === 'custom') return;
+  const [w, h] = v.split(',').map(Number);
+  if (!w || !h) return;
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.size.w = w;
+  cur.size.h = h;
+  const iw = document.getElementById('id-tileW');
+  const ih = document.getElementById('id-tileH');
+  if (iw) iw.value = w;
+  if (ih) ih.value = h;
+  updateRatioBadge();
+  reinitCropRatio();
+  toast(`মাপ: ${w} × ${h} mm`, 'info', 1500);
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tileRot')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.rot = parseFloat(e.target.value) || 0;
+  const el = document.getElementById('id-tileRotVal');
+  if (el) el.textContent = cur.rot + '°';
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-grout')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.grout = parseFloat(e.target.value) || 0;
+  const el = document.getElementById('id-groutVal');
+  if (el) el.textContent = cur.grout + 'mm';
+});
+
+$('#id-tileOffsetX')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.offsetX = parseFloat(e.target.value) || 0;
+  const el = document.getElementById('id-tileOffXVal');
+  if (el) el.textContent = cur.offsetX + 'mm';
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tileOffsetY')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.offsetY = parseFloat(e.target.value) || 0;
+  const el = document.getElementById('id-tileOffYVal');
+  if (el) el.textContent = cur.offsetY + 'mm';
+  if (STATE.step === 7) refreshRender(true);
+});
+
+// Crop চলাকালীন ratio পরিবর্তন হলে লাইভ আপডেট
+function reinitCropRatio() {
+  if (!cropper) return;
+  const cur = STATE.tiles[STATE.activeTab];
+  const r = cur.size.w / cur.size.h;
+  try { cropper.setAspectRatio(r); } catch (e) {}
+}
+
 $('#id-tileFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -663,6 +758,7 @@ function openCrop(file) {
     if (cropper) { cropper.destroy(); cropper = null; }
 
     const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
+    console.log('🎯 Crop ratio:', tw, ':', th, '=', ratio); 
     const tw = cur.size?.w || 600;
     const th = cur.size?.h || 600;
     const ratio = tw / th;
@@ -753,42 +849,41 @@ function refreshTileGallery() {
   const cur = STATE.tiles[STATE.activeTab];
   gallery.innerHTML = '';
   if (!cur.url) {
-    gallery.innerHTML = '<p class="id-empty">এখনো কোনো টাইল যোগ করা হয়নি। উপরে মাপ/প্রিসেট বেছে নিন।</p>';
+    gallery.innerHTML = '<p class="id-empty">এখনো কোনো টাইল যোগ করা হয়নি। উপরে মাপ সেট করে ছবি আপলোড করুন।</p>';
   } else {
     const div = document.createElement('div');
     div.className = 'id-gallery-item selected';
     div.innerHTML = `<img src="${cur.url}" alt=""><div class="id-item-label">বর্তমান</div>`;
     gallery.appendChild(div);
   }
-  // Panel সবসময় দৃশ্যমান
+
   const panel = $('#id-tileSizePanel');
   if (panel) { panel.hidden = false; panel.style.display = 'block'; }
 
-  // ইনপুট সিঙ্ক
-  if ($('#id-tileW')) $('#id-tileW').value = cur.size.w;
-  if ($('#id-tileH')) $('#id-tileH').value = cur.size.h;
-  if ($('#id-tileRot')) { $('#id-tileRot').value = cur.rot; }
-  if ($('#id-tileRotVal')) $('#id-tileRotVal').textContent = cur.rot + '°';
-  if ($('#id-grout')) $('#id-grout').value = cur.grout;
-  if ($('#id-groutVal')) $('#id-groutVal').textContent = cur.grout + 'mm';
-  if ($('#id-tileOffsetX')) {
-    $('#id-tileOffsetX').value = cur.offsetX || 0;
-    $('#id-tileOffXVal').textContent = (cur.offsetX || 0) + 'mm';
-  }
-  if ($('#id-tileOffsetY')) {
-    $('#id-tileOffsetY').value = cur.offsetY || 0;
-    $('#id-tileOffYVal').textContent = (cur.offsetY || 0) + 'mm';
-  }
-  syncTilePreset();
-}
+  const iw = document.getElementById('id-tileW');
+  const ih = document.getElementById('id-tileH');
+  const ir = document.getElementById('id-tileRot');
+  const irv = document.getElementById('id-tileRotVal');
+  const ig = document.getElementById('id-grout');
+  const igv = document.getElementById('id-groutVal');
+  const iox = document.getElementById('id-tileOffsetX');
+  const ioxv = document.getElementById('id-tileOffXVal');
+  const ioy = document.getElementById('id-tileOffsetY');
+  const ioyv = document.getElementById('id-tileOffYVal');
 
-function syncTilePreset() {
-  const cur = STATE.tiles[STATE.activeTab];
-  const key = `${cur.size.w},${cur.size.h}`;
-  const sel = $('#id-tilePreset');
-  if (!sel) return;
-  const hasOpt = Array.from(sel.options).some(o => o.value === key);
-  sel.value = hasOpt ? key : 'custom';
+  if (iw) iw.value = cur.size.w;
+  if (ih) ih.value = cur.size.h;
+  if (ir) ir.value = cur.rot;
+  if (irv) irv.textContent = cur.rot + '°';
+  if (ig) ig.value = cur.grout;
+  if (igv) igv.textContent = cur.grout + 'mm';
+  if (iox) iox.value = cur.offsetX || 0;
+  if (ioxv) ioxv.textContent = (cur.offsetX || 0) + 'mm';
+  if (ioy) ioy.value = cur.offsetY || 0;
+  if (ioyv) ioyv.textContent = (cur.offsetY || 0) + 'mm';
+
+  if (typeof updateRatioBadge === 'function') updateRatioBadge();
+  if (typeof syncTilePreset === 'function') syncTilePreset();
 }
 
 // ============================================================
