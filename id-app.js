@@ -658,13 +658,24 @@ function openCrop(file) {
     const modal = $('#id-cropModal');
     const img   = $('#id-cropImg');
     modal.hidden = false;
-    modal.style.display = 'flex';   // ← এই লাইনটাই আগে ছিল না
+    modal.style.display = 'flex';
     img.src = e.target.result;
     if (cropper) { cropper.destroy(); cropper = null; }
+
+    // ▶ টাইলের মাপ অনুযায়ী aspect ratio ঠিক করা
+    const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
+    const tw = cur.size?.w || 600;
+    const th = cur.size?.h || 600;
+    const ratio = tw / th;
+
     cropper = new Cropper(img, {
-      aspectRatio: 1,
+      aspectRatio: ratio,
       viewMode: 1,
-      autoCropArea: 1
+      autoCropArea: 1,
+      responsive: true,
+      background: true,
+      guides: true,
+      dragMode: 'move'
     });
   };
   reader.readAsDataURL(file);
