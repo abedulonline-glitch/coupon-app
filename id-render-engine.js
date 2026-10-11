@@ -134,8 +134,7 @@ class InteriorEngine {
     this.composer.addPass(new OutputPass());
   }
 
-  async loadHDRI(url) {
-  async loadHDRI(url) {
+   async loadHDRI(url) {
     const loader = new RGBELoader();
     loader.setCrossOrigin('anonymous');
     return new Promise((resolve, reject) => {
