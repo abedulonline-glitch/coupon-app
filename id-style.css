@@ -128,10 +128,11 @@ html, body {
    ============================================================ */
 #id-wizard {
   flex: 1;
-  padding: 20px 16px 100px;
+  padding: 16px 16px 90px;
   overflow-y: auto;
 }
 .id-step { animation: id-fadeIn 0.35s ease; }
+.id-step[hidden] { display: none !important; }
 .id-step h2 {
   font-size: 18px;
   margin: 0 0 16px;
@@ -329,7 +330,11 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--id-border);
   border-radius: var(--id-radius);
   overflow: hidden;
-  aspect-ratio: 3 / 2;
+  height: 320px;
+  max-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #id-structSvg {
   width: 100%;
