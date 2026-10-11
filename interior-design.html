@@ -207,37 +207,29 @@
       </div>
 
             <!-- Crop Modal -->
-      <div id="id-cropModal" hidden>
-        <div class="id-crop-box">
-          <header class="id-crop-header">
-            <span>✂️ টাইল ক্রপ</span>
-            <button id="id-cropCancelTop" title="বন্ধ">✕</button>
-          </header>
-
-          <div class="id-crop-toolbar">
-            <button data-cropact="zoomIn"  title="জুম ইন">🔍➕</button>
-            <button data-cropact="zoomOut" title="জুম আউট">🔍➖</button>
-            <button data-cropact="fit"     title="পুরো ছবি">🔲</button>
-            <button data-cropact="rotL"    title="বামে ঘোরান">↺</button>
-            <button data-cropact="rotR"    title="ডানে ঘোরান">↻</button>
-            <button data-cropact="reset"   title="রিসেট">⟲</button>
-          </div>
-
-          <div class="id-crop-stage">
-            <img id="id-cropImg" alt="crop">
-          </div>
-
-          <div class="id-crop-info">
-            <span id="id-cropSizeInfo">—</span>
-          </div>
-
-          <footer class="id-crop-actions">
-            <button id="id-cropCancel">বাতিল</button>
-            <button id="id-cropReset">রিসেট</button>
-            <button id="id-cropOk">✔️ ঠিক আছে</button>
-          </footer>
-        </div>
-      </div>
+     <div id="id-cropModal" hidden>
+  <div class="id-crop-box">
+    <header class="id-crop-header">
+      <span>✂️ টাইল ক্রপ — ৪ কোণা টেনে ঠিক করুন</span>
+      <button id="id-cropCancelTop" title="বন্ধ">✕</button>
+    </header>
+    <div class="id-crop-toolbar">
+      <button id="id-pcRotL" title="বামে ৯০°">↺ ৯০°</button>
+      <button id="id-pcRotR" title="ডানে ৯০°">↻ ৯০°</button>
+      <button id="id-pcAuto" title="অটো ডিটেক্ট">🤖 অটো</button>
+      <button id="id-pcReset" title="রিসেট">⟲ রিসেট</button>
+      <span id="id-cropRatioBadge">1:1</span>
+    </div>
+    <div class="id-crop-stage" id="id-cropStage"></div>
+    <div class="id-crop-info">
+      <span id="id-cropSizeInfo">🖐️ চারকোণা নীল বিন্দু টেনে টাইলের কোণায় বসান</span>
+    </div>
+    <footer class="id-crop-actions">
+      <button id="id-cropCancel">বাতিল</button>
+      <button id="id-cropOk">✔️ ঠিক আছে</button>
+    </footer>
+  </div>
+</div>
     </section>
 
     <!-- ---------- STEP 6: Furniture + Outside ---------- -->
