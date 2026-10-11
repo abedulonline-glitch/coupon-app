@@ -57,8 +57,6 @@ class InteriorEngine {
   _buildIndividualTiles(surface, tileState, roomW, roomH, meshName) {
     const baseMesh = this.roomGroup.getObjectByName(meshName);
     if (!baseMesh) return;
-
-    // Hide the base mesh
     baseMesh.visible = false;
 
     const tileW = (tileState.size?.w || 600) / 1000;
@@ -79,8 +77,30 @@ class InteriorEngine {
     const globalRot = (tileState.rot || 0);
     const individualMap = tileState.individual || {};
 
+    // ▶ Room boundary polygon (from ShapeGeometry vertices)
+    const roomPts = this._roomBounds?.pts || [];
+
+    const insideRoom = (px, pz) => {
+      if (!roomPts.length) return true;
+      let inside = false;
+      for (let i = 0, j = roomPts.length - 1; i < roomPts.length; j = i++) {
+        const xi = roomPts[i].x, zi = roomPts[i].y;
+        const xj = roomPts[j].x, zj = roomPts[j].y;
+        const intersect = ((zi > pz) !== (zj > pz)) &&
+                          (px < (xj - xi) * (pz - zi) / (zj - zi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    };
+
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
+        const px = -roomW/2 + tileW/2 + c * tileW;
+        const pz = -roomH/2 + tileH/2 + r * tileH;
+
+        // ▶ Only add tile if center is inside room polygon
+        if (!insideRoom(px, pz)) continue;
+
         const key = `${r},${c}`;
         const rot = individualMap[key] != null ? individualMap[key] : globalRot;
 
@@ -103,9 +123,6 @@ class InteriorEngine {
         }
 
         const m = new THREE.Mesh(geo, mat);
-        // Flat position in XZ plane
-        const px = -roomW/2 + tileW/2 + c * tileW;
-        const pz = -roomH/2 + tileH/2 + r * tileH;
         m.rotation.x = -Math.PI / 2;
         m.position.set(px, 0.001, pz);
         m.receiveShadow = true;
