@@ -175,13 +175,34 @@
         <p class="id-empty">এখনো কোনো টাইল যোগ করা হয়নি।</p>
       </div>
 
-      <div id="id-tileSizePanel" hidden>
-        <h3>টাইলের সাইজ</h3>
+            <div id="id-tileSizePanel">
+        <h3>📏 টাইলের মাপ (mm)</h3>
+
         <div class="id-row">
-          <input type="number" id="id-tileW" placeholder="W (mm)" value="600">
-          <span>×</span>
-          <input type="number" id="id-tileH" placeholder="H (mm)" value="600">
+          <label>সাধারণ মাপ</label>
+          <select id="id-tilePreset" style="flex:1">
+            <option value="300,300">300 × 300 — স্কয়ার (ছোট)</option>
+            <option value="300,450">300 × 450 — মাঝারি লম্বা</option>
+            <option value="300,600">300 × 600 — লম্বা (বাথরুম)</option>
+            <option value="600,600" selected>600 × 600 — স্কয়ার (স্ট্যান্ডার্ড)</option>
+            <option value="600,1200">600 × 1200 — বড় লম্বা</option>
+            <option value="800,800">800 × 800 — বড় স্কয়ার</option>
+            <option value="800,1600">800 × 1600 — এক্সট্রা লম্বা</option>
+            <option value="1000,1000">1000 × 1000 — বড় ফ্লোর</option>
+            <option value="1200,1200">1200 × 1200 — XXL</option>
+            <option value="1200,600">1200 × 600 — চওড়া</option>
+            <option value="1600,800">1600 × 800 — চওড়া বড়</option>
+            <option value="custom">— কাস্টম (নিচে লিখুন) —</option>
+          </select>
         </div>
+
+        <div class="id-row">
+          <label>W × H</label>
+          <input type="number" id="id-tileW" placeholder="W (mm)" value="600" min="50" max="5000">
+          <span>×</span>
+          <input type="number" id="id-tileH" placeholder="H (mm)" value="600" min="50" max="5000">
+        </div>
+
         <div class="id-row">
           <label>রোটেশন</label>
           <input type="range" id="id-tileRot" min="0" max="360" value="0">
