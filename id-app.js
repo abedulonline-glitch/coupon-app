@@ -613,8 +613,11 @@ function updateRatioBadge() {
   const cur = STATE.tiles[STATE.activeTab];
   const gcd = (a, b) => b ? gcd(b, a % b) : a;
   const g = gcd(cur.size.w, cur.size.h) || 1;
-  const badge = document.getElementById('id-cropRatioBadge');
-  if (badge) badge.textContent = `${cur.size.w/g}:${cur.size.h/g}`;
+  const text = `${cur.size.w/g}:${cur.size.h/g}`;
+  const b1 = document.getElementById('id-sizeRatioBadge');
+  const b2 = document.getElementById('id-cropRatioBadge');
+  if (b1) b1.textContent = text;
+  if (b2) b2.textContent = text;
 }
 
 function syncTilePreset() {
@@ -771,10 +774,8 @@ function openCrop(file) {
       const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
       const tw = cur.size?.w || 600;
       const th = cur.size?.h || 600;
-      const gcd = (a, b) => b ? gcd(b, a % b) : a;
-      const g = gcd(tw, th) || 1;
-      const badge = document.getElementById('id-cropRatioBadge');
-      if (badge) badge.textContent = `${tw/g}:${th/g}`;
+      console.log('🎯 Crop opened with size:', tw, '×', th);
+      if (typeof updateRatioBadge === 'function') updateRatioBadge();
     };
     img.src = e.target.result;
   };
