@@ -668,14 +668,23 @@ function openCrop(file) {
     const th = cur.size?.h || 600;
     const ratio = tw / th;
 
-    cropper = new Cropper(img, {
+        cropper = new Cropper(img, {
       aspectRatio: ratio,
       viewMode: 1,
-      autoCropArea: 1,
+      autoCropArea: 0.95,
       responsive: true,
       background: true,
-      guides: true,
-      dragMode: 'move'
+      guides: false,
+      center: true,
+      highlight: false,
+      dragMode: 'move',
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+      zoomOnWheel: true,
+      wheelZoomRatio: 0.1,
+      touchDragZoom: true,
+      minContainerHeight: 220
     });
   };
   reader.readAsDataURL(file);
@@ -688,13 +697,37 @@ $('#id-cropCancel')?.addEventListener('click', () => {
 });
 $('#id-cropOk')?.addEventListener('click', async () => {
   if (!cropper) return;
-  const canvas = cropper.getCroppedCanvas({ width: 1024, height: 1024 });
+
+  // টাইলের মাপ অনুযায়ী আউটপুট সাইজ ঠিক করা
+  const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
+  const tw = cur.size?.w || 600;
+  const th = cur.size?.h || 600;
+
+  // Long side 1024, short side proportional
+  const outW = tw >= th ? 1024 : Math.round(1024 * (tw / th));
+  const outH = th >= tw ? 1024 : Math.round(1024 * (th / tw));
+
+  const canvas = cropper.getCroppedCanvas({
+    width: outW,
+    height: outH,
+    imageSmoothingQuality: 'high'
+  });
+
+  const btn = $('#id-cropOk');
+  btn.disabled = true;
+  btn.textContent = '⏳ আপলোড হচ্ছে...';
+
   const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
   const url  = await uploadToImgBB(blob);
+
+  btn.disabled = false;
+  btn.textContent = '✔️ ঠিক আছে';
+
   if (cropper) { cropper.destroy(); cropper = null; }
   $('#id-cropModal').hidden = true;
   $('#id-cropModal').style.display = 'none';
-  if (url) { setTile(url); toast('আপলোড হয়েছে', 'success'); }
+  if (url) { setTile(url); toast('✅ টাইল যোগ হয়েছে', 'success'); }
+  else     { toast('❌ আপলোড ব্যর্থ', 'error'); }
 });
 
 async function uploadToImgBB(blob) {
