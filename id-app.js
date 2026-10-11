@@ -697,6 +697,76 @@ $$('.id-rot-btn[data-start]').forEach(b => {
   });
 });
 
+// ═══════════════════════════════════════════════
+// INDIVIDUAL TILE MODE
+// ═══════════════════════════════════════════════
+let selectedTile = null;  // { surface, r, c }
+
+function setIndividualMode(on) {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.individualMode = !!on;
+  const btn = document.getElementById('id-individualMode');
+  if (btn) btn.classList.toggle('active-mode', cur.individualMode);
+  if (!cur.individual) cur.individual = {};
+  toast(cur.individualMode
+    ? '🔲 ইন্ডিভিজুয়াল মোড ON — টাইলে ক্লিক/ডান-ক্লিক করুন'
+    : '🔳 ইন্ডিভিজুয়াল মোড OFF', 'info', 2000);
+  if (STATE.step === 7) refreshRender(true);
+}
+
+function resetIndividual() {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.individual = {};
+  selectedTile = null;
+  engine?.clearTileSelection?.();
+  toast('🧹 সব টাইলের ঘোরানো রিসেট হয়েছে', 'success');
+  if (STATE.step === 7) refreshRender(true);
+}
+
+function rotateTile(surface, r, c) {
+  const cur = STATE.tiles[surface];
+  if (!cur.individual) cur.individual = {};
+  const key = `${r},${c}`;
+  const old = cur.individual[key] || 0;
+  cur.individual[key] = (old + 90) % 360;
+  if (STATE.step === 7) refreshRender(true);
+}
+
+// Toggle button
+document.getElementById('id-individualMode')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const cur = STATE.tiles[STATE.activeTab];
+  setIndividualMode(!cur.individualMode);
+});
+
+// Reset button
+document.getElementById('id-resetIndividual')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  resetIndividual();
+});
+
+// Engine থেকে টাইল ক্লিক হলে
+window.__id_onTileClick = (surface, r, c) => {
+  selectedTile = { surface, r, c };
+  engine?.highlightTile?.(r, c, surface);
+  const info = document.getElementById('id-rotInfo');
+  if (info) info.textContent = `🔲 টাইল [${r},${c}] — ডান-ক্লিক/ডবল-ক্লিক করুন`;
+  // Double-click এবং long-press এর জন্য সময় ট্র্যাক
+};
+
+window.__id_onTileRotate = (surface, r, c) => {
+  rotateTile(surface, r, c);
+  const cur = STATE.tiles[surface];
+  const rot = cur.individual?.[`${r},${c}`] || 0;
+  toast(`🔄 টাইল [${r},${c}] → ${rot}°`, 'success', 1200);
+};
+
+window.__id_onTileDeselect = () => {
+  selectedTile = null;
+  engine?.clearTileSelection?.();
+  const info = document.getElementById('id-rotInfo');
+  if (info && typeof refreshRotBar === 'function') refreshRotBar();
+};
 // Step 7 খোলার সময় active tab অনুযায়ী label দেখানো
 function refreshRotBar() {
   const info = document.getElementById('id-rotInfo');
@@ -744,6 +814,12 @@ $('#id-tileOffsetY')?.addEventListener('input', (e) => {
   if (el) el.textContent = cur.offsetY + 'mm';
   if (STATE.step === 7) refreshRender(true);
 });
+
+// Individual mode indicator
+  const indBtn = document.getElementById('id-individualMode');
+  if (indBtn) {
+    indBtn.classList.toggle('active-mode', !!cur.individualMode);
+  }
 
 // Crop চলাকালীন ratio পরিবর্তন হলে লাইভ আপডেট
 function reinitCropRatio() {
