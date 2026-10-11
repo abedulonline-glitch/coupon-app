@@ -101,7 +101,7 @@ class InteriorEngine {
     this._onResize();
   }
 
-  _setupPostFX() {
+   _setupPostFX() {
     const wrap = this.canvas.parentElement;
     const w = wrap.clientWidth || 800;
     const h = wrap.clientHeight || 600;
@@ -113,7 +113,7 @@ class InteriorEngine {
 
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
-       try {
+    try {
       this.ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
       this.ssaoPass.kernelRadius = 0.5;
       this.ssaoPass.minDistance = 0.002;
@@ -125,6 +125,16 @@ class InteriorEngine {
       this.ssaoPass = null;
     }
 
+    this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.12, 0.5, 0.95);
+    this.composer.addPass(this.bloomPass);
+
+    this.smaaPass = new SMAAPass(w, h);
+    this.composer.addPass(this.smaaPass);
+
+    this.composer.addPass(new OutputPass());
+  }
+
+  async loadHDRI(url) {
   async loadHDRI(url) {
     const loader = new RGBELoader();
     loader.setCrossOrigin('anonymous');
