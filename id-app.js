@@ -376,14 +376,16 @@ function buildStructureSVG() {
   const svg = $('#id-structSvg');
   svg.innerHTML = '';
   const W = 600, H = 400;
-  // background floor
+
+  // Floor background
   const floor = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   floor.setAttribute('x', 40); floor.setAttribute('y', 40);
   floor.setAttribute('width', W - 80);
   floor.setAttribute('height', H - 80);
   floor.classList.add('floor');
   svg.appendChild(floor);
-  // walls
+
+  // Wall outline
   const wall = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   wall.setAttribute('x', 40); wall.setAttribute('y', 40);
   wall.setAttribute('width', W - 80);
@@ -392,8 +394,75 @@ function buildStructureSVG() {
   wall.setAttribute('stroke', '#4f8cff');
   wall.setAttribute('stroke-width', 3);
   svg.appendChild(wall);
-  // render existing structure
+
+  // Corner markers (4 corners with ft labels)
+  const corners = [[40,40],[560,40],[560,360],[40,360]];
+  const L = STATE.room.length, Wd = STATE.room.width;
+  const cornerLabels = [
+    `0,0`,                       // top-left
+    `${Wd}ft`,                   // top-right (X = width)
+    `${Wd}ft, ${L}ft`,           // bottom-right
+    `${L}ft`                     // bottom-left (Z = length)
+  ];
+  corners.forEach(([cx, cy], i) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy);
+    c.setAttribute('r', 4); c.setAttribute('fill', '#4f8cff');
+    svg.appendChild(c);
+  });
+
+  // Draw each structure item + dimension lines
   STATE.structure.forEach((s, i) => drawStructIcon(s, i));
+
+  // If a structure is selected, highlight its dims
+  if (STATE.selectedStructIdx != null && STATE.structure[STATE.selectedStructIdx]) {
+    drawDimensionLines(STATE.structure[STATE.selectedStructIdx]);
+  }
+}
+
+function pxToFt(px, axis) {
+  // SVG 40..560 for X (width), 40..360 for Y (length)
+  if (axis === 'x') return ((px - 40) / 520) * STATE.room.width;
+  return ((px - 40) / 320) * STATE.room.length;
+}
+
+function drawDimensionLines(s) {
+  const svg = $('#id-structSvg');
+  if (!svg || !s) return;
+
+  // distance to each of the 4 corners
+  const distTL = Math.hypot(s.x - 40, s.y - 40);
+  const distTR = Math.hypot(s.x - 560, s.y - 40);
+  const distBR = Math.hypot(s.x - 560, s.y - 360);
+  const distBL = Math.hypot(s.x - 40, s.y - 360);
+
+  // distance to each wall (in ft)
+  const fromLeft   = pxToFt(s.x, 'x');
+  const fromRight  = STATE.room.width - fromLeft;
+  const fromTop    = pxToFt(s.y, 'y');
+  const fromBottom = STATE.room.length - fromTop;
+
+  const walls = [
+    { x1: s.x, y1: s.y, x2: 40,  y2: s.y, text: `${fromLeft.toFixed(1)} ft`, mx: (s.x+40)/2, my: s.y - 10 },
+    { x1: s.x, y1: s.y, x2: 560, y2: s.y, text: `${fromRight.toFixed(1)} ft`, mx: (s.x+560)/2, my: s.y - 10 },
+    { x1: s.x, y1: s.y, x2: s.x, y2: 40,  text: `${fromTop.toFixed(1)} ft`, mx: s.x + 30, my: (s.y+40)/2 },
+    { x1: s.x, y1: s.y, x2: s.x, y2: 360, text: `${fromBottom.toFixed(1)} ft`, mx: s.x + 30, my: (s.y+360)/2 }
+  ];
+
+  walls.forEach(w => {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', w.x1); line.setAttribute('y1', w.y1);
+    line.setAttribute('x2', w.x2); line.setAttribute('y2', w.y2);
+    line.classList.add('id-dim-line');
+    svg.appendChild(line);
+
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', w.mx); t.setAttribute('y', w.my);
+    t.setAttribute('text-anchor', 'middle');
+    t.classList.add('id-dim-text');
+    t.textContent = w.text;
+    svg.appendChild(t);
+  });
 }
 
 function drawStructIcon(s, idx) {
@@ -401,48 +470,68 @@ function drawStructIcon(s, idx) {
   const x = s.x, y = s.y;
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   let el;
+
+  const isSel = STATE.selectedStructIdx === idx;
+
   if (s.type === 'door') {
     el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     el.setAttribute('x', x - 18); el.setAttribute('y', y - 4);
     el.setAttribute('width', 36); el.setAttribute('height', 8);
+    el.setAttribute('fill', '#ffb347');
   } else if (s.type === 'window') {
     el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     el.setAttribute('x', x - 22); el.setAttribute('y', y - 4);
     el.setAttribute('width', 44); el.setAttribute('height', 8);
+    el.setAttribute('fill', '#4f8cff');
+  } else if (s.type === 'ventilator') {
+    el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    el.setAttribute('x', x - 14); el.setAttribute('y', y - 3);
+    el.setAttribute('width', 28); el.setAttribute('height', 6);
+    el.setAttribute('fill', '#66d9e8');
   } else if (s.type === 'stairs') {
     el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     el.setAttribute('x', x - 20); el.setAttribute('y', y - 20);
     el.setAttribute('width', 40); el.setAttribute('height', 40);
+    el.setAttribute('fill', 'rgba(231,76,60,0.5)');
+    el.setAttribute('stroke', '#e74c3c');
+    el.setAttribute('stroke-width', 1.5);
   } else if (s.type === 'pillar') {
     el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     el.setAttribute('cx', x); el.setAttribute('cy', y);
     el.setAttribute('r', 10);
+    el.setAttribute('fill', '#95a5a6');
   }
-  el.classList.add(s.type);
+
+  el.classList.add('id-struct-hit');
+  if (isSel) {
+    el.setAttribute('stroke', '#ffb347');
+    el.setAttribute('stroke-width', 3);
+    el.setAttribute('stroke-dasharray', '4 2');
+  }
+  el.style.opacity = isSel ? 1 : 0.75;
+
   el.addEventListener('click', (e) => {
     e.stopPropagation();
-    STATE.structure.splice(idx, 1);
+    STATE.selectedStructIdx = idx;
     buildStructureSVG();
+    engine?.updateStructure?.(idx, STATE.structure[idx].params || {});
+    window.__id_onSelectStructure?.(idx);
   });
+
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm('এই আইটেম মুছে ফেলবেন?')) {
+      STATE.structure.splice(idx, 1);
+      STATE.selectedStructIdx = null;
+      buildStructureSVG();
+      if (STATE.step === 7) refreshRender(true);
+    }
+  });
+
   g.appendChild(el);
   svg.appendChild(g);
 }
-
-$('#id-structSvg')?.addEventListener('click', (e) => {
-  if (!activeTool) return;
-  const svg = $('#id-structSvg');
-  const rect = svg.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width  * 600;
-  const y = (e.clientY - rect.top)  / rect.height * 400;
-  if (x < 40 || x > 560 || y < 40 || y > 360) return;
-  if (activeTool === 'erase') {
-    STATE.structure = STATE.structure.filter(s => Math.hypot(s.x - x, s.y - y) > 25);
-    buildStructureSVG(); return;
-  }
-  STATE.structure.push({ type: activeTool, x, y, rot: 0 });
-  buildStructureSVG();
-});
-buildStructureSVG();
 
 // ============================================================
 // STEP 4 — SURFACE SELECTION
