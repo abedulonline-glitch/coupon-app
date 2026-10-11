@@ -1426,3 +1426,52 @@ input[type="range"]::-moz-range-thumb {
 }
 .id-tile-rot-quick:hover { background: var(--id-primary); border-color: var(--id-primary); color: #fff; }
 .id-tile-rot-quick.active { background: var(--id-primary); border-color: var(--id-primary); color: #fff; }
+
+#id-rotBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--id-bg-2);
+  border: 1px solid var(--id-border);
+  border-radius: var(--id-radius);
+  margin-bottom: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+#id-rotBar::-webkit-scrollbar { display: none; }
+#id-rotInfo {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--id-accent);
+  padding: 6px 10px;
+  background: var(--id-bg-3);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.id-rot-btn {
+  flex-shrink: 0;
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  color: var(--id-text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.id-rot-btn:hover {
+  background: var(--id-primary);
+  border-color: var(--id-primary);
+  color: #fff;
+}
+.id-rot-btn.active,
+.id-rot-btn[data-active="true"] {
+  background: var(--id-primary);
+  border-color: var(--id-primary);
+  color: #fff;
+}
