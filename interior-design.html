@@ -275,7 +275,20 @@
           <option value="corner">কর্নার</option>
         </select>
 
-               <label>আকাশ (HDRI)</label>
+              <label>সময়</label>
+        <input type="range" id="id-timeOfDay" min="0" max="24" value="14" step="0.5" style="flex:1;min-width:120px">
+        <span id="id-timeVal" style="min-width:55px">14:00</span>
+
+        <label>উজ্জ্বলতা</label>
+        <input type="range" id="id-exposure" min="20" max="120" value="62" step="1" style="flex:1;min-width:120px">
+        <span id="id-expVal" style="min-width:45px">0.62</span>
+
+        <label>পরিবেশ</label>
+        <input type="range" id="id-ambient" min="0" max="100" value="18" step="1" style="flex:1;min-width:120px">
+        <span id="id-ambVal" style="min-width:45px">0.18</span>
+
+        
+        <label>আকাশ (HDRI)</label>
         <select id="id-hdriSelect">
           <option value="none">— ডিফল্ট —</option>
           <option value="venice">🌅 ভেনিস সানসেট</option>
