@@ -56,7 +56,7 @@ class InteriorEngine {
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+   this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.toneMappingExposure = 0.62;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -115,9 +115,6 @@ class InteriorEngine {
 
     try {
       this.ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
-      this.ssaoPass.kernelRadius = 0.5;
-      this.ssaoPass.minDistance = 0.002;
-      this.ssaoPass.maxDistance = 0.15;
       this.ssaoPass.output = SSAOPass.OUTPUT.Default;
       this.composer.addPass(this.ssaoPass);
     } catch (err) {
@@ -125,14 +122,21 @@ class InteriorEngine {
       this.ssaoPass = null;
     }
 
-    this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.12, 0.5, 0.95);
+    this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.06, 0.4, 0.92);
     this.composer.addPass(this.bloomPass);
 
     this.smaaPass = new SMAAPass(w, h);
     this.composer.addPass(this.smaaPass);
 
-    this.composer.addPass(new OutputPass());
-  }
+       const outputPass = new OutputPass();
+    this.composer.addPass(outputPass);
+ 
+       if (this.renderer.toneMapping === THREE.NoToneMapping) {
+      // OutputPass নিজেই ACES করে — renderer এটা করবে না
+      this.renderer.toneMapping = THREE.NoToneMapping;
+    }
+   
+   }
 
    async loadHDRI(url) {
     const loader = new RGBELoader();
