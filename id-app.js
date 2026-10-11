@@ -1064,18 +1064,46 @@ window.__id_onSelectStructure = (idx) => {
     html += row('উচ্চতা (m)', 'height', p.height, 0.3, 3, 0.05);
     html += row('সিল উচ্চতা (m)', 'sill', p.sill, 0, 2.5, 0.05);
     html += row('দেয়ালে অবস্থান (m)', 'offsetX', p.offsetX || 0, -8, 8, 0.05);
+  } else if (s.type === 'ventilator') {
+    html += row('প্রস্থ (m)', 'width', p.width, 0.3, 1.5, 0.05);
+    html += row('উচ্চতা (m)', 'height', p.height, 0.2, 1.0, 0.05);
+    html += row('সিল উচ্চতা (m)', 'sill', p.sill, 1.5, 2.5, 0.05);
+    html += row('দেয়ালে অবস্থান (m)', 'offsetX', p.offsetX || 0, -8, 8, 0.05);
   } else if (s.type === 'pillar') {
-    html += row('ব্যাসার্ধ (m)', 'radius', p.radius, 0.05, 1, 0.01);
+    html += selectRow('আকৃতি', 'shape', p.shape, [
+      ['round', '⭕ গোল'], ['square', '⬛ স্কয়ার']
+    ]);
+    html += row('সাইজ (m)', 'size', p.size, 0.08, 0.6, 0.01);
+    html += row('বেস সাইজ (m)', 'baseSize', p.baseSize, 0.1, 0.9, 0.02);
+    html += row('বেস উচ্চতা (m)', 'baseH', p.baseH, 0.05, 0.5, 0.01);
+    html += row('ক্যাপিটাল উচ্চতা (m)', 'capH', p.capH, 0.05, 0.5, 0.01);
     html += row('X অফসেট (m)', 'offsetX', p.offsetX || 0, -5, 5, 0.05);
     html += row('Z অফসেট (m)', 'offsetZ', p.offsetZ || 0, -5, 5, 0.05);
   } else if (s.type === 'stairs') {
     html += row('ধাপ সংখ্যা', 'steps', p.steps, 2, 30, 1);
     html += row('প্রস্থ (m)', 'width', p.width, 0.5, 3, 0.05);
-    html += row('প্রতিটি ধাপের গভীরতা (m)', 'depth', p.depth || 0.28, 0.15, 0.6, 0.01);
-    html += selectRow('মেটেরিয়াল', 'materialSource', p.materialSource || 'solid', [
-      ['solid', 'সাদামাটা (ধূসর)'],
-      ['floor', '🟫 ফ্লোর টাইল/গ্রানাইট'],
-      ['wall',  '🧱 ওয়াল টাইল']
+    html += row('ট্রেড গভীরতা (m)', 'depth', p.depth, 0.15, 0.6, 0.01);
+    html += row('প্রতি ধাপ উচ্চতা (m)', 'riserH', p.riserH, 0.12, 0.30, 0.01);
+    html += selectRow('থিকনেস', 'thickness', p.thickness, [
+      ['single', 'সিঙ্গেল (এক লেয়ার)'], ['double', 'ডাবল (ট্রেড + রাইজার আলাদা)']
+    ]);
+    html += selectRow('রেলিং', 'railing', p.railing, [
+      ['none', 'নেই'], ['wood', '🪵 কাঠ'], ['metal', '⚙️ মেটাল'], ['glass', '🔷 গ্লাস']
+    ]);
+    if (p.railing && p.railing !== 'none') {
+      html += row('রেলিং উচ্চতা (m)', 'railingH', p.railingH, 0.7, 1.2, 0.05);
+    }
+    html += selectRow('মোল্ডিং', 'molding', p.molding, [
+      ['none', 'নেই'], ['simple', 'এক লাইন'], ['double', 'ডাবল মোল্ডিং']
+    ]);
+    if (p.molding !== 'none') {
+      html += row('মোল্ডিং উচ্চতা (m)', 'moldingH', p.moldingH, 0.02, 0.12, 0.005);
+    }
+    html += selectRow('ট্রেড মেটেরিয়াল', 'treadMaterial', p.treadMaterial || 'solid', [
+      ['solid', 'ধূসর কংক্রিট'], ['floor', '🟫 ফ্লোর টাইল'], ['wall', '🧱 ওয়াল টাইল'], ['accent', '🎯 অ্যাকসেন্ট']
+    ]);
+    html += selectRow('রাইজার মেটেরিয়াল', 'riserMaterial', p.riserMaterial || 'solid', [
+      ['solid', 'সাদা'], ['floor', '🟫 ফ্লোর টাইল'], ['wall', '🧱 ওয়াল টাইল'], ['accent', '🎯 অ্যাকসেন্ট']
     ]);
   }
   html += `<div class="id-struct-row" style="margin-top:12px">
