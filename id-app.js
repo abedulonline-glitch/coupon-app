@@ -662,13 +662,12 @@ function openCrop(file) {
     img.src = e.target.result;
     if (cropper) { cropper.destroy(); cropper = null; }
 
-    // ▶ টাইলের মাপ অনুযায়ী aspect ratio ঠিক করা
     const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
     const tw = cur.size?.w || 600;
     const th = cur.size?.h || 600;
     const ratio = tw / th;
 
-        cropper = new Cropper(img, {
+    cropper = new Cropper(img, {
       aspectRatio: ratio,
       viewMode: 1,
       autoCropArea: 0.95,
@@ -695,10 +694,10 @@ $('#id-cropCancel')?.addEventListener('click', () => {
   $('#id-cropModal').hidden = true;
   $('#id-cropModal').style.display = 'none';
 });
+
 $('#id-cropOk')?.addEventListener('click', async () => {
   if (!cropper) return;
 
-  // টাইলের মাপ অনুযায়ী আউটপুট সাইজ ঠিক করা
   const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
   const tw = cur.size?.w || 600;
   const th = cur.size?.h || 600;
@@ -754,21 +753,24 @@ function refreshTileGallery() {
   const cur = STATE.tiles[STATE.activeTab];
   gallery.innerHTML = '';
   if (!cur.url) {
-    gallery.innerHTML = '<p class="id-empty">এখনো কোনো টাইল যোগ করা হয়নি।</p>';
-    $('#id-tileSizePanel').hidden = true;
-    return;
+    gallery.innerHTML = '<p class="id-empty">এখনো কোনো টাইল যোগ করা হয়নি। উপরে মাপ/প্রিসেট বেছে নিন।</p>';
+  } else {
+    const div = document.createElement('div');
+    div.className = 'id-gallery-item selected';
+    div.innerHTML = `<img src="${cur.url}" alt=""><div class="id-item-label">বর্তমান</div>`;
+    gallery.appendChild(div);
   }
-  const div = document.createElement('div');
-  div.className = 'id-gallery-item selected';
-  div.innerHTML = `<img src="${cur.url}" alt=""><div class="id-item-label">বর্তমান</div>`;
-  gallery.appendChild(div);
-  $('#id-tileSizePanel').hidden = false;
-  $('#id-tileW').value = cur.size.w;
-  $('#id-tileH').value = cur.size.h;
-  $('#id-tileRot').value = cur.rot;
-  $('#id-tileRotVal').textContent = cur.rot + '°';
-  $('#id-grout').value = cur.grout;
-  $('#id-groutVal').textContent = cur.grout + 'mm';
+  // Panel সবসময় দৃশ্যমান
+  const panel = $('#id-tileSizePanel');
+  if (panel) { panel.hidden = false; panel.style.display = 'block'; }
+
+  // ইনপুট সিঙ্ক
+  if ($('#id-tileW')) $('#id-tileW').value = cur.size.w;
+  if ($('#id-tileH')) $('#id-tileH').value = cur.size.h;
+  if ($('#id-tileRot')) { $('#id-tileRot').value = cur.rot; }
+  if ($('#id-tileRotVal')) $('#id-tileRotVal').textContent = cur.rot + '°';
+  if ($('#id-grout')) $('#id-grout').value = cur.grout;
+  if ($('#id-groutVal')) $('#id-groutVal').textContent = cur.grout + 'mm';
   if ($('#id-tileOffsetX')) {
     $('#id-tileOffsetX').value = cur.offsetX || 0;
     $('#id-tileOffXVal').textContent = (cur.offsetX || 0) + 'mm';
@@ -777,8 +779,17 @@ function refreshTileGallery() {
     $('#id-tileOffsetY').value = cur.offsetY || 0;
     $('#id-tileOffYVal').textContent = (cur.offsetY || 0) + 'mm';
   }
+  syncTilePreset();
 }
-refreshTileGallery();
+
+function syncTilePreset() {
+  const cur = STATE.tiles[STATE.activeTab];
+  const key = `${cur.size.w},${cur.size.h}`;
+  const sel = $('#id-tilePreset');
+  if (!sel) return;
+  const hasOpt = Array.from(sel.options).some(o => o.value === key);
+  sel.value = hasOpt ? key : 'custom';
+}
 
 // ============================================================
 // STEP 6 — FURNITURE + OUTSIDE
@@ -1016,7 +1027,64 @@ $('#id-loadBtn')?.addEventListener('click', async () => {
           <p>${data.shape || 'rect'} · ${(data.furniture || []).length} items</p>`;
         row.addEventListener('click', () => {
           Object.assign(STATE, data);
-          refreshTileGallery();
+         // ---------- TILE INPUT LISTENERS ----------
+$('#id-tileW')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.size.w = Math.max(50, parseFloat(e.target.value) || 600);
+  syncTilePreset();
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tileH')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.size.h = Math.max(50, parseFloat(e.target.value) || 600);
+  syncTilePreset();
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tilePreset')?.addEventListener('change', (e) => {
+  const v = e.target.value;
+  if (v === 'custom') return;
+  const [w, h] = v.split(',').map(Number);
+  if (!w || !h) return;
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.size.w = w;
+  cur.size.h = h;
+  if ($('#id-tileW')) $('#id-tileW').value = w;
+  if ($('#id-tileH')) $('#id-tileH').value = h;
+  toast(`টাইলের মাপ: ${w} × ${h} mm`, 'info', 1500);
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tileRot')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.rot = parseFloat(e.target.value) || 0;
+  if ($('#id-tileRotVal')) $('#id-tileRotVal').textContent = cur.rot + '°';
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-grout')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.grout = parseFloat(e.target.value) || 0;
+  if ($('#id-groutVal')) $('#id-groutVal').textContent = cur.grout + 'mm';
+});
+
+$('#id-tileOffsetX')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.offsetX = parseFloat(e.target.value) || 0;
+  if ($('#id-tileOffXVal')) $('#id-tileOffXVal').textContent = cur.offsetX + 'mm';
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tileOffsetY')?.addEventListener('input', (e) => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.offsetY = parseFloat(e.target.value) || 0;
+  if ($('#id-tileOffYVal')) $('#id-tileOffYVal').textContent = cur.offsetY + 'mm';
+  if (STATE.step === 7) refreshRender(true);
+});
+// ---------- END TILE INPUT LISTENERS ----------
+
+refreshTileGallery();
           refreshSelectedList();
           refreshFurnitureGrid();
           $('#id-myDesigns').hidden = true;
