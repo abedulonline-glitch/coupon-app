@@ -1160,7 +1160,43 @@ $('#id-tilePreset')?.addEventListener('change', (e) => {
   if (STATE.step === 7) refreshRender(true);
 });
 
-$('#id-tileRot')?.addEventListener('input', (e) => {
+// ═══════════════════════════════════════════════
+// QUICK ROTATION + CORNER START
+// ═══════════════════════════════════════════════
+$$('.id-tile-rot-quick[data-rot]').forEach(b => {
+  b.addEventListener('click', () => {
+    const cur = STATE.tiles[STATE.activeTab];
+    cur.rot = parseFloat(b.dataset.rot) || 0;
+    const el = document.getElementById('id-tileRot');
+    if (el) el.value = cur.rot;
+    const lbl = document.getElementById('id-tileRotVal');
+    if (lbl) lbl.textContent = cur.rot + '°';
+    $$('.id-tile-rot-quick[data-rot]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    toast(`🔄 ${cur.rot}° রোটেশন`, 'info', 1200);
+    if (STATE.step === 7) refreshRender(true);
+  });
+});
+
+$('#id-tileCorner')?.addEventListener('click', () => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.cornerStart = true;
+  $('#id-tileCorner')?.classList.add('active');
+  $('#id-tileCenter')?.classList.remove('active');
+  toast('📍 কোণা থেকে শুরু — কোনো কাটিং লাগবে না', 'success', 1800);
+  if (STATE.step === 7) refreshRender(true);
+});
+
+$('#id-tileCenter')?.addEventListener('click', () => {
+  const cur = STATE.tiles[STATE.activeTab];
+  cur.cornerStart = false;
+  $('#id-tileCenter')?.classList.add('active');
+  $('#id-tileCorner')?.classList.remove('active');
+  toast('🎯 মাঝ থেকে শুরু', 'info', 1500);
+  if (STATE.step === 7) refreshRender(true);
+});
+           
+  $('#id-tileRot')?.addEventListener('input', (e) => {
   const cur = STATE.tiles[STATE.activeTab];
   cur.rot = parseFloat(e.target.value) || 0;
   if ($('#id-tileRotVal')) $('#id-tileRotVal').textContent = cur.rot + '°';
