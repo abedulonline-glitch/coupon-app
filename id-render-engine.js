@@ -748,7 +748,12 @@ class InteriorEngine {
       const offY = (t.offsetY || 0) / 1000 / tileH;
       clone.offset.set(offX, offY);
       clone.rotation = (t.rot || 0) * DEG;
-      clone.center.set(0.5, 0.5);
+           // corner start = rotate around UV origin instead of center
+      if (t.cornerStart) {
+        clone.center.set(0, 0);
+      } else {
+        clone.center.set(0.5, 0.5);
+      }
       clone.needsUpdate = true;
       mesh.material.map = clone;
       mesh.material.color.set(0xffffff);
