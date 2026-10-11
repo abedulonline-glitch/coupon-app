@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-<script>window.__id_imgbb_key = "cb410994ffe4638b322192f4bd9a3a09";</script>  
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>🎨 Interior Design Studio — Pro</title>
 
-<!-- Three.js core + addons (free CDN) -->
+<script>window.__id_imgbb_key = "cb410994ffe4638b322192f4bd9a3a09";</script>
+
+<!-- Three.js core + addons -->
 <script type="importmap">
 {
   "imports": {
@@ -16,29 +17,22 @@
 }
 </script>
 
-<!-- Cropper.js for tile crop -->
+<!-- Cropper.js -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
 
 <!-- Firebase -->
 <script type="module">
-  // আপনার Firebase config থেকে আগেই-initialize করা সেবাগুলো নিন
   import { app, db, auth } from "./firebase-config-beta.js";
-
-  // Firestore helper ফাংশন — ভার্সন 10.7.1 (আপনার config এর সাথে মিলিয়ে)
   import { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  // Auth helper — একই ভার্সন
   import { onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  // গ্লোবালি এক্সপোজ (id-app.js এগুলো ব্যবহার করে)
   window.__id_db   = db;
   window.__id_auth = auth;
   window.__id_fs   = { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp };
   window.__id_authHelpers = { onAuthStateChanged };
-
   console.log("✅ Interior Design — Firebase প্রস্তুত");
 </script>
 
@@ -51,12 +45,11 @@
 
 <body>
 
-<!-- ============ MAIN APP ============ -->
 <div id="id-app">
 
-  <!-- Top Bar -->
+  <!-- ==================== TOP BAR ==================== -->
   <header id="id-topbar">
-    <button id="id-backBtn" title="Back">◀</button>
+    <a href="./stock-beta.html" id="id-backBtn" title="Back to Stock">◀</a>
     <h1 id="id-title">🎨 Interior Design Studio</h1>
     <div id="id-topActions">
       <button id="id-saveBtn" title="Save">💾</button>
@@ -65,16 +58,16 @@
     </div>
   </header>
 
-  <!-- Progress Bar -->
+  <!-- ==================== PROGRESS ==================== -->
   <div id="id-progressWrap">
     <div id="id-progressBar"></div>
     <span id="id-progressText">Step 1 / 7</span>
   </div>
 
-  <!-- Wizard Container -->
+  <!-- ==================== WIZARD ==================== -->
   <main id="id-wizard">
 
-    <!-- STEP 1: Room Type + Size -->
+    <!-- ---------- STEP 1: Room Type + Size ---------- -->
     <section class="id-step" id="id-step-1">
       <h2>১. রুম টাইপ ও মাপ</h2>
 
@@ -90,23 +83,24 @@
         <button class="id-tile-btn" data-room="office">💼 অফিস</button>
       </div>
 
-      <label class="id-label">মাপ (ফুট বা sqft)</label>
+      <label class="id-label">মাপ (ফুট)</label>
       <div class="id-row">
         <input type="number" id="id-length" placeholder="দৈর্ঘ্য (ft)" min="3" max="100">
         <span>×</span>
-        <input type="number" id="id-width"  placeholder="প্রস্থ (ft)" min="3" max="100">
+        <input type="number" id="id-width"  placeholder="প্রস্থ (ft)"  min="3" max="100">
         <span>=</span>
-        <input type="number" id="id-sqft" placeholder="sqft" readonly>
+        <input type="number" id="id-sqft"   placeholder="sqft" readonly>
       </div>
 
       <label class="id-label">সিলিং উচ্চতা (ft)</label>
       <input type="number" id="id-height" value="10" min="7" max="20">
     </section>
 
-    <!-- STEP 2: Shape -->
+    <!-- ---------- STEP 2: Shape ---------- -->
     <section class="id-step" id="id-step-2" hidden>
       <h2>২. রুমের আকৃতি</h2>
       <p class="id-hint">আপনার মাপ অনুযায়ী সাজেশন — অথবা নিজে আঁকুন।</p>
+
       <div class="id-grid" id="id-shapeGrid">
         <button class="id-shape-btn" data-shape="rect">▭ চতুর্ভুজ</button>
         <button class="id-shape-btn" data-shape="square">◻️ স্কয়ার</button>
@@ -115,22 +109,25 @@
         <button class="id-shape-btn" data-shape="L">L-আকৃতি</button>
         <button class="id-shape-btn" data-shape="custom">✏️ কাস্টম আঁকুন</button>
       </div>
+
       <canvas id="id-shapeCanvas" width="600" height="400" hidden></canvas>
+
       <div id="id-shapeTools" hidden>
-  <button id="id-shapeUndo">↶ Undo</button>
-  <button id="id-shapeRedo">↷ Redo</button>
-  <button id="id-shapeClear">🗑️ Clear</button>
-  <button id="id-shapeDone">✔️ Done</button>
-  <span id="id-shapeHint">ক্লিক করে কোণা বসান (কমপক্ষে ৩) · Ctrl+Z / Ctrl+Y</span>
+        <button id="id-shapeUndo">↶ Undo</button>
+        <button id="id-shapeRedo">↷ Redo</button>
+        <button id="id-shapeClear">🗑️ Clear</button>
+        <button id="id-shapeDone">✔️ Done</button>
+        <span id="id-shapeHint">ক্লিক করে কোণা বসান (min 3) · Ctrl+Z / Ctrl+Y</span>
       </div>
     </section>
 
-    <!-- STEP 3: Structure (walls/doors/windows/stairs) -->
+    <!-- ---------- STEP 3: Structure ---------- -->
     <section class="id-step" id="id-step-3" hidden>
       <h2>৩. স্ট্রাকচার — দরজা, জানালা, সিঁড়ি</h2>
-      <p class="id-hint">রুমের উপর ক্লিক করে এলিমেন্ট বসান।</p>
+      <p class="id-hint">টুল সিলেক্ট করুন, তারপর SVG-এর উপর ক্লিক করুন। এলিমেন্টে ক্লিক করলে মাপ দেখাবে।</p>
 
-     <button class="id-struct-tool" data-tool="door">🚪 দরজা</button>
+      <div class="id-struct-toolbar">
+        <button class="id-struct-tool" data-tool="door">🚪 দরজা</button>
         <button class="id-struct-tool" data-tool="window">🪟 জানালা</button>
         <button class="id-struct-tool" data-tool="ventilator">🌬️ ভেন্টিলেটর</button>
         <button class="id-struct-tool" data-tool="stairs">🪜 সিঁড়ি</button>
@@ -143,7 +140,7 @@
       </div>
     </section>
 
-    <!-- STEP 4: Surface -->
+    <!-- ---------- STEP 4: Surface ---------- -->
     <section class="id-step" id="id-step-4" hidden>
       <h2>৪. কোনটাতে ডিজাইন দেখতে চান?</h2>
       <div class="id-grid">
@@ -155,7 +152,7 @@
       </div>
     </section>
 
-    <!-- STEP 5: Tiles -->
+    <!-- ---------- STEP 5: Tiles ---------- -->
     <section class="id-step" id="id-step-5" hidden>
       <h2>৫. টাইল / গ্রানাইট সিলেকশন</h2>
 
@@ -195,7 +192,7 @@
           <input type="range" id="id-grout" min="0" max="10" value="2">
           <span id="id-groutVal">2mm</span>
         </div>
-                <div class="id-row">
+        <div class="id-row">
           <label>অফসেট X (mm)</label>
           <input type="range" id="id-tileOffsetX" min="-500" max="500" value="0" step="10">
           <span id="id-tileOffXVal">0mm</span>
@@ -207,6 +204,7 @@
         </div>
       </div>
 
+      <!-- Crop Modal -->
       <div id="id-cropModal" hidden>
         <div class="id-crop-box">
           <img id="id-cropImg" alt="crop">
@@ -218,7 +216,7 @@
       </div>
     </section>
 
-    <!-- STEP 6: Furniture + Outside -->
+    <!-- ---------- STEP 6: Furniture + Outside ---------- -->
     <section class="id-step" id="id-step-6" hidden>
       <h2>৬. ফার্নিচার ও আউটসাইড</h2>
 
@@ -231,38 +229,34 @@
       </div>
 
       <div id="id-furnitureGrid" class="id-gallery"></div>
-
       <div id="id-outsideGrid" class="id-gallery" hidden></div>
 
       <!-- Free 3D Model Loader -->
-<!-- Free 3D Model Loader -->
-<div id="id-freeModelBox">
-  <h3>🌐 ফ্রি 3D মডেল URL দিয়ে লোড করুন</h3>
-  <p class="id-hint">নিচের সাইট থেকে ফ্রি মডেল বেছে নিন (.glb / .gltf), তারপর URL পেস্ট করুন</p>
+      <div id="id-freeModelBox">
+        <h3>🌐 ফ্রি 3D মডেল URL দিয়ে লোড করুন</h3>
+        <p class="id-hint">.glb / .gltf লিংক দিন (Sketchfab পেজ URL নয়)</p>
+        <div class="id-model-links">
+          <a href="https://poly.pizza/" target="_blank">🍕 Poly Pizza</a>
+          <a href="https://sketchfab.com/3d-models?features=downloadable&licenses=322a749bcfa841b29dff1e8a1bb74b0b" target="_blank">🎨 Sketchfab Free</a>
+          <a href="https://kenney.nl/assets?q=3d" target="_blank">🎮 Kenney</a>
+          <a href="https://quaternius.com/" target="_blank">🐧 Quaternius</a>
+          <a href="https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0" target="_blank">📦 Khronos</a>
+          <a href="https://market.pmnd.rs/" target="_blank">🛒 pmndrs</a>
+        </div>
+        <div class="id-row">
+          <input type="text" id="id-modelUrl" placeholder="https://.../model.glb">
+          <input type="text" id="id-modelName" placeholder="নাম" style="max-width:120px">
+          <button id="id-modelLoad">➕ লোড</button>
+        </div>
+      </div>
 
-  <div class="id-model-links">
-    <a href="https://poly.pizza/" target="_blank">🍕 Poly Pizza</a>
-    <a href="https://sketchfab.com/3d-models?features=downloadable&licenses=322a749bcfa841b29dff1e8a1bb74b0b" target="_blank">🎨 Sketchfab Free</a>
-    <a href="https://kenney.nl/assets?q=3d" target="_blank">🎮 Kenney</a>
-    <a href="https://quaternius.com/" target="_blank">🐧 Quaternius</a>
-    <a href="https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0" target="_blank">📦 Khronos Samples</a>
-    <a href="https://market.pmnd.rs/" target="_blank">🛒 pmndrs market</a>
-  </div>
-
-  <div class="id-row">
-    <input type="text" id="id-modelUrl" placeholder="https://.../model.glb">
-    <input type="text" id="id-modelName" placeholder="নাম" style="max-width:120px">
-    <button id="id-modelLoad">➕ লোড</button>
-  </div>
-</div>
-
-    <div class="id-selected-items">
+      <div class="id-selected-items">
         <h3>যোগ করা আইটেম</h3>
         <ul id="id-selectedList"></ul>
       </div>
     </section>
 
-    <!-- STEP 7: Render -->
+    <!-- ---------- STEP 7: Render ---------- -->
     <section class="id-step" id="id-step-7" hidden>
       <h2>৭. রেন্ডার</h2>
 
@@ -275,7 +269,7 @@
           <option value="corner">কর্নার</option>
         </select>
 
-              <label>সময়</label>
+        <label>সময়</label>
         <input type="range" id="id-timeOfDay" min="0" max="24" value="14" step="0.5" style="flex:1;min-width:120px">
         <span id="id-timeVal" style="min-width:55px">14:00</span>
 
@@ -287,7 +281,6 @@
         <input type="range" id="id-ambient" min="0" max="100" value="18" step="1" style="flex:1;min-width:120px">
         <span id="id-ambVal" style="min-width:45px">0.18</span>
 
-        
         <label>আকাশ (HDRI)</label>
         <select id="id-hdriSelect">
           <option value="none">— ডিফল্ট —</option>
@@ -300,7 +293,7 @@
           <option value="spruit">🌾 স্প্রুইট সকাল</option>
           <option value="night">🌙 তারাভরা রাত</option>
         </select>
-        
+
         <label>লাইটিং</label>
         <select id="id-lightMode">
           <option value="day">☀️ দিন</option>
@@ -320,23 +313,24 @@
           </div>
         </div>
       </div>
+
       <div id="id-transformBar" hidden>
-  <span id="id-transformInfo">—</span>
-  <button id="id-modeMove" class="active">↔️ মুভ (G)</button>
-  <button id="id-modeRotate">🔁 রোটেট (R)</button>
-  <button id="id-modeScale">🔍 স্কেল (S)</button>
-  <button id="id-modeDeselect">✕ ডিসিলেক্ট (Esc)</button>
-</div>
-     
-    <!-- Structure Property Panel -->
-<div id="id-structPanel" hidden>
-  <div class="id-struct-head">
-    <span id="id-structTitle">—</span>
-    <button id="id-structClose">✕</button>
-  </div>
-  <div class="id-struct-body" id="id-structBody"></div>
-</div>
-  <div class="id-render-actions">
+        <span id="id-transformInfo">—</span>
+        <button id="id-modeMove" class="active">↔️ মুভ (G)</button>
+        <button id="id-modeRotate">🔁 রোটেট (R)</button>
+        <button id="id-modeScale">🔍 স্কেল (S)</button>
+        <button id="id-modeDeselect">✕ ডিসিলেক্ট (Esc)</button>
+      </div>
+
+      <div id="id-structPanel" hidden>
+        <div class="id-struct-head">
+          <span id="id-structTitle">—</span>
+          <button id="id-structClose">✕</button>
+        </div>
+        <div class="id-struct-body" id="id-structBody"></div>
+      </div>
+
+      <div class="id-render-actions">
         <button id="id-liveRender" class="id-primary">▶️ লাইভ প্রিভিউ</button>
         <button id="id-finalRender" class="id-highlight">✨ ফাইনাল HD রেন্ডার</button>
         <button id="id-downloadRender">⬇️ ডাউনলোড</button>
@@ -346,7 +340,7 @@
 
   </main>
 
-  <!-- Bottom Navigation -->
+  <!-- ==================== BOTTOM NAV ==================== -->
   <footer id="id-navBar">
     <button id="id-prevBtn">◀ পূর্ববর্তী</button>
     <button id="id-nextBtn">পরবর্তী ▶</button>
@@ -354,7 +348,7 @@
 
 </div>
 
-<!-- ============ MY DESIGNS PANEL ============ -->
+<!-- ==================== MY DESIGNS PANEL ==================== -->
 <aside id="id-myDesigns" hidden>
   <header>
     <h2>আমার ডিজাইন</h2>
@@ -363,7 +357,7 @@
   <div id="id-myDesignsList"></div>
 </aside>
 
-<!-- ============ HELP MODAL ============ -->
+<!-- ==================== HELP MODAL ==================== -->
 <div id="id-helpModal" hidden>
   <div class="id-modal-box">
     <h2>কীভাবে ব্যবহার করবেন</h2>
@@ -380,24 +374,16 @@
   </div>
 </div>
 
-<!-- ============ CONTEXT MENU ============ -->
+<!-- ==================== CONTEXT MENU ==================== -->
 <div id="id-ctxMenu" hidden></div>
 
-<!-- ============ HDRI Row (Step 7-এ যোগ হবে) ============ -->
-  
-  <!-- ============ TOAST ============ -->
-  <div id="id-toast" hidden></div>
+<!-- ==================== TOAST ==================== -->
+<div id="id-toast" hidden></div>
 
-<!-- ============ SCRIPTS (order matters!) ============ -->
+<!-- ==================== SCRIPTS ==================== -->
 <script type="module" src="./id-furniture-library.js"></script>
 <script type="module" src="./id-render-engine.js"></script>
 <script type="module" src="./id-app.js"></script>
-
-<!-- ============ BACK TO STOCK BUTTON ============ -->
-<a href="./stock-beta.html" 
-   style="position: fixed; top: 16px; left: 16px; z-index: 9999; background: #1a73e8; color: white; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(26,115,232,0.3); display: flex; align-items: center; gap: 6px;">
-   ← Back to Stock
-</a>
 
 </body>
 </html>
