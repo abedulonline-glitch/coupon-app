@@ -782,6 +782,12 @@ function refreshRotBar() {
     const isCorner = x.dataset.start === 'corner';
     x.classList.toggle('active', isCorner === (cur.cornerStart !== false));
   });
+
+  // Individual mode indicator
+  const indBtn = document.getElementById('id-individualMode');
+  if (indBtn) {
+    indBtn.classList.toggle('active-mode', !!cur.individualMode);
+  }
 }
 
 $('#id-tileRot')?.addEventListener('input', (e) => {
@@ -814,12 +820,6 @@ $('#id-tileOffsetY')?.addEventListener('input', (e) => {
   if (el) el.textContent = cur.offsetY + 'mm';
   if (STATE.step === 7) refreshRender(true);
 });
-
-// Individual mode indicator
-  const indBtn = document.getElementById('id-individualMode');
-  if (indBtn) {
-    indBtn.classList.toggle('active-mode', !!cur.individualMode);
-  }
 
 // Crop চলাকালীন ratio পরিবর্তন হলে লাইভ আপডেট
 function reinitCropRatio() {
