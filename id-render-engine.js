@@ -113,21 +113,17 @@ class InteriorEngine {
 
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
-    this.ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
-    this.ssaoPass.kernelRadius = 0.5;
-    this.ssaoPass.minDistance = 0.002;
-    this.ssaoPass.maxDistance = 0.15;
-    this.ssaoPass.output = SSAOPass.OUTPUT.Default;
-    this.composer.addPass(this.ssaoPass);
-
-    this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.12, 0.5, 0.95);
-    this.composer.addPass(this.bloomPass);
-
-    this.smaaPass = new SMAAPass(w, h);
-    this.composer.addPass(this.smaaPass);
-
-    this.composer.addPass(new OutputPass());
-  }
+       try {
+      this.ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
+      this.ssaoPass.kernelRadius = 0.5;
+      this.ssaoPass.minDistance = 0.002;
+      this.ssaoPass.maxDistance = 0.15;
+      this.ssaoPass.output = SSAOPass.OUTPUT.Default;
+      this.composer.addPass(this.ssaoPass);
+    } catch (err) {
+      console.warn('SSAO unavailable:', err);
+      this.ssaoPass = null;
+    }
 
   async loadHDRI(url) {
     const loader = new RGBELoader();
