@@ -1,7 +1,6 @@
 /* ============================================================
-   INTERIOR DESIGN STUDIO — id-render-engine.js  (v4 Final)
-   সব ফিচার একসাথে: dollhouse, stairs 2.0, ventilator, pillar,
-   HDRI, time-of-day, SSAO, bloom, SMAA, transforms
+   INTERIOR DESIGN STUDIO — id-render-engine.js (v5)
+   PART 1 of 2
    ============================================================ */
 
 import * as THREE from 'three';
@@ -699,6 +698,8 @@ class InteriorEngine {
     this._buildStructure3D(this.currentState, pts, H);
     this._renderOnce();
   }
+
+  // ⬇⬇⬇ এখান থেকে PART 2 শুরু হবে — এখনো সেভ করবেন না ⬇⬇⬇
 
   // ---------- TILES ----------
   async _buildTiles(state) {
