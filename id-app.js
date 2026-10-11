@@ -93,6 +93,7 @@ function showStep(n) {
   if (n === STATE.maxStep) {
     initEngine();
     refreshRender();
+    setTimeout(refreshRotBar, 100);
   }
 }
 
@@ -666,40 +667,52 @@ $('#id-tilePreset')?.addEventListener('change', (e) => {
 });
 
 // ═══════════════════════════════════════════════
-// QUICK ROTATION + CORNER START
+// STEP 7 — QUICK ROTATION CONTROLS
 // ═══════════════════════════════════════════════
-$$('.id-tile-rot-quick[data-rot]').forEach(b => {
+$$('.id-rot-btn[data-rot]').forEach(b => {
   b.addEventListener('click', () => {
-    const cur = STATE.tiles[STATE.activeTab];
+    const tab = STATE.activeTab || 'floor';
+    const cur = STATE.tiles[tab];
     cur.rot = parseFloat(b.dataset.rot) || 0;
     const el = document.getElementById('id-tileRot');
     if (el) el.value = cur.rot;
     const lbl = document.getElementById('id-tileRotVal');
     if (lbl) lbl.textContent = cur.rot + '°';
-    $$('.id-tile-rot-quick[data-rot]').forEach(x => x.classList.remove('active'));
+    $$('.id-rot-btn[data-rot]').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     toast(`🔄 ${cur.rot}° রোটেশন`, 'info', 1200);
-    if (STATE.step === 7) refreshRender(true);
+    refreshRender(true);
   });
 });
 
-$('#id-tileCorner')?.addEventListener('click', () => {
-  const cur = STATE.tiles[STATE.activeTab];
-  cur.cornerStart = true;
-  $('#id-tileCorner')?.classList.add('active');
-  $('#id-tileCenter')?.classList.remove('active');
-  toast('📍 কোণা থেকে শুরু — কোনো কাটিং লাগবে না', 'success', 1800);
-  if (STATE.step === 7) refreshRender(true);
+$$('.id-rot-btn[data-start]').forEach(b => {
+  b.addEventListener('click', () => {
+    const tab = STATE.activeTab || 'floor';
+    const cur = STATE.tiles[tab];
+    cur.cornerStart = b.dataset.start === 'corner';
+    $$('.id-rot-btn[data-start]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    toast(cur.cornerStart ? '📍 কোণা থেকে শুরু' : '🎯 মাঝ থেকে শুরু', 'success', 1500);
+    refreshRender(true);
+  });
 });
 
-$('#id-tileCenter')?.addEventListener('click', () => {
-  const cur = STATE.tiles[STATE.activeTab];
-  cur.cornerStart = false;
-  $('#id-tileCenter')?.classList.add('active');
-  $('#id-tileCorner')?.classList.remove('active');
-  toast('🎯 মাঝ থেকে শুরু', 'info', 1500);
-  if (STATE.step === 7) refreshRender(true);
-});
+// Step 7 খোলার সময় active tab অনুযায়ী label দেখানো
+function refreshRotBar() {
+  const info = document.getElementById('id-rotInfo');
+  if (!info) return;
+  const names = { floor: '🟫 ফ্লোর টাইল', wall: '🧱 ওয়াল টাইল', accent: '🎯 অ্যাকসেন্ট', ceiling: '⬜ সিলিং' };
+  info.textContent = names[STATE.activeTab] || '🟫 ফ্লোর টাইল';
+
+  const cur = STATE.tiles[STATE.activeTab] || { rot: 0, cornerStart: true };
+  $$('.id-rot-btn[data-rot]').forEach(x => {
+    x.classList.toggle('active', parseFloat(x.dataset.rot) === cur.rot);
+  });
+  $$('.id-rot-btn[data-start]').forEach(x => {
+    const isCorner = x.dataset.start === 'corner';
+    x.classList.toggle('active', isCorner === (cur.cornerStart !== false));
+  });
+}
 
 $('#id-tileRot')?.addEventListener('input', (e) => {
   const cur = STATE.tiles[STATE.activeTab];
@@ -1701,4 +1714,10 @@ $('#id-ambient')?.addEventListener('input', (e) => {
   $('#id-ambVal').textContent = v.toFixed(2);
   engine?.setAmbient(v);
 });
+
+// টাইল ট্যাব বদলালে রোট বার আপডেট
+document.querySelectorAll('.id-tab').forEach(t => {
+  t.addEventListener('click', () => setTimeout(refreshRotBar, 50));
+});
+
 showStep(1);
