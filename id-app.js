@@ -73,8 +73,11 @@ function showStep(n) {
   $('#id-progressBar').style.width = `${(n / STATE.maxStep) * 100}%`;
   $('#id-progressText').textContent = `Step ${n} / ${STATE.maxStep}`;
   $('#id-prevBtn').disabled = (n === 1);
-
-  if (n === STATE.maxStep) {
+  if (n === 3) {
+    setTimeout(() => { try { buildStructureSVG(); } catch(e) { console.error(e); } }, 50);
+  }
+ 
+   if (n === STATE.maxStep) {
     initEngine();
     refreshRender();
   }
@@ -374,7 +377,7 @@ $$('.id-struct-tool').forEach(btn => {
 });
 
 // ⬇️⬇️⬇️ এই নতুন ব্লকটি যোগ করুন ⬇️⬇️⬇️
-$('#id-structSvg')?.addEventListener('click', (e) => {
+$('#id-structSvg')?.addEventListener('click', (e) => {  
   if (!activeTool) return;
   const svg = $('#id-structSvg');
   const rect = svg.getBoundingClientRect();
@@ -397,6 +400,8 @@ $('#id-structSvg')?.addEventListener('click', (e) => {
   buildStructureSVG();
   if (STATE.step === 7) refreshRender(true);
 });
+// Initial draw
+setTimeout(() => { try { buildStructureSVG(); } catch(e) { console.error('buildStructureSVG error:', e); } }, 100);
 
 function buildStructureSVG() {
   const svg = $('#id-structSvg');
