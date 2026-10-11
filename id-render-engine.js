@@ -1,5 +1,7 @@
 /* ============================================================
-   INTERIOR DESIGN STUDIO — id-render-engine.js  (v3 — clean)
+   INTERIOR DESIGN STUDIO — id-render-engine.js  (v4 Final)
+   সব ফিচার একসাথে: dollhouse, stairs 2.0, ventilator, pillar,
+   HDRI, time-of-day, SSAO, bloom, SMAA, transforms
    ============================================================ */
 
 import * as THREE from 'three';
@@ -15,6 +17,9 @@ import { SMAAPass }          from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass }        from 'three/addons/postprocessing/OutputPass.js';
 import { RGBELoader }        from 'three/addons/loaders/RGBELoader.js';
 
+const FT  = 0.3048;
+const DEG = Math.PI / 180;
+
 function lerpColor(a, b, t) {
   const ca = new THREE.Color(a);
   const cb = new THREE.Color(b);
@@ -22,14 +27,12 @@ function lerpColor(a, b, t) {
   return '#' + c.getHexString();
 }
 
-const FT  = 0.3048;
-const DEG = Math.PI / 180;
-
 class InteriorEngine {
   constructor(canvas) {
     this.canvas = canvas;
     this.renderer = null; this.scene = null; this.camera = null;
     this.controls = null; this.transform = null;
+    this.composer = null; this.ssaoPass = null; this.bloomPass = null; this.smaaPass = null;
     this.roomGroup = null; this.furnitureGrp = null; this.structGrp = null;
     this.lights = []; this.currentState = null;
     this.envTexture = null; this.animating = false;
@@ -41,7 +44,8 @@ class InteriorEngine {
     this.transformMode = 'translate';
     this._hdCanvas = null;
     this._onDown = this._onDown.bind(this);
-    this._onKey  = this._onKey.bind(this);
+    this._onContext = this._onContext.bind(this);
+    this._onKey = this._onKey.bind(this);
     this._init();
   }
 
@@ -88,11 +92,12 @@ class InteriorEngine {
     this.scene.add(this.transform);
 
     canvas.addEventListener('pointerdown', this._onDown);
-    canvas.addEventListener('contextmenu', this._onContext.bind(this)); 
+    canvas.addEventListener('contextmenu', this._onContext);
     window.addEventListener('keydown', this._onKey);
 
-       const ro = new ResizeObserver(() => this._onResize());
+    const ro = new ResizeObserver(() => this._onResize());
     ro.observe(canvas.parentElement);
+
     this._setupPostFX();
     this._onResize();
   }
@@ -103,13 +108,12 @@ class InteriorEngine {
     const h = wrap.clientHeight || 600;
 
     this.composer = new EffectComposer(this.renderer);
-       const pr = Math.min(window.devicePixelRatio, 2);
+    const pr = Math.min(window.devicePixelRatio, 2);
     this.composer.setPixelRatio(pr);
     this.composer.setSize(w, h);
 
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
-    // SSAO — soft contact shadows
     this.ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
     this.ssaoPass.kernelRadius = 0.5;
     this.ssaoPass.minDistance = 0.002;
@@ -117,17 +121,12 @@ class InteriorEngine {
     this.ssaoPass.output = SSAOPass.OUTPUT.Default;
     this.composer.addPass(this.ssaoPass);
 
-    // Bloom — soft glow around lights
-       this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(w, h), 0.12, 0.5, 0.95
-    );
+    this.bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.12, 0.5, 0.95);
     this.composer.addPass(this.bloomPass);
 
-    // SMAA anti-aliasing
     this.smaaPass = new SMAAPass(w, h);
     this.composer.addPass(this.smaaPass);
 
-    // Final output (tone mapping + colorspace)
     this.composer.addPass(new OutputPass());
   }
 
@@ -141,8 +140,8 @@ class InteriorEngine {
         const envMap = pmrem.fromEquirectangular(hdr).texture;
         this.scene.environment = envMap;
         this.scene.background = envMap;
-        hdr.dispose();
-        pmrem.dispose();
+        if ('environmentIntensity' in this.scene) this.scene.environmentIntensity = 0.35;
+        hdr.dispose(); pmrem.dispose();
         resolve(envMap);
       }, undefined, reject);
     });
@@ -157,8 +156,8 @@ class InteriorEngine {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     if (this.composer) {
-       this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
-       this.composer.setSize(w, h);
+      this.composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.composer.setSize(w, h);
       if (this.ssaoPass)  this.ssaoPass.setSize(w, h);
       if (this.bloomPass) this.bloomPass.setSize(w, h);
       if (this.smaaPass)  this.smaaPass.setSize(w, h);
@@ -174,33 +173,30 @@ class InteriorEngine {
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    const furnTargets = [];
-    this.furnitureGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) furnTargets.push(c); }));
-    const fHits = this.raycaster.intersectObjects(furnTargets, false);
-    if (fHits.length) {
-      let obj = fHits[0].object;
+    const fT = [];
+    this.furnitureGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) fT.push(c); }));
+    const fH = this.raycaster.intersectObjects(fT, false);
+    if (fH.length) {
+      let obj = fH[0].object;
       while (obj && obj.parent !== this.furnitureGrp) obj = obj.parent;
       if (obj) { this.selectFurniture(obj); this._clearStructSelection(); return; }
     }
 
     if (this.structGrp) {
-      const sTargets = [];
-      this.structGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) sTargets.push(c); }));
-      const sHits = this.raycaster.intersectObjects(sTargets, false);
-      if (sHits.length) {
-        let obj = sHits[0].object;
+      const sT = [];
+      this.structGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) sT.push(c); }));
+      const sH = this.raycaster.intersectObjects(sT, false);
+      if (sH.length) {
+        let obj = sH[0].object;
         while (obj && obj.parent !== this.structGrp) obj = obj.parent;
         if (obj) { this.selectStructure(obj); this.deselectFurniture(); return; }
       }
     }
 
-       this._selectedForCtx = null;
-    this._ctxType = null;
     this.deselectFurniture();
     this._clearStructSelection();
   }
 
-  // ---------- RIGHT-CLICK CONTEXT ----------
   _onContext(e) {
     e.preventDefault();
     const rect = this.canvas.getBoundingClientRect();
@@ -208,7 +204,6 @@ class InteriorEngine {
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    // Furniture?
     const fT = [];
     this.furnitureGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) fT.push(c); }));
     const fH = this.raycaster.intersectObjects(fT, false);
@@ -221,7 +216,6 @@ class InteriorEngine {
         return;
       }
     }
-    // Structure?
     if (this.structGrp) {
       const sT = [];
       this.structGrp.children.forEach(g => g.traverse(c => { if (c.isMesh) sT.push(c); }));
@@ -236,7 +230,6 @@ class InteriorEngine {
         }
       }
     }
-    // Empty space
     window.__id_showContext?.(e.clientX, e.clientY, 'empty', -1);
   }
 
@@ -307,17 +300,19 @@ class InteriorEngine {
     const t = grp.userData.structType;
     const labels = [];
     if (t === 'door') {
-      labels.push({ text: `প্রস্থ: ${p.width.toFixed(2)}m (${(p.width/FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, p.height + 0.2, 0) });
-      labels.push({ text: `উচ্চতা: ${p.height.toFixed(2)}m (${(p.height/FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(p.width/2 + 0.3, p.height/2, 0) });
+      labels.push({ text: `প্রস্থ: ${p.width.toFixed(2)}m`, localPos: new THREE.Vector3(0, p.height + 0.2, 0) });
+      labels.push({ text: `উচ্চতা: ${p.height.toFixed(2)}m`, localPos: new THREE.Vector3(p.width/2 + 0.3, p.height/2, 0) });
     } else if (t === 'window') {
       labels.push({ text: `প্রস্থ: ${p.width.toFixed(2)}m`, localPos: new THREE.Vector3(0, p.sill + p.height + 0.25, 0) });
       labels.push({ text: `সিল: ${p.sill.toFixed(2)}m`, localPos: new THREE.Vector3(-p.width/2 - 0.4, p.sill/2, 0) });
       labels.push({ text: `উচ্চতা: ${p.height.toFixed(2)}m`, localPos: new THREE.Vector3(p.width/2 + 0.3, p.sill + p.height/2, 0) });
+    } else if (t === 'ventilator') {
+      labels.push({ text: `ভেন্টিলেটর ${p.width.toFixed(2)}×${p.height.toFixed(2)}m`, localPos: new THREE.Vector3(0, p.sill + p.height + 0.25, 0) });
     } else if (t === 'pillar') {
-      labels.push({ text: `ব্যাস: ${(p.radius*2).toFixed(2)}m`, localPos: new THREE.Vector3(p.radius + 0.3, H/2, 0) });
-      labels.push({ text: `উচ্চতা: ${H.toFixed(2)}m (${(H/FT).toFixed(1)}ft)`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
+      labels.push({ text: `ব্যাস: ${(p.size*2).toFixed(2)}m`, localPos: new THREE.Vector3(p.size + 0.3, H/2, 0) });
+      labels.push({ text: `উচ্চতা: ${H.toFixed(2)}m`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
     } else if (t === 'stairs') {
-      labels.push({ text: `${p.steps} ধাপ · প্রস্থ ${p.width.toFixed(2)}m`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
+      labels.push({ text: `${p.steps} ধাপ · ${p.railing !== 'none' ? 'রেলিং ' + p.railing : 'রেলিং নেই'}`, localPos: new THREE.Vector3(0, H + 0.2, 0) });
     }
 
     const overlay = this._getOverlay();
@@ -413,13 +408,13 @@ class InteriorEngine {
     const ceilGeo = new THREE.ShapeGeometry(shape);
     ceilGeo.rotateX(Math.PI / 2);
     const ceiling = new THREE.Mesh(ceilGeo, new THREE.MeshStandardMaterial({
-           color: 0xc8c8c8, roughness: 0.95, side: THREE.DoubleSide
+      color: 0xc8c8c8, roughness: 0.95, side: THREE.DoubleSide
     }));
     ceiling.position.y = H;
     ceiling.name = 'ceiling';
     this.roomGroup.add(ceiling);
 
-        const wallMat = new THREE.MeshStandardMaterial({
+    const wallMat = new THREE.MeshStandardMaterial({
       color: 0xd8d8d8, roughness: 0.9, metalness: 0.0, side: THREE.DoubleSide
     });
     const walls = new THREE.Group();
@@ -444,24 +439,16 @@ class InteriorEngine {
     this._buildStructure3D(state, pts, H);
   }
 
-     _defaultsForType(type) {
+  _defaultsForType(type) {
     if (type === 'door')       return { width: 0.9, height: 2.1, offsetX: 0 };
     if (type === 'window')     return { width: 1.2, height: 1.2, sill: 0.9, offsetX: 0 };
     if (type === 'ventilator') return { width: 0.6, height: 0.4, sill: 2.0, offsetX: 0 };
     if (type === 'pillar')     return { shape: 'round', size: 0.30, baseSize: 0.45, baseH: 0.15, capH: 0.12, offsetX: 0, offsetZ: 0 };
     if (type === 'stairs')     return {
-      steps: 6,
-      width: 1.2,
-      depth: 0.28,
-      riserH: 0.18,
-      style: 'straight',      // straight | L | U
-      thickness: 'single',    // single | double
-      railing: 'none',        // none | wood | metal | glass
-      railingH: 0.9,
-      molding: 'none',        // none | simple | double
-      moldingH: 0.05,
-      treadMaterial: 'solid', // solid | floor | wall | accent
-      riserMaterial: 'solid'
+      steps: 6, width: 1.2, depth: 0.28, riserH: 0.18,
+      thickness: 'single', railing: 'none', railingH: 0.9,
+      molding: 'none', moldingH: 0.05,
+      treadMaterial: 'solid', riserMaterial: 'solid'
     };
     return {};
   }
@@ -521,13 +508,52 @@ class InteriorEngine {
         );
         glass.position.set(0, sill + wh/2, 0);
         g.add(glass);
+      } else if (s.type === 'ventilator') {
+        const vw = params.width, vh = params.height, sill = params.sill;
+        const fm = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5, metalness: 0.15 });
+        const hTop = new THREE.Mesh(new THREE.BoxGeometry(vw + 0.06, 0.04, 0.08), fm);
+        hTop.position.set(0, sill + vh, 0);
+        const hBot = hTop.clone(); hBot.position.set(0, sill, 0);
+        const vL = new THREE.Mesh(new THREE.BoxGeometry(0.04, vh, 0.08), fm);
+        vL.position.set(-vw / 2, sill + vh / 2, 0);
+        const vR = vL.clone(); vR.position.set(vw / 2, sill + vh / 2, 0);
+        g.add(hTop, hBot, vL, vR);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.4, metalness: 0.2 });
+        for (let b = 0; b < 3; b++) {
+          const blade = new THREE.Mesh(new THREE.BoxGeometry(vw, 0.03, 0.06), bladeMat);
+          blade.position.set(0, sill + vh * (0.2 + b * 0.3), 0);
+          blade.rotation.x = -0.35;
+          g.add(blade);
+        }
       } else if (s.type === 'pillar') {
-        const cyl = new THREE.Mesh(
-          new THREE.CylinderGeometry(params.radius, params.radius, H, 16),
-          new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.7 })
-        );
-        cyl.position.set(0, H/2, 0); g.add(cyl);
-                } else if (s.type === 'stairs') {
+        const size = params.size || 0.30;
+        const baseSize = params.baseSize || 0.45;
+        const baseH = params.baseH || 0.15;
+        const capH = params.capH || 0.12;
+        const mat = new THREE.MeshStandardMaterial({ color: 0xdedede, roughness: 0.65, metalness: 0.05 });
+
+        const baseGeo = params.shape === 'round'
+          ? new THREE.CylinderGeometry(baseSize, baseSize, baseH, 24)
+          : new THREE.BoxGeometry(baseSize * 2, baseH, baseSize * 2);
+        const baseMesh = new THREE.Mesh(baseGeo, mat);
+        baseMesh.position.y = baseH / 2;
+        g.add(baseMesh);
+
+        const shaftH = H - baseH - capH;
+        const shaftGeo = params.shape === 'round'
+          ? new THREE.CylinderGeometry(size, size, shaftH, 24)
+          : new THREE.BoxGeometry(size * 2, shaftH, size * 2);
+        const shaft = new THREE.Mesh(shaftGeo, mat);
+        shaft.position.y = baseH + shaftH / 2;
+        g.add(shaft);
+
+        const capGeo = params.shape === 'round'
+          ? new THREE.CylinderGeometry(baseSize, baseSize * 0.9, capH, 24)
+          : new THREE.BoxGeometry(baseSize * 2, capH, baseSize * 2);
+        const cap = new THREE.Mesh(capGeo, mat);
+        cap.position.y = H - capH / 2;
+        g.add(cap);
+      } else if (s.type === 'stairs') {
         const steps = Math.max(2, params.steps);
         const stepW = params.width;
         const stepD = params.depth;
@@ -536,30 +562,18 @@ class InteriorEngine {
         const treadThick = isDouble ? stepH * 0.55 : stepH;
         const riserThick = isDouble ? stepH * 0.45 : stepH;
 
-        // 2 materials: tread + riser
         const treadMat = new THREE.MeshStandardMaterial({ color: 0xd4cfc4, roughness: 0.6, metalness: 0.05 });
         const riserMat = new THREE.MeshStandardMaterial({ color: 0xb8b0a0, roughness: 0.75, metalness: 0.02 });
 
-        g.userData.stairMaterials = { treadMat, riserMat };
-
         for (let i = 0; i < steps; i++) {
-          // TREAD (horizontal slab)
-          const tread = new THREE.Mesh(
-            new THREE.BoxGeometry(stepW, treadThick, stepD),
-            treadMat
-          );
+          const tread = new THREE.Mesh(new THREE.BoxGeometry(stepW, treadThick, stepD), treadMat);
           tread.position.set(0, stepH * (i + 1) - treadThick / 2, -i * stepD);
           g.add(tread);
 
-          // RISER (vertical face) — only if double thick or always for realism
-          const riser = new THREE.Mesh(
-            new THREE.BoxGeometry(stepW, riserThick, 0.02),
-            riserMat
-          );
+          const riser = new THREE.Mesh(new THREE.BoxGeometry(stepW, riserThick, 0.02), riserMat);
           riser.position.set(0, stepH * i + riserThick / 2, -i * stepD - stepD / 2);
           g.add(riser);
 
-          // MOLDING (edge trim under tread)
           if (params.molding !== 'none') {
             const moldH = params.moldingH;
             const moldCount = params.molding === 'double' ? 2 : 1;
@@ -574,17 +588,13 @@ class InteriorEngine {
           }
         }
 
-        // RAILING
         if (params.railing !== 'none') {
           const rH = params.railingH;
           const topTotalH = steps * stepH;
           const totalD = steps * stepD;
 
-          // two rails — left and right
           for (const side of [-1, 1]) {
             const rx = side * (stepW / 2 + 0.02);
-
-            // handrail (sloped box)
             const railLen = Math.hypot(totalD, topTotalH);
             const angle = Math.atan2(topTotalH, totalD);
             const rail = new THREE.Mesh(
@@ -598,7 +608,6 @@ class InteriorEngine {
             rail.rotation.x = -angle;
             g.add(rail);
 
-            // balusters (vertical bars)
             if (params.railing === 'metal') {
               const balCount = steps * 2;
               for (let b = 0; b <= balCount; b++) {
@@ -624,7 +633,6 @@ class InteriorEngine {
                 g.add(bal);
               }
             } else if (params.railing === 'glass') {
-              // glass panel following slope
               const glass = new THREE.Mesh(
                 new THREE.PlaneGeometry(railLen, rH * 0.9),
                 new THREE.MeshPhysicalMaterial({
@@ -639,56 +647,28 @@ class InteriorEngine {
             }
           }
         }
-      } else if (s.type === 'ventilator') {
-        const vw = params.width, vh = params.height, sill = params.sill;
-        const fm = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5, metalness: 0.15 });
-        const hTop = new THREE.Mesh(new THREE.BoxGeometry(vw + 0.06, 0.04, 0.08), fm);
-        hTop.position.set(0, sill + vh, 0);
-        const hBot = hTop.clone(); hBot.position.set(0, sill, 0);
-        const vL = new THREE.Mesh(new THREE.BoxGeometry(0.04, vh, 0.08), fm);
-        vL.position.set(-vw / 2, sill + vh / 2, 0);
-        const vR = vL.clone(); vR.position.set(vw / 2, sill + vh / 2, 0);
-        g.add(hTop, hBot, vL, vR);
-        // louver blades
-        const bladeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.4, metalness: 0.2 });
-        for (let b = 0; b < 3; b++) {
-          const blade = new THREE.Mesh(new THREE.BoxGeometry(vw, 0.03, 0.06), bladeMat);
-          blade.position.set(0, sill + vh * (0.2 + b * 0.3), 0);
-          blade.rotation.x = -0.35;
-          g.add(blade);
-        }
-      } else if (s.type === 'pillar') {
-        const size = params.size || 0.30;
-        const baseSize = params.baseSize || 0.45;
-        const baseH = params.baseH || 0.15;
-        const capH = params.capH || 0.12;
-        const mat = new THREE.MeshStandardMaterial({ color: 0xdedede, roughness: 0.65, metalness: 0.05 });
-
-        // Base
-        const baseGeo = params.shape === 'round'
-          ? new THREE.CylinderGeometry(baseSize, baseSize, baseH, 24)
-          : new THREE.BoxGeometry(baseSize * 2, baseH, baseSize * 2);
-        const baseMesh = new THREE.Mesh(baseGeo, mat);
-        baseMesh.position.y = baseH / 2;
-        g.add(baseMesh);
-
-        // Shaft
-        const shaftH = H - baseH - capH;
-        const shaftGeo = params.shape === 'round'
-          ? new THREE.CylinderGeometry(size, size, shaftH, 24)
-          : new THREE.BoxGeometry(size * 2, shaftH, size * 2);
-        const shaft = new THREE.Mesh(shaftGeo, mat);
-        shaft.position.y = baseH + shaftH / 2;
-        g.add(shaft);
-
-        // Capital
-        const capGeo = params.shape === 'round'
-          ? new THREE.CylinderGeometry(baseSize, baseSize * 0.9, capH, 24)
-          : new THREE.BoxGeometry(baseSize * 2, capH, baseSize * 2);
-        const cap = new THREE.Mesh(capGeo, mat);
-        cap.position.y = H - capH / 2;
-        g.add(cap);
       }
+
+      g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      g.position.set(wx, 0, wz);
+      g.rotation.y = (s.rot || 0) * DEG;
+      if (s.type === 'door' || s.type === 'window' || s.type === 'ventilator') {
+        const ox = params.offsetX || 0;
+        g.position.x += Math.cos(-g.rotation.y) * ox;
+        g.position.z += Math.sin(-g.rotation.y) * ox;
+      } else if (s.type === 'pillar') {
+        g.position.x += (params.offsetX || 0);
+        g.position.z += (params.offsetZ || 0);
+      }
+      g.userData.structType = s.type;
+      g.userData.stateIndex = idx;
+      g.userData.params = params;
+      g.userData.roomH = H;
+      grp.add(g);
+    });
+
+    this.roomGroup.add(grp);
+  }
 
   updateStructure(index, newParams) {
     if (!this.currentState?.structure?.[index]) return;
@@ -700,7 +680,11 @@ class InteriorEngine {
     this.structGrp = null;
     this._removeDimLabels();
     this._buildStructure3D(this.currentState, pts, H);
-    this._renderOnce();
+    if (this.currentState.tiles) {
+      this._buildTiles(this.currentState).then(() => this._renderOnce());
+    } else {
+      this._renderOnce();
+    }
     const newGrp = this.structGrp?.children.find(c => c.userData.stateIndex === index);
     if (newGrp) this.selectStructure(newGrp);
   }
@@ -748,7 +732,6 @@ class InteriorEngine {
       clone.colorSpace = THREE.SRGBColorSpace;
       clone.anisotropy = tex.anisotropy;
       clone.repeat.set(Math.max(repX, 0.01), Math.max(repY, 0.01));
-      // Tile offset — individual positioning
       const offX = (t.offsetX || 0) / 1000 / tileW;
       const offY = (t.offsetY || 0) / 1000 / tileH;
       clone.offset.set(offX, offY);
@@ -773,7 +756,6 @@ class InteriorEngine {
       for (const w of walls.children) await apply('wall', w, w.userData.wallLen || L, H);
     }
 
-     // ---------- Apply material to stairs ----------
     if (this.structGrp) {
       const makeMat = async (tileKey) => {
         const t = tiles[tileKey];
@@ -796,27 +778,21 @@ class InteriorEngine {
         const rKey = g.userData.params?.riserMaterial;
         const tMat = (tKey && tKey !== 'solid') ? await makeMat(tKey) : null;
         const rMat = (rKey && rKey !== 'solid') ? await makeMat(rKey) : null;
-
         if (!tMat && !rMat) continue;
-
-        let stepIdx = 0;
         g.children.forEach(child => {
           if (!child.isMesh) return;
-          // crude identification: tread is wide-flat, riser is thin-z
           const geo = child.geometry;
           if (!geo?.parameters) return;
           const p = geo.parameters;
-          // BoxGeometry has width/height/depth
           if (p.depth != null && p.depth < 0.05) {
-            // riser
             if (rMat) child.material = rMat.clone();
-          } else {
-            // tread
+          } else if (p.depth != null) {
             if (tMat) child.material = tMat.clone();
           }
         });
       }
     }
+  }
 
   // ---------- FURNITURE ----------
   async _buildFurniture(state) {
@@ -918,7 +894,8 @@ class InteriorEngine {
 
         const grp = new THREE.Group();
         grp.add(model);
-        const L = this.currentState.room.length, W = this.currentState.room.width;
+        const L = this.currentState?.room?.length || 12;
+        const W = this.currentState?.room?.width  || 10;
         grp.position.set(
           (Math.random() - 0.5) * (L * FT * 0.4),
           0,
@@ -933,111 +910,13 @@ class InteriorEngine {
     });
   }
 
-  // ---------- TIME OF DAY ----------
-  setTimeOfDay(hour) {
-    const t = ((hour % 24) + 24) % 24;
-    const angle = (t / 24) * Math.PI * 2 - Math.PI / 2;
-    const elev  = Math.sin(angle);
-    const azim  = Math.cos(angle);
-    const sunY  = Math.max(elev, -0.2);
-
-    // Sky colors based on time
-    let top, bottom, sunCol, sunInt, hemiSky, hemiGround, hemiInt, ambCol;
-    if (t >= 6 && t < 8) {            // sunrise
-      const k = (t - 6) / 2;
-      top = lerpColor('#1a2540', '#6ab0e0', k);
-      bottom = lerpColor('#ff8040', '#ffe0b0', k);
-      sunCol = lerpColor('#ff6020', '#fff4e0', k);
-      sunInt = 0.4 + k * 0.6;
-      hemiSky = lerpColor('#5a4060', '#b8d0e8', k);
-      hemiGround = '#504030';
-      hemiInt = 0.20 + k * 0.18;
-      ambCol = lerpColor('#151018', '#282830', k);
-    } else if (t >= 8 && t < 16) {     // day
-      const k = (t - 8) / 8;
-      top = '#78b0e8';
-      bottom = '#e8f4ff';
-      sunCol = '#fff8e8';
-      sunInt = 1.0 - Math.abs(k - 0.5) * 0.15;
-      hemiSky = '#c8dcf0';
-      hemiGround = '#909080';
-      hemiInt = 0.38;
-      ambCol = '#303038';
-    } else if (t >= 16 && t < 19) {    // sunset
-      const k = (t - 16) / 3;
-      top = lerpColor('#78b0e8', '#3a2050', k);
-      bottom = lerpColor('#ffe0b0', '#ff8050', k);
-      sunCol = lerpColor('#fff4e0', '#ff7030', k);
-      sunInt = 1.0 - k * 0.7;
-      hemiSky = lerpColor('#c8dcf0', '#7a4858', k);
-      hemiGround = '#504030';
-      hemiInt = 0.38 - k * 0.15;
-      ambCol = lerpColor('#303038', '#1a1218', k);
-    } else {                            // night
-      top = '#0a0a20';
-      bottom = '#1a1a30';
-      sunCol = '#8090b0';
-      sunInt = 0.12;
-      hemiSky = '#2a3048';
-      hemiGround = '#080808';
-      hemiInt = 0.08;
-      ambCol = '#080818';
-    }
-
-    // Update sky background
-    const cvs = document.createElement('canvas');
-    cvs.width = 4; cvs.height = 512;
-    const ctx = cvs.getContext('2d');
-    const g = ctx.createLinearGradient(0, 0, 0, 512);
-    g.addColorStop(0, top);
-    g.addColorStop(1, bottom);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, 4, 512);
-    const tex = new THREE.CanvasTexture(cvs);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.mapping = THREE.EquirectangularReflectionMapping;
-    this.scene.background = tex;
-
-    // Update lights in-place
-    if (!this.lights || this.lights.length < 3) return;
-    const hemi = this.lights.find(l => l.isHemisphereLight);
-    const amb  = this.lights.find(l => l.isAmbientLight);
-    const sun  = this.lights.find(l => l.isDirectionalLight);
-
-    if (hemi) {
-      hemi.color.set(hemiSky);
-      hemi.groundColor.set(hemiGround);
-      hemi.intensity = hemiInt;
-    }
-    if (amb) {
-      amb.color.set(ambCol);
-    }
-    if (sun) {
-      sun.color.set(sunCol);
-      sun.intensity = sunInt;
-      const r = 22;
-      sun.position.set(azim * r, Math.max(sunY * r, 1.2), elev * 8 + 8);
-    }
-    this._renderOnce();
-  }
-
-  setExposure(v) {
-    this.renderer.toneMappingExposure = Math.max(0.2, Math.min(1.2, v));
-    this._renderOnce();
-  }
-
-  setAmbient(v) {
-    const amb = this.lights?.find(l => l.isAmbientLight);
-    if (amb) amb.intensity = Math.max(0, Math.min(1.0, v));
-    this._renderOnce();
-  }
-   
-   // ---------- LIGHTS / OUTSIDE / CAMERA ----------
+  // ---------- LIGHTS / OUTSIDE / CAMERA ----------
   _setupLights(state) {
     this.lights.forEach(l => this.scene.remove(l));
     this.lights = [];
     const mode = state.lightMode || 'day';
     let hemiSky, hemiGround, hemiInt, sunColor, sunInt, sunPos, ambient;
-       switch (mode) {
+    switch (mode) {
       case 'sunset': hemiSky=0xffa060; hemiGround=0x403020; hemiInt=0.28; sunColor=0xffb37a; sunInt=1.0; sunPos=[-12,4,10]; ambient=0x1a1208; break;
       case 'night':  hemiSky=0x3a4a6a; hemiGround=0x080808; hemiInt=0.12; sunColor=0xc0d0ff; sunInt=0.18; sunPos=[-8,10,6];  ambient=0x080810; break;
       case 'studio': hemiSky=0xffffff; hemiGround=0xcccccc; hemiInt=0.45; sunColor=0xffffff; sunInt=0.9;  sunPos=[8,12,8];   ambient=0x282828; break;
@@ -1073,12 +952,7 @@ class InteriorEngine {
     const tex = new THREE.CanvasTexture(cvs);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.mapping = THREE.EquirectangularReflectionMapping;
-    tex.colorSpace = THREE.SRGBColorSpace;
-     this.scene.background = tex;
-         // Wall material প্রতিফলন কমাতে environment intensity কমানো
-    if ('environmentIntensity' in this.scene) {
-      this.scene.environmentIntensity = 0.35;
-    }
+    this.scene.background = tex;
   }
 
   _setupCamera(state) {
@@ -1101,7 +975,6 @@ class InteriorEngine {
     this.controls.update();
   }
 
-  // ---------- DOLLHOUSE WALL CULLING ----------
   _cullWalls() {
     if (!this.roomGroup || !this._roomCenter) return;
     const walls = this.roomGroup.getObjectByName('walls');
@@ -1116,6 +989,83 @@ class InteriorEngine {
       const centerSide = normal.dot(toCenter);
       w.visible = (camSide * centerSide) >= 0;
     });
+  }
+
+  // ---------- TIME / EXPOSURE / AMBIENT ----------
+  setTimeOfDay(hour) {
+    const t = ((hour % 24) + 24) % 24;
+    const angle = (t / 24) * Math.PI * 2 - Math.PI / 2;
+    const elev = Math.sin(angle);
+    const azim = Math.cos(angle);
+    const sunY = Math.max(elev, -0.2);
+
+    let top, bottom, sunCol, sunInt, hemiSky, hemiGround, hemiInt, ambCol;
+    if (t >= 6 && t < 8) {
+      const k = (t - 6) / 2;
+      top = lerpColor('#1a2540', '#6ab0e0', k);
+      bottom = lerpColor('#ff8040', '#ffe0b0', k);
+      sunCol = lerpColor('#ff6020', '#fff4e0', k);
+      sunInt = 0.4 + k * 0.6;
+      hemiSky = lerpColor('#5a4060', '#b8d0e8', k);
+      hemiGround = '#504030'; hemiInt = 0.20 + k * 0.18;
+      ambCol = lerpColor('#151018', '#282830', k);
+    } else if (t >= 8 && t < 16) {
+      top = '#78b0e8'; bottom = '#e8f4ff';
+      sunCol = '#fff8e8'; sunInt = 1.0;
+      hemiSky = '#c8dcf0'; hemiGround = '#909080'; hemiInt = 0.38;
+      ambCol = '#303038';
+    } else if (t >= 16 && t < 19) {
+      const k = (t - 16) / 3;
+      top = lerpColor('#78b0e8', '#3a2050', k);
+      bottom = lerpColor('#ffe0b0', '#ff8050', k);
+      sunCol = lerpColor('#fff4e0', '#ff7030', k);
+      sunInt = 1.0 - k * 0.7;
+      hemiSky = lerpColor('#c8dcf0', '#7a4858', k);
+      hemiGround = '#504030'; hemiInt = 0.38 - k * 0.15;
+      ambCol = lerpColor('#303038', '#1a1218', k);
+    } else {
+      top = '#0a0a20'; bottom = '#1a1a30';
+      sunCol = '#8090b0'; sunInt = 0.12;
+      hemiSky = '#2a3048'; hemiGround = '#080808'; hemiInt = 0.08;
+      ambCol = '#080818';
+    }
+
+    const cvs = document.createElement('canvas');
+    cvs.width = 4; cvs.height = 512;
+    const ctx = cvs.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, top); g.addColorStop(1, bottom);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 4, 512);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    this.scene.background = tex;
+
+    if (!this.lights || this.lights.length < 3) return;
+    const hemi = this.lights.find(l => l.isHemisphereLight);
+    const amb  = this.lights.find(l => l.isAmbientLight);
+    const sun  = this.lights.find(l => l.isDirectionalLight);
+
+    if (hemi) { hemi.color.set(hemiSky); hemi.groundColor.set(hemiGround); hemi.intensity = hemiInt; }
+    if (amb) { amb.color.set(ambCol); }
+    if (sun) {
+      sun.color.set(sunCol);
+      sun.intensity = sunInt;
+      const r = 22;
+      sun.position.set(azim * r, Math.max(sunY * r, 1.2), elev * 8 + 8);
+    }
+    this._renderOnce();
+  }
+
+  setExposure(v) {
+    this.renderer.toneMappingExposure = Math.max(0.2, Math.min(1.2, v));
+    this._renderOnce();
+  }
+
+  setAmbient(v) {
+    const amb = this.lights?.find(l => l.isAmbientLight);
+    if (amb) amb.intensity = Math.max(0, Math.min(1.0, v));
+    this._renderOnce();
   }
 
   // ---------- RENDER API ----------
@@ -1146,7 +1096,7 @@ class InteriorEngine {
     this._renderOnce();
   }
 
-   _renderOnce() {
+  _renderOnce() {
     if (!this.renderer || !this.scene || !this.camera) return;
     this._cullWalls();
     const wrap = this.canvas.parentElement;
@@ -1178,11 +1128,9 @@ class InteriorEngine {
     const cssW = wrap.clientWidth || 800;
     const cssH = wrap.clientHeight || 600;
 
-    // Safe max resolution based on device
     const maxDim = this.renderer.capabilities.maxTextureSize || 4096;
     let TW = Math.min(cssW * 2, maxDim);
     let TH = Math.min(cssH * 2, maxDim);
-    // Force power-of-two-ish sizes for max compat
     TW = Math.floor(TW / 4) * 4;
     TH = Math.floor(TH / 4) * 4;
     if (TW < 16 || TH < 16) { TW = 1024; TH = 768; }
@@ -1191,8 +1139,6 @@ class InteriorEngine {
     this.camera.aspect = cssW / cssH;
     this.camera.updateProjectionMatrix();
     const oldPR = this.renderer.getPixelRatio();
-
-    // save old render target / size
     const oldSize = new THREE.Vector2();
     this.renderer.getSize(oldSize);
     const oldRT = this.renderer.getRenderTarget();
@@ -1200,13 +1146,10 @@ class InteriorEngine {
     let rt;
     try {
       rt = new THREE.WebGLRenderTarget(TW, TH, {
-        minFilter: THREE.LinearFilter,
-        magFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-        type: THREE.UnsignedByteType,
+        minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat, type: THREE.UnsignedByteType,
         colorSpace: THREE.SRGBColorSpace,
-        depthBuffer: true,
-        stencilBuffer: false
+        depthBuffer: true, stencilBuffer: false
       });
     } catch (e) {
       console.error('RT create failed', e);
@@ -1230,24 +1173,17 @@ class InteriorEngine {
       const jy = (Math.random() - 0.5) * 0.006;
       this.camera.position.copy(camBase).add(new THREE.Vector3(jx, jy, 0));
       this.camera.lookAt(tgtBase);
-
       try {
         this.renderer.setRenderTarget(rt);
         this.renderer.render(this.scene, this.camera);
         this.renderer.readRenderTargetPixels(rt, 0, 0, TW, TH, buf);
-      } catch (e) {
-        console.warn('readRenderTargetPixels failed, falling back', e);
-        break;
-      }
-
+      } catch (e) { console.warn('readback failed', e); break; }
       for (let k = 0; k < buf.length; k++) accum[k] += buf[k];
       const elapsed = (performance.now() - t0) / 1000;
       onProgress?.({ frame: i + 1, total: FRAMES, percent: ((i + 1) / FRAMES) * 100, elapsed });
       await new Promise(r => setTimeout(r, 0));
     }
-
-    const divisor = FRAMES;
-    for (let k = 0; k < accum.length; k++) accum[k] /= divisor;
+    for (let k = 0; k < accum.length; k++) accum[k] /= FRAMES;
 
     const out = document.createElement('canvas');
     out.width = TW; out.height = TH;
@@ -1264,7 +1200,6 @@ class InteriorEngine {
       }
     }
     ctx.putImageData(imgData, 0, 0);
-
     this.renderer.setPixelRatio(oldPR);
     this.renderer.setSize(oldSize.x, oldSize.y, false);
     this.renderer.setRenderTarget(oldRT);
@@ -1273,7 +1208,6 @@ class InteriorEngine {
     this._hdCanvas = out;
     this._renderOnce();
     rt.dispose();
-
     const total = (performance.now() - t0) / 1000;
     return { canvas: out, seconds: total, width: TW, height: TH };
   }
