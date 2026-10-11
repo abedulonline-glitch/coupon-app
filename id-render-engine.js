@@ -42,13 +42,168 @@ class InteriorEngine {
     this.pointer = new THREE.Vector2();
     this.transformMode = 'translate';
     this._hdCanvas = null;
+    this.tileMeshes = [];
+    this.selectedTile = null;
+    this._tileLongPressTimer = null; 
     this._onDown = this._onDown.bind(this);
     this._onContext = this._onContext.bind(this);
     this._onKey = this._onKey.bind(this);
     this._init();
   }
 
-  _init() {
+   // ═══════════════════════════════════════════════
+  // INDIVIDUAL TILE MODE
+  // ═══════════════════════════════════════════════
+  _buildIndividualTiles(surface, tileState, roomW, roomH, meshName) {
+    const baseMesh = this.roomGroup.getObjectByName(meshName);
+    if (!baseMesh) return;
+
+    // Hide the base mesh
+    baseMesh.visible = false;
+
+    const tileW = (tileState.size?.w || 600) / 1000;
+    const tileH = (tileState.size?.h || 600) / 1000;
+    const grout = (tileState.grout || 2) / 1000;
+    const groutW = tileW - grout;
+    const groutH = tileH - grout;
+
+    const cols = Math.ceil(roomW / tileW);
+    const rows = Math.ceil(roomH / tileH);
+
+    const tex = baseMesh.material?.map;
+    const baseColor = baseMesh.material?.color?.clone() || new THREE.Color(0xffffff);
+
+    const grp = new THREE.Group();
+    grp.name = `individual-${surface}`;
+
+    const globalRot = (tileState.rot || 0);
+    const individualMap = tileState.individual || {};
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const key = `${r},${c}`;
+        const rot = individualMap[key] != null ? individualMap[key] : globalRot;
+
+        const geo = new THREE.PlaneGeometry(groutW, groutH);
+        const mat = new THREE.MeshStandardMaterial({
+          map: tex ? tex.clone() : null,
+          color: baseColor,
+          roughness: 0.35,
+          metalness: 0.08,
+          side: THREE.DoubleSide
+        });
+        if (mat.map) {
+          mat.map.wrapS = mat.map.wrapT = THREE.RepeatWrapping;
+          mat.map.colorSpace = THREE.SRGBColorSpace;
+          mat.map.repeat.set(1, 1);
+          mat.map.offset.set(0, 0);
+          mat.map.center.set(0.5, 0.5);
+          mat.map.rotation = rot * DEG;
+          mat.map.needsUpdate = true;
+        }
+
+        const m = new THREE.Mesh(geo, mat);
+        // Flat position in XZ plane
+        const px = -roomW/2 + tileW/2 + c * tileW;
+        const pz = -roomH/2 + tileH/2 + r * tileH;
+        m.rotation.x = -Math.PI / 2;
+        m.position.set(px, 0.001, pz);
+        m.receiveShadow = true;
+        m.userData.gridR = r;
+        m.userData.gridC = c;
+        m.userData.surface = surface;
+        m.userData.isTile = true;
+        grp.add(m);
+        this.tileMeshes.push(m);
+      }
+    }
+
+    this.roomGroup.add(grp);
+  }
+
+  highlightTile(r, c, surface) {
+    this.clearTileSelection();
+    const m = this.tileMeshes.find(t =>
+      t.userData.gridR === r && t.userData.gridC === c && t.userData.surface === surface
+    );
+    if (m) {
+      this.selectedTile = m;
+      // Add outline
+      const edges = new THREE.EdgesGeometry(m.geometry);
+      const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({
+        color: 0x2ecc71, linewidth: 3
+      }));
+      line.position.copy(m.position);
+      line.rotation.copy(m.rotation);
+      line.scale.setScalar(1.05);
+      line.name = 'tile-selection-outline';
+      this.roomGroup.add(line);
+    }
+  }
+
+  clearTileSelection() {
+    this.selectedTile = null;
+    const old = this.roomGroup.getObjectByName('tile-selection-outline');
+    if (old) this.roomGroup.remove(old);
+  }
+
+  _onTilePointerDown(e) {
+    // Only in individual mode + step 7
+    const st = this.currentState?.tiles?.[this.currentState?.activeTab || 'floor'];
+    if (!st?.individualMode) return false;
+
+    const rect = this.canvas.getBoundingClientRect();
+    this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    const hits = this.raycaster.intersectObjects(this.tileMeshes, false);
+    if (!hits.length) return false;
+
+    const m = hits[0].object;
+    const surface = m.userData.surface;
+    const r = m.userData.gridR;
+    const c = m.userData.gridC;
+
+    // Start long-press timer for mobile
+    if (this._tileLongPressTimer) clearTimeout(this._tileLongPressTimer);
+    const startX = e.clientX, startY = e.clientY;
+    this._tileLongPressTimer = setTimeout(() => {
+      window.__id_onTileRotate?.(surface, r, c);
+      this._tileLongPressTimer = null;
+    }, 550);
+
+    // Register click handlers
+    const onUp = (ev) => {
+      if (this._tileLongPressTimer) {
+        clearTimeout(this._tileLongPressTimer);
+        this._tileLongPressTimer = null;
+      }
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (Math.hypot(dx, dy) < 8) {
+        // Real click (not drag)
+        window.__id_onTileClick?.(surface, r, c);
+      }
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointerup', onUp, { once: true });
+
+    // Double-click detection
+    const now = Date.now();
+    if (this._lastTileClick &&
+        this._lastTileClick.r === r &&
+        this._lastTileClick.c === c &&
+        now - this._lastTileClick.t < 400) {
+      window.__id_onTileRotate?.(surface, r, c);
+      this._lastTileClick = null;
+      return true; // consumed
+    }
+    this._lastTileClick = { r, c, t: now };
+
+    return true; // consumed
+  }
+   
+   _init() {
     const { canvas } = this;
     this.renderer = new THREE.WebGLRenderer({
       canvas, antialias: true, preserveDrawingBuffer: true,
@@ -176,6 +331,8 @@ class InteriorEngine {
   // ---------- SELECTION ----------
   _onDown(e) {
     if (this.transform.dragging) return;
+        // Individual tile mode — check before furniture
+    if (this._onTilePointerDown(e)) return; 
     const rect = this.canvas.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -207,6 +364,20 @@ class InteriorEngine {
 
   _onContext(e) {
     e.preventDefault();
+        // Individual tile mode — right-click rotates
+    const st = this.currentState?.tiles?.[this.currentState?.activeTab || 'floor'];
+    if (st?.individualMode) {
+      const rect = this.canvas.getBoundingClientRect();
+      this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.pointer, this.camera);
+      const hits = this.raycaster.intersectObjects(this.tileMeshes, false);
+      if (hits.length) {
+        const m = hits[0].object;
+        window.__id_onTileRotate?.(m.userData.surface, m.userData.gridR, m.userData.gridC);
+        return;
+      }
+    } 
     const rect = this.canvas.getBoundingClientRect();
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -396,6 +567,8 @@ class InteriorEngine {
 
   _buildRoom(state) {
     this._disposeGroup(this.roomGroup);
+    this.tileMeshes = [];
+    this.selectedTile = null; 
     this._disposeGroup(this.furnitureGrp);
     this._removeDimLabels();
     this.structGrp = null;
@@ -773,7 +946,24 @@ class InteriorEngine {
       for (const w of walls.children) await apply('wall', w, w.userData.wallLen || L, H);
     }
 
-    if (this.structGrp) {
+         // ═══════════════════════════════════════════════
+    // INDIVIDUAL TILE MODE
+    // ═══════════════════════════════════════════════
+    this.tileMeshes = [];
+    const indSurfaces = ['floor', 'wall', 'accent', 'ceiling'];
+    for (const srf of indSurfaces) {
+      const st = tiles[srf];
+      if (!st?.individualMode || !st?.url) continue;
+      if (srf === 'floor') {
+        await this._buildIndividualTiles('floor', st, L, W, 'floor');
+      } else if (srf === 'ceiling' && surfaces.ceiling) {
+        // ceiling needs its own group, but skip for now
+      } else if (srf === 'wall' && walls) {
+        // wall individual — skip complex case for now
+      }
+    }
+   
+     if (this.structGrp) {
       const makeMat = async (tileKey) => {
         const t = tiles[tileKey];
         if (!t?.url) return null;
