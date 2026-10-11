@@ -747,83 +747,90 @@ function renderStockList(items) {
   });
 }
 
+// ═══════════════════════════════════════════════════════
+// PERSPECTIVE CROPPER (4-corner)
+// ═══════════════════════════════════════════════════════
+let pc = null;
+
 function openCrop(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const modal = document.getElementById('id-cropModal');
-    const img   = document.getElementById('id-cropImg');
-    if (!modal || !img) return;
+    const stage = document.getElementById('id-cropStage');
     modal.hidden = false;
     modal.style.display = 'flex';
+    stage.innerHTML = '';
+
+    const img = new Image();
+    img.onload = async () => {
+      const mod = await import('./id-cropper.js');
+      pc = new mod.PerspectiveCropper(img);
+      stage.appendChild(pc.element);
+      setTimeout(() => pc.resize(), 60);
+
+      const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
+      const tw = cur.size?.w || 600;
+      const th = cur.size?.h || 600;
+      const gcd = (a, b) => b ? gcd(b, a % b) : a;
+      const g = gcd(tw, th) || 1;
+      const badge = document.getElementById('id-cropRatioBadge');
+      if (badge) badge.textContent = `${tw/g}:${th/g}`;
+    };
     img.src = e.target.result;
-
-    if (cropper) { cropper.destroy(); cropper = null; }
-
-    const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
-    const tw = cur.size?.w || 600;
-    const th = cur.size?.h || 600;
-    const ratio = tw / th;
-
-    cropper = new Cropper(img, {
-      aspectRatio: ratio,
-      viewMode: 1,
-      autoCropArea: 0.95,
-      responsive: true,
-      background: true,
-      guides: false,
-      center: true,
-      highlight: false,
-      dragMode: 'move',
-      cropBoxMovable: true,
-      cropBoxResizable: true,
-      toggleDragModeOnDblclick: false,
-      zoomOnWheel: true,
-      wheelZoomRatio: 0.1,
-      touchDragZoom: true,
-      minContainerHeight: 220
-    });
   };
   reader.readAsDataURL(file);
 }
 
-$('#id-cropCancel')?.addEventListener('click', () => {
-  if (cropper) { cropper.destroy(); cropper = null; }
-  $('#id-cropModal').hidden = true;
-  $('#id-cropModal').style.display = 'none';
+function closeCrop() {
+  pc = null;
+  const modal = document.getElementById('id-cropModal');
+  modal.hidden = true;
+  modal.style.display = 'none';
+  const stage = document.getElementById('id-cropStage');
+  if (stage) stage.innerHTML = '';
+}
+
+// Toolbar
+document.getElementById('id-pcRotL')?.addEventListener('click', () => {
+  if (pc) pc.setRotation((pc.rotation || 0) - 90);
 });
+document.getElementById('id-pcRotR')?.addEventListener('click', () => {
+  if (pc) pc.setRotation((pc.rotation || 0) + 90);
+});
+document.getElementById('id-pcAuto')?.addEventListener('click', () => pc?.autoDetect());
+document.getElementById('id-pcReset')?.addEventListener('click', () => pc?.reset());
 
-$('#id-cropOk')?.addEventListener('click', async () => {
-  if (!cropper) return;
+// Cancel
+document.getElementById('id-cropCancel')?.addEventListener('click', closeCrop);
+document.getElementById('id-cropCancelTop')?.addEventListener('click', closeCrop);
 
+// OK — Save
+document.getElementById('id-cropOk')?.addEventListener('click', async () => {
+  if (!pc) return;
   const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
   const tw = cur.size?.w || 600;
   const th = cur.size?.h || 600;
-
-  // Long side 1024, short side proportional
   const outW = tw >= th ? 1024 : Math.round(1024 * (tw / th));
   const outH = th >= tw ? 1024 : Math.round(1024 * (th / tw));
 
-  const canvas = cropper.getCroppedCanvas({
-    width: outW,
-    height: outH,
-    imageSmoothingQuality: 'high'
-  });
-
-  const btn = $('#id-cropOk');
+  const btn = document.getElementById('id-cropOk');
   btn.disabled = true;
-  btn.textContent = '⏳ আপলোড হচ্ছে...';
+  btn.textContent = '⏳ প্রসেস হচ্ছে...';
 
-  const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
-  const url  = await uploadToImgBB(blob);
-
-  btn.disabled = false;
-  btn.textContent = '✔️ ঠিক আছে';
-
-  if (cropper) { cropper.destroy(); cropper = null; }
-  $('#id-cropModal').hidden = true;
-  $('#id-cropModal').style.display = 'none';
-  if (url) { setTile(url); toast('✅ টাইল যোগ হয়েছে', 'success'); }
-  else     { toast('❌ আপলোড ব্যর্থ', 'error'); }
+  try {
+    const canvas = await pc.crop(outW, outH);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+    const url = await uploadToImgBB(blob);
+    closeCrop();
+    if (url) { setTile(url); toast('✅ টাইল যোগ হয়েছে', 'success'); }
+    else { toast('❌ আপলোড ব্যর্থ', 'error'); }
+  } catch (err) {
+    console.error(err);
+    toast('❌ ক্রপ ব্যর্থ', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✔️ ঠিক আছে';
+  }
 });
 
 async function uploadToImgBB(blob) {
