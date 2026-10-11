@@ -1412,3 +1412,17 @@ input[type="range"]::-moz-range-thumb {
   color: #fff;
   flex: 1.4;
 }
+
+.id-tile-rot-quick {
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  color: var(--id-text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.id-tile-rot-quick:hover { background: var(--id-primary); border-color: var(--id-primary); color: #fff; }
+.id-tile-rot-quick.active { background: var(--id-primary); border-color: var(--id-primary); color: #fff; }
