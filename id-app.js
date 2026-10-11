@@ -25,6 +25,7 @@ const STATE = {
     ceiling: { url: null, size: { w: 600, h: 600 }, rot: 0, grout: 2 }
   },
   activeTab: 'floor',     // tile tab
+  selectedStructIdx: null,
   activeSub: 'furniture', // step 6 subtab
   furniture: [],          // {id, x, y, z, rot, color}
   outside:   { id: 'out-day' },
@@ -370,6 +371,31 @@ $$('.id-struct-tool').forEach(btn => {
       activeTool = btn.dataset.tool;
     }
   });
+});
+
+// ⬇️⬇️⬇️ এই নতুন ব্লকটি যোগ করুন ⬇️⬇️⬇️
+$('#id-structSvg')?.addEventListener('click', (e) => {
+  if (!activeTool) return;
+  const svg = $('#id-structSvg');
+  const rect = svg.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width  * 600;
+  const y = (e.clientY - rect.top)  / rect.height * 400;
+  if (x < 40 || x > 560 || y < 40 || y > 360) return;
+
+  if (activeTool === 'erase') {
+    const filtered = STATE.structure.filter(s => Math.hypot(s.x - x, s.y - y) > 25);
+    if (filtered.length !== STATE.structure.length) {
+      STATE.structure = filtered;
+      STATE.selectedStructIdx = null;
+      buildStructureSVG();
+      if (STATE.step === 7) refreshRender(true);
+    }
+    return;
+  }
+  STATE.structure.push({ type: activeTool, x, y, rot: 0 });
+  STATE.selectedStructIdx = STATE.structure.length - 1;
+  buildStructureSVG();
+  if (STATE.step === 7) refreshRender(true);
 });
 
 function buildStructureSVG() {
