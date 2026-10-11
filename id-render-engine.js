@@ -15,6 +15,13 @@ import { SMAAPass }          from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass }        from 'three/addons/postprocessing/OutputPass.js';
 import { RGBELoader }        from 'three/addons/loaders/RGBELoader.js';
 
+function lerpColor(a, b, t) {
+  const ca = new THREE.Color(a);
+  const cb = new THREE.Color(b);
+  const c = ca.clone().lerp(cb, Math.max(0, Math.min(1, t)));
+  return '#' + c.getHexString();
+}
+
 const FT  = 0.3048;
 const DEG = Math.PI / 180;
 
@@ -772,7 +779,105 @@ class InteriorEngine {
     });
   }
 
-  // ---------- LIGHTS / OUTSIDE / CAMERA ----------
+  // ---------- TIME OF DAY ----------
+  setTimeOfDay(hour) {
+    const t = ((hour % 24) + 24) % 24;
+    const angle = (t / 24) * Math.PI * 2 - Math.PI / 2;
+    const elev  = Math.sin(angle);
+    const azim  = Math.cos(angle);
+    const sunY  = Math.max(elev, -0.2);
+
+    // Sky colors based on time
+    let top, bottom, sunCol, sunInt, hemiSky, hemiGround, hemiInt, ambCol;
+    if (t >= 6 && t < 8) {            // sunrise
+      const k = (t - 6) / 2;
+      top = lerpColor('#1a2540', '#6ab0e0', k);
+      bottom = lerpColor('#ff8040', '#ffe0b0', k);
+      sunCol = lerpColor('#ff6020', '#fff4e0', k);
+      sunInt = 0.4 + k * 0.6;
+      hemiSky = lerpColor('#5a4060', '#b8d0e8', k);
+      hemiGround = '#504030';
+      hemiInt = 0.20 + k * 0.18;
+      ambCol = lerpColor('#151018', '#282830', k);
+    } else if (t >= 8 && t < 16) {     // day
+      const k = (t - 8) / 8;
+      top = '#78b0e8';
+      bottom = '#e8f4ff';
+      sunCol = '#fff8e8';
+      sunInt = 1.0 - Math.abs(k - 0.5) * 0.15;
+      hemiSky = '#c8dcf0';
+      hemiGround = '#909080';
+      hemiInt = 0.38;
+      ambCol = '#303038';
+    } else if (t >= 16 && t < 19) {    // sunset
+      const k = (t - 16) / 3;
+      top = lerpColor('#78b0e8', '#3a2050', k);
+      bottom = lerpColor('#ffe0b0', '#ff8050', k);
+      sunCol = lerpColor('#fff4e0', '#ff7030', k);
+      sunInt = 1.0 - k * 0.7;
+      hemiSky = lerpColor('#c8dcf0', '#7a4858', k);
+      hemiGround = '#504030';
+      hemiInt = 0.38 - k * 0.15;
+      ambCol = lerpColor('#303038', '#1a1218', k);
+    } else {                            // night
+      top = '#0a0a20';
+      bottom = '#1a1a30';
+      sunCol = '#8090b0';
+      sunInt = 0.12;
+      hemiSky = '#2a3048';
+      hemiGround = '#080808';
+      hemiInt = 0.08;
+      ambCol = '#080818';
+    }
+
+    // Update sky background
+    const cvs = document.createElement('canvas');
+    cvs.width = 4; cvs.height = 512;
+    const ctx = cvs.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, top);
+    g.addColorStop(1, bottom);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 4, 512);
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    this.scene.background = tex;
+
+    // Update lights in-place
+    if (!this.lights || this.lights.length < 3) return;
+    const hemi = this.lights.find(l => l.isHemisphereLight);
+    const amb  = this.lights.find(l => l.isAmbientLight);
+    const sun  = this.lights.find(l => l.isDirectionalLight);
+
+    if (hemi) {
+      hemi.color.set(hemiSky);
+      hemi.groundColor.set(hemiGround);
+      hemi.intensity = hemiInt;
+    }
+    if (amb) {
+      amb.color.set(ambCol);
+    }
+    if (sun) {
+      sun.color.set(sunCol);
+      sun.intensity = sunInt;
+      const r = 22;
+      sun.position.set(azim * r, Math.max(sunY * r, 1.2), elev * 8 + 8);
+    }
+    this._renderOnce();
+  }
+
+  setExposure(v) {
+    this.renderer.toneMappingExposure = Math.max(0.2, Math.min(1.2, v));
+    this._renderOnce();
+  }
+
+  setAmbient(v) {
+    const amb = this.lights?.find(l => l.isAmbientLight);
+    if (amb) amb.intensity = Math.max(0, Math.min(1.0, v));
+    this._renderOnce();
+  }
+   
+   // ---------- LIGHTS / OUTSIDE / CAMERA ----------
   _setupLights(state) {
     this.lights.forEach(l => this.scene.remove(l));
     this.lights = [];
