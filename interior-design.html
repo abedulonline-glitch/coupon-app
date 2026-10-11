@@ -319,6 +319,17 @@
         </select>
       </div>
 
+           <!-- Tile Rotation Controls -->
+      <div id="id-rotBar">
+        <span id="id-rotInfo">🟫 ফ্লোর টাইল</span>
+        <button class="id-rot-btn" data-rot="0" data-active="true">সোজা 0°</button>
+        <button class="id-rot-btn" data-rot="90">আড়াআড়ি 90°</button>
+        <button class="id-rot-btn" data-rot="45">ডায়াগোনাল 45°</button>
+        <button class="id-rot-btn" data-rot="135">ডায়াগোনাল 135°</button>
+        <span style="width:1px;height:24px;background:var(--id-border)"></span>
+        <button class="id-rot-btn id-rot-start active" data-start="corner">📍 কোণা থেকে</button>
+        <button class="id-rot-btn id-rot-start" data-start="center">🎯 মাঝ থেকে</button>
+      </div>
       <div id="id-viewerWrap">
         <canvas id="id-canvas"></canvas>
         <div id="id-viewerOverlay">
