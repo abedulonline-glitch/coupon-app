@@ -1095,3 +1095,26 @@ input[type="range"]::-moz-range-thumb {
   color: var(--id-text-dim);
 }
 .id-ctx-item:hover .id-ctx-value { color: rgba(255,255,255,0.8); }
+
+/* Dimension labels on 2D editor */
+.id-dim-text {
+  fill: var(--id-accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: sans-serif;
+  paint-order: stroke;
+  stroke: #0f1117;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.id-dim-line {
+  stroke: var(--id-accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+}
+.id-struct-hit {
+  cursor: pointer;
+}
+.id-struct-hit:hover { opacity: 1; }
