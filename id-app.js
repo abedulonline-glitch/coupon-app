@@ -736,6 +736,16 @@ $('#id-cameraView')?.addEventListener('change', (e) => {
 $('#id-lightMode')?.addEventListener('change', (e) => {
   STATE.lightMode = e.target.value;
   refreshRender();
+  // Time slider sync (preset → time)
+  const presets = { day: 12, sunset: 17.5, night: 22, studio: 12 };
+  const t = presets[STATE.lightMode];
+  if (t != null && $('#id-timeOfDay')) {
+    $('#id-timeOfDay').value = t;
+    $('#id-timeVal').textContent = fmtTime(t);
+    engine?.setTimeOfDay(t);
+    if (STATE.lightMode === 'studio') engine?.setExposure(0.72);
+    else engine?.setExposure(0.62);
+  }
 });
 $('#id-liveRender')?.addEventListener('click', () => {
   refreshRender();
@@ -1250,5 +1260,32 @@ $('#id-hdriSelect')?.addEventListener('change', async (e) => {
     console.error(err);
     toast('❌ HDRI লোড ব্যর্থ', 'error');
   }
+});
+
+// ============================================================
+// LIGHT SLIDERS
+// ============================================================
+function fmtTime(v) {
+  const h = Math.floor(v);
+  const m = Math.round((v - h) * 60);
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+$('#id-timeOfDay')?.addEventListener('input', (e) => {
+  const v = parseFloat(e.target.value);
+  $('#id-timeVal').textContent = fmtTime(v);
+  engine?.setTimeOfDay(v);
+});
+
+$('#id-exposure')?.addEventListener('input', (e) => {
+  const v = parseFloat(e.target.value) / 100;
+  $('#id-expVal').textContent = v.toFixed(2);
+  engine?.setExposure(v);
+});
+
+$('#id-ambient')?.addEventListener('input', (e) => {
+  const v = parseFloat(e.target.value) / 100;
+  $('#id-ambVal').textContent = v.toFixed(2);
+  engine?.setAmbient(v);
 });
 showStep(1);
