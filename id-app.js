@@ -750,15 +750,17 @@ function renderStockList(items) {
 function openCrop(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    const modal = $('#id-cropModal');
-    const img   = $('#id-cropImg');
+    const modal = document.getElementById('id-cropModal');
+    const img   = document.getElementById('id-cropImg');
+    if (!modal || !img) return;
     modal.hidden = false;
     modal.style.display = 'flex';
     img.src = e.target.result;
+
     if (cropper) { cropper.destroy(); cropper = null; }
 
     const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
-     const tw = cur.size?.w || 600;
+    const tw = cur.size?.w || 600;
     const th = cur.size?.h || 600;
     const ratio = tw / th;
 
