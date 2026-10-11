@@ -1469,8 +1469,7 @@ input[type="range"]::-moz-range-thumb {
   border-color: var(--id-primary);
   color: #fff;
 }
-.id-rot-btn.active,
-.id-rot-btn[data-active="true"] {
+.id-rot-btn.active {
   background: var(--id-primary);
   border-color: var(--id-primary);
   color: #fff;
