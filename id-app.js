@@ -67,17 +67,30 @@ function sqft() {
 function showStep(n) {
   n = Math.max(1, Math.min(STATE.maxStep, n));
   STATE.step = n;
-  $$('.id-step').forEach((el, i) => {
-    el.hidden = (i + 1) !== n;
+
+  // Force hide ALL steps first
+  $$('.id-step').forEach((el) => {
+    el.hidden = true;
+    el.style.display = 'none';
   });
+
+  // Show only current
+  const current = document.getElementById(`id-step-${n}`);
+  if (current) {
+    current.hidden = false;
+    current.style.display = 'block';
+  }
+
   $('#id-progressBar').style.width = `${(n / STATE.maxStep) * 100}%`;
   $('#id-progressText').textContent = `Step ${n} / ${STATE.maxStep}`;
   $('#id-prevBtn').disabled = (n === 1);
-  if (n === 3) {
-    setTimeout(() => { try { buildStructureSVG(); } catch(e) { console.error(e); } }, 50);
-  }
- 
-   if (n === STATE.maxStep) {
+
+  // SCROLL TO TOP — নতুন স্ক্রিন যাতে উপরে থেকে দেখা যায়
+  const wizard = $('#id-wizard');
+  if (wizard) wizard.scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (n === STATE.maxStep) {
     initEngine();
     refreshRender();
   }
