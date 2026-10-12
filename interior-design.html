@@ -200,6 +200,25 @@
           <input type="number" id="id-paverH" min="50" max="500">
         </div>
 
+                <div class="id-row">
+          <label>রঙ মোড</label>
+          <select id="id-paverColorMode">
+            <option value="solid" selected>এক রঙ</option>
+            <option value="alt">দুই রঙ (পাশাপাশি)</option>
+            <option value="checker">চেকারবোর্ড</option>
+            <option value="stripes-row">সারি স্ট্রাইপ</option>
+            <option value="stripes-col">কলাম স্ট্রাইপ</option>
+            <option value="random">র‍্যান্ডম মিক্স</option>
+            <option value="individual">🧑‍🎨 ইন্ডিভিজুয়াল (ক্লিক করে)</option>
+          </select>
+        </div>
+
+        <div class="id-row" id="id-paverBRow">
+          <label>২য় রঙ</label>
+          <input type="color" id="id-paverColorB" value="#9a9a9a">
+          <span class="id-hint-inline">দুই রঙ মোডে ব্যবহার হবে</span>
+        </div>
+
         <div id="id-paverStats">
           <div class="id-stat">
             <span class="id-stat-label">মোট ব্লক</span>
