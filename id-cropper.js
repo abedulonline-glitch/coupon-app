@@ -15,7 +15,8 @@ export class PerspectiveCropper {
     ];
     this.rotation = 0;
     this.dragIdx = -1;
-    this.handleR = 16;
+    this.handleR = 7;        // visual radius (small dot)
+    this.hitR = 30;          // invisible touch target
     this._onDown = this._onDown.bind(this);
     this._onMove = this._onMove.bind(this);
     this._onUp   = this._onUp.bind(this);
@@ -91,7 +92,7 @@ export class PerspectiveCropper {
     this.corners.forEach((c, i) => {
       const d = this._toDisp(c);
       const dist = Math.hypot(d.x - p.x, d.y - p.y);
-      if (dist < this.handleR + 20 && dist < minD) { minD = dist; nearest = i; }
+      if (dist < this.hitR && dist < minD) { minD = dist; nearest = i; }
     });
     if (nearest >= 0) {
       this.dragIdx = nearest;
@@ -105,7 +106,7 @@ export class PerspectiveCropper {
       let hover = -1;
       this.corners.forEach((c, i) => {
         const d = this._toDisp(c);
-        if (Math.hypot(d.x - p.x, d.y - p.y) < this.handleR + 20) hover = i;
+       if (Math.hypot(d.x - p.x, d.y - p.y) < this.hitR) hover = i;
       });
       this.canvas.style.cursor = hover >= 0 ? 'grab' : 'default';
       return;
@@ -177,17 +178,26 @@ export class PerspectiveCropper {
     }
 
     // Handles
+        // Handles — WhatsApp-style small dots with crosshair
     quad.forEach((p, i) => {
+      const active = (i === this.dragIdx);
+
+      // Outer white ring
       ctx.beginPath();
-      ctx.arc(p.x, p.y, this.handleR, 0, Math.PI * 2);
-      ctx.fillStyle = i === this.dragIdx ? '#ffb347' : '#4f8cff';
+      ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
       ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 3;
-      ctx.stroke();
+
+      // Inner colored dot
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
+      ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+      ctx.fillStyle = active ? '#ffb347' : '#4f8cff';
+      ctx.fill();
+
+      // Inner white center (precise point marker)
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
     });
   }
