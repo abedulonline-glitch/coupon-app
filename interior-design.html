@@ -156,6 +156,68 @@
     <section class="id-step" id="id-step-5" hidden>
       <h2>৫. টাইল / গ্রানাইট সিলেকশন</h2>
 
+           <!-- Mode Toggle: Tile vs Paver -->
+      <div class="id-mode-toggle">
+        <button id="id-modeTile" class="id-mode-btn active">🔲 টাইল মোড</button>
+        <button id="id-modePaver" class="id-mode-btn">🧱 প্যাভার মোড</button>
+      </div>
+
+      <!-- PAVER PANEL (hidden by default) -->
+      <div id="id-paverPanel" hidden>
+
+        <div class="id-row">
+          <label>ক্যাটাগরি</label>
+          <select id="id-paverCategory"></select>
+          <label>প্রিসেট</label>
+          <select id="id-paverPreset"></select>
+        </div>
+
+        <div class="id-row">
+          <label>রঙ</label>
+          <div id="id-paverColorSwatches"></div>
+          <input type="color" id="id-paverColorCustom" value="#b22222" title="কাস্টম রঙ">
+        </div>
+
+        <div class="id-row">
+          <label>সারফেস</label>
+          <select id="id-paverSurface">
+            <option value="smooth">স্মুথ</option>
+            <option value="rough" selected>রাফ</option>
+            <option value="granite">গ্রানাইট</option>
+          </select>
+          <label>প্যাটার্ন</label>
+          <select id="id-paverPattern">
+            <option value="running" selected>রানিং বন্ড</option>
+            <option value="stack">স্ট্যাক বন্ড</option>
+          </select>
+        </div>
+
+        <div class="id-row">
+          <label>W (mm)</label>
+          <input type="number" id="id-paverW" min="50" max="500">
+          <span>×</span>
+          <label>H (mm)</label>
+          <input type="number" id="id-paverH" min="50" max="500">
+        </div>
+
+        <div id="id-paverStats">
+          <div class="id-stat">
+            <span class="id-stat-label">মোট ব্লক</span>
+            <span class="id-stat-value" id="id-paverCount">—</span>
+          </div>
+          <div class="id-stat">
+            <span class="id-stat-label">ওয়েস্টেজ সহ</span>
+            <span class="id-stat-value" id="id-paverWastage">—</span>
+          </div>
+          <div class="id-stat">
+            <span class="id-stat-label">রুম</span>
+            <span class="id-stat-value" id="id-paverRoom">—</span>
+          </div>
+        </div>
+
+        <p class="id-hint" id="id-paverHint">প্যাভার সিলেক্ট করুন — Step 7-এ দেখতে পাবেন</p>
+      </div>
+     
       <div class="id-tile-tabs">
         <button class="id-tab active" data-tab="floor">🟫 ফ্লোর</button>
         <button class="id-tab" data-tab="wall">🧱 ওয়াল</button>
