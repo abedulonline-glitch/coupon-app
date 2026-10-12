@@ -636,11 +636,14 @@ class InteriorEngine {
     this._roomBounds = { pts, H, L: state.room.length * FT, W: state.room.width * FT };
     this._roomCenter = new THREE.Vector3(0, H / 2, 0);
         // Paver mode? hide floor and build pavers
+        // Paver mode? hide floor and build pavers
     if (state.paverMode && state.paver && state.paver.id) {
       floor.visible = false;
-      this._buildPaverFloor(state, pts, L, W);
+      const Lp = state.room.length * FT;
+      const Wp = state.room.width  * FT;
+      this._buildPaverFloor(state, pts, Lp, Wp);
     }
-     
+
     this._buildStructure3D(state, pts, H);
   }
 
