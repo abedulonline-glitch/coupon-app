@@ -262,6 +262,87 @@
             <option value="custom">— কাস্টম —</option>
           </select>
         </div>
+                   <!-- ═══════════════════════════════════════════
+           SKIRTING (BASEBOARD) SECTION
+           ═══════════════════════════════════════════ -->
+      <div id="id-skirtingSection">
+        <div class="id-skirting-header">
+          <h3>⚙️ স্কার্টিং (বেসবোর্ড)</h3>
+          <label class="id-switch" title="চালু/বন্ধ">
+            <input type="checkbox" id="id-skirtingToggle">
+            <span class="id-switch-slider"></span>
+          </label>
+        </div>
+
+        <div id="id-skirtingPanel" hidden>
+
+          <!-- উচ্চতা -->
+          <div class="id-row">
+            <label>উচ্চতা</label>
+            <select id="id-skirtingHeight" style="flex:1">
+              <option value="100">৪" — ১০০mm</option>
+              <option value="125">৫" — ১২৫mm</option>
+              <option value="150" selected>৬" — ১৫০mm</option>
+              <option value="custom">— কাস্টম —</option>
+            </select>
+            <input type="number" id="id-skirtingHeightCustom"
+                   value="150" min="50" max="300" step="5"
+                   style="max-width:90px" hidden>
+            <span class="id-hint-inline">mm</span>
+          </div>
+
+          <!-- প্রোফাইল -->
+          <div class="id-row">
+            <label>প্রোফাইল</label>
+            <select id="id-skirtingProfile" style="flex:1">
+              <option value="flat" selected>সোজা (Flat)</option>
+              <option value="beveled">বেভেল (Beveled)</option>
+              <option value="bullnose">বুলনোজ (Bullnose)</option>
+              <option value="cove">কোভ (Cove)</option>
+            </select>
+          </div>
+
+          <!-- পুরুত্ব -->
+          <div class="id-row">
+            <label>পুরুত্ব</label>
+            <input type="range" id="id-skirtingThickness" min="8" max="25" value="12">
+            <span id="id-skirtingThicknessVal">12mm</span>
+          </div>
+
+          <!-- মেটেরিয়াল -->
+          <div class="id-row">
+            <label>মেটেরিয়াল</label>
+            <select id="id-skirtingMaterial" style="flex:1">
+              <option value="floor" selected>🟫 ফ্লোর টাইল</option>
+              <option value="wall">🧱 ওয়াল টাইল</option>
+              <option value="accent">🎯 অ্যাকসেন্ট টাইল</option>
+              <option value="solid">🎨 কাস্টম রঙ</option>
+            </select>
+          </div>
+
+          <!-- কাস্টম রঙ (শুধু solid mode-এ দেখা যাবে) -->
+          <div class="id-row" id="id-skirtingColorRow" hidden>
+            <label>রঙ</label>
+            <input type="color" id="id-skirtingColor" value="#ffffff">
+            <input type="text" id="id-skirtingColorText" value="#ffffff"
+                   maxlength="7" style="max-width:100px;text-transform:lowercase">
+          </div>
+
+          <!-- প্রিভিউ -->
+          <div id="id-skirtingPreview" class="id-skirting-preview">
+            <div class="id-skirting-visual">
+              <div class="id-skirting-wall"></div>
+              <div class="id-skirting-floor"></div>
+              <div class="id-skirting-block profile-flat" id="id-skirtingBlockPreview"></div>
+            </div>
+            <p class="id-hint" id="id-skirtingHint">
+              সব দেয়ালে ৬" স্কার্টিং বসবে — দরজার জায়গায় অটো কেটে যাবে
+            </p>
+          </div>
+
+        </div>
+      </div>
+                
         <div class="id-row">
           <label>W × H</label>
           <input type="number" id="id-tileW" value="600" min="50" max="5000">
