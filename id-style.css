@@ -1615,3 +1615,27 @@ input[type="range"]::-moz-range-thumb {
   .id-stat-value { font-size: 15px; }
   .id-stat { padding: 8px 4px; }
 }
+
+.id-hint-inline {
+  font-size: 11px;
+  color: var(--id-text-dim);
+  margin-left: 6px;
+}
+.id-paver-selected {
+  outline: none;
+}
+.id-paver-highlight-hint {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(46,204,113,0.95);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 25;
+  pointer-events: none;
+  animation: id-fadeIn 0.3s ease;
+}
