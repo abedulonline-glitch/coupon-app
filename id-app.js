@@ -30,6 +30,15 @@ const STATE = {
   furniture: [],          // {id, x, y, z, rot, color}
   outside:   { id: 'out-day' },
   lightMode: 'day',
+  
+    skirting: {
+    enabled: false,
+    height: 150,           // mm
+    profile: 'flat',       // flat | beveled | bullnose | cove
+    thickness: 12,         // mm
+    material: 'floor',     // floor | wall | accent | solid
+    color: '#ffffff'
+  }, 
    paverMode: false,
     paver: {
     id: null,
@@ -1519,6 +1528,34 @@ $('#id-loadBtn')?.addEventListener('click', async () => {
           <p>${data.shape || 'rect'} · ${(data.furniture || []).length} items</p>`;
         row.addEventListener('click', () => {
           Object.assign(STATE, data);
+                    // Restore skirting UI
+          setTimeout(() => {
+            const S = STATE.skirting;
+            if (!S) return;
+            const toggle = document.getElementById('id-skirtingToggle');
+            if (toggle) {
+              toggle.checked = !!S.enabled;
+              toggle.dispatchEvent(new Event('change'));
+            }
+            const hSel = document.getElementById('id-skirtingHeight');
+            if (hSel) {
+              const known = ['100','125','150'];
+              if (known.includes(String(S.height))) hSel.value = String(S.height);
+              else hSel.value = 'custom';
+              hSel.dispatchEvent(new Event('change'));
+            }
+            const hCust = document.getElementById('id-skirtingHeightCustom');
+            if (hCust) hCust.value = S.height;
+            const pSel = document.getElementById('id-skirtingProfile');
+            if (pSel) { pSel.value = S.profile; pSel.dispatchEvent(new Event('change')); }
+            const tS = document.getElementById('id-skirtingThickness');
+            if (tS) { tS.value = S.thickness; tS.dispatchEvent(new Event('input')); }
+            const mSel = document.getElementById('id-skirtingMaterial');
+            if (mSel) { mSel.value = S.material; mSel.dispatchEvent(new Event('change')); }
+            const ck = document.getElementById('id-skirtingColor');
+            if (ck) { ck.value = S.color; ck.dispatchEvent(new Event('input')); }
+          }, 150);
+           
          // ---------- TILE INPUT LISTENERS ----------
 $('#id-tileW')?.addEventListener('input', (e) => {
   const cur = STATE.tiles[STATE.activeTab];
@@ -2065,6 +2102,121 @@ document.querySelectorAll('.id-tab').forEach(t => {
   if (nextBtn && nextBtn._paverPatched !== true) {
     nextBtn._paverPatched = true;
   }
+})();
+
+// ═══════════════════════════════════════════════
+// SKIRTING CONTROLS
+// ═══════════════════════════════════════════════
+(function initSkirtingUI() {
+  const S = STATE.skirting;
+
+  const toggle      = document.getElementById('id-skirtingToggle');
+  const panel       = document.getElementById('id-skirtingPanel');
+  const heightSel   = document.getElementById('id-skirtingHeight');
+  const heightCust  = document.getElementById('id-skirtingHeightCustom');
+  const profileSel  = document.getElementById('id-skirtingProfile');
+  const thickSlider = document.getElementById('id-skirtingThickness');
+  const thickVal    = document.getElementById('id-skirtingThicknessVal');
+  const matSel      = document.getElementById('id-skirtingMaterial');
+  const colorRow    = document.getElementById('id-skirtingColorRow');
+  const colorPick   = document.getElementById('id-skirtingColor');
+  const colorText   = document.getElementById('id-skirtingColorText');
+  const block       = document.getElementById('id-skirtingBlockPreview');
+  const hint        = document.getElementById('id-skirtingHint');
+
+  if (!toggle) return;
+
+  function applySkirting() {
+    S.enabled   = toggle.checked;
+    S.height    = heightSel.value === 'custom'
+                    ? (parseFloat(heightCust.value) || 150)
+                    : parseFloat(heightSel.value);
+    S.profile   = profileSel.value;
+    S.thickness = parseFloat(thickSlider.value) || 12;
+    S.material  = matSel.value;
+    S.color     = colorPick.value || '#ffffff';
+
+    // UI sync
+    if (panel)  panel.hidden = !S.enabled;
+    if (heightCust) heightCust.hidden = heightSel.value !== 'custom';
+    if (colorRow)   colorRow.hidden   = matSel.value !== 'solid';
+    if (thickVal)   thickVal.textContent = S.thickness + 'mm';
+
+    // Preview block
+    if (block) {
+      block.className = 'id-skirting-block profile-' + S.profile;
+      // Height representation (scaled)
+      const h = Math.max(14, Math.min(40, S.height / 6));
+      block.style.height = h + 'px';
+      // Color
+      block.style.background = (S.material === 'solid')
+        ? S.color
+        : (S.material === 'wall'    ? '#d8d8d8'
+        :  S.material === 'accent'  ? '#ffb347'
+        :  '#ffffff');
+    }
+
+    // Hint
+    if (hint) {
+      const hInch = (S.height / 25.4).toFixed(1);
+      hint.textContent = S.enabled
+        ? `সব দেয়ালে ${hInch}" (${S.height}mm) ${S.profile} স্কার্টিং — দরজার জায়গায় অটো কাট`
+        : 'স্কার্টিং বন্ধ — টগল ON করুন';
+    }
+
+    // Live 3D update
+    if (STATE.step === 7 && typeof refreshRender === 'function') {
+      refreshRender(true);
+    }
+  }
+
+  // Toggle
+  toggle.addEventListener('change', applySkirting);
+
+  // Height dropdown
+  heightSel?.addEventListener('change', () => {
+    if (heightSel.value === 'custom') {
+      heightCust.hidden = false;
+      heightCust.focus();
+    } else {
+      heightCust.hidden = true;
+    }
+    applySkirting();
+  });
+
+  // Custom height input
+  heightCust?.addEventListener('input', () => {
+    const v = Math.max(50, Math.min(300, parseFloat(heightCust.value) || 150));
+    S.height = v;
+    applySkirting();
+  });
+
+  // Profile
+  profileSel?.addEventListener('change', applySkirting);
+
+  // Thickness slider
+  thickSlider?.addEventListener('input', applySkirting);
+
+  // Material
+  matSel?.addEventListener('change', applySkirting);
+
+  // Color picker
+  colorPick?.addEventListener('input', () => {
+    colorText.value = colorPick.value;
+    applySkirting();
+  });
+
+  // Color text input
+  colorText?.addEventListener('input', () => {
+    const v = colorText.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+      colorPick.value = v;
+      applySkirting();
+    }
+  });
+
+  // Initial state (off)
+  applySkirting();
 })();
 
 showStep(1);
