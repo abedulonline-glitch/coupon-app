@@ -18,6 +18,7 @@ import { RGBELoader }        from 'three/addons/loaders/RGBELoader.js';
 import { PAVERS, buildShape, generateLayout, calcBlockCount } from './id-paver-library.js';
 
 const FT  = 0.3048;
+const MM = 0.001;
 const DEG = Math.PI / 180;
 
 function lerpColor(a, b, t) {
