@@ -298,16 +298,30 @@ export function buildShape(paver, customW, customH) {
       break;
     }
 
-    case 'milano': {
-      // Hexagon-ish
+        case 'milano': {
+      // Hexagon with rounded corners (real paver style)
       const x0 = -w / 2, y0 = -h / 2;
-      const chamfer = Math.min(w, h) * 0.25;
-      shape.moveTo(x0 + chamfer, y0);
-      shape.lineTo(x0 + w - chamfer, y0);
-      shape.lineTo(x0 + w, y0 + h / 2);
-      shape.lineTo(x0 + w - chamfer, y0 + h);
-      shape.lineTo(x0 + chamfer, y0 + h);
-      shape.lineTo(x0, y0 + h / 2);
+      const chamfer = Math.min(w, h) * 0.28;
+      const r = Math.min(w, h) * 0.08;   // corner radius
+      // Flat-top hexagon: top edge, slanted sides, bottom edge
+      shape.moveTo(x0 + chamfer + r, y0);
+      shape.lineTo(x0 + w - chamfer - r, y0);
+      shape.quadraticCurveTo(x0 + w - chamfer, y0, x0 + w - chamfer, y0 + r);
+      shape.lineTo(x0 + w, y0 + h / 2 - r);
+      shape.quadraticCurveTo(x0 + w, y0 + h / 2, x0 + w - r, y0 + h / 2);
+      shape.lineTo(x0 + w - chamfer + r, y0 + h / 2);
+      // second half mirrored
+      shape.lineTo(x0 + w - chamfer, y0 + h / 2);
+      shape.lineTo(x0 + w - chamfer, y0 + h - r);
+      shape.quadraticCurveTo(x0 + w - chamfer, y0 + h, x0 + w - chamfer - r, y0 + h);
+      shape.lineTo(x0 + chamfer + r, y0 + h);
+      shape.quadraticCurveTo(x0 + chamfer, y0 + h, x0 + chamfer, y0 + h - r);
+      shape.lineTo(x0, y0 + h / 2 + r);
+      shape.quadraticCurveTo(x0, y0 + h / 2, x0 + r, y0 + h / 2);
+      shape.lineTo(x0 + chamfer - r, y0 + h / 2);
+      shape.lineTo(x0 + chamfer, y0 + h / 2);
+      shape.lineTo(x0 + chamfer, y0 + r);
+      shape.quadraticCurveTo(x0 + chamfer, y0, x0 + chamfer + r, y0);
       shape.closePath();
       break;
     }
@@ -381,47 +395,117 @@ export function buildShape(paver, customW, customH) {
 export function generateLayout(paver, roomW_mm, roomH_mm, customW, customH, pattern) {
   const w = customW || paver.dims.w;
   const h = customH || paver.dims.h;
-  const grout = 2;    // mm (grout gap)
-  const stepW = w + grout;
-  const stepH = h + grout;
+  const grout = 1;                  // tighter joint
 
   const tiles = [];
+  const shape = paver.shape;
 
+  // ───────── HEXAGONAL (honeycomb overlap) ─────────
+  if (shape === 'milano' || shape === 'oxford' || shape === 'olympia' || shape === 'moon-blossom') {
+    // These are hex/oct shapes — pack with vertical overlap
+    const stepX = w + grout;
+    const stepY = h * 0.72;         // 28% overlap per row
+    const offsetX = stepX / 2;
+    const cols = Math.ceil(roomW_mm / stepX) + 3;
+    const rows = Math.ceil(roomH_mm / stepY) + 3;
+
+    for (let r = -1; r < rows; r++) {
+      const rowOffset = (r % 2 === 1) ? offsetX : 0;
+      for (let c = -1; c < cols; c++) {
+        const x = c * stepX + rowOffset + stepX / 2;
+        const y = r * stepY + stepY / 2;
+        tiles.push({
+          x: x - roomW_mm / 2,
+          y: y - roomH_mm / 2,
+          w, h, rot: 0,
+          row: r, col: c
+        });
+      }
+    }
+    return tiles;
+  }
+
+  // ───────── DUMBLE / I-DUMBLE (tight interlocking) ─────────
+  if (shape === 'dumble' || shape === 'i-dumble') {
+    const stepX = w + grout;
+    const stepY = h + grout;
+    const cols = Math.ceil(roomW_mm / stepX) + 2;
+    const rows = Math.ceil(roomH_mm / stepY) + 2;
+    for (let r = 0; r < rows; r++) {
+      const rowOffset = (r % 2 === 1) ? stepX / 2 : 0;
+      for (let c = -1; c < cols; c++) {
+        const x = c * stepX + rowOffset + stepX / 2;
+        const y = r * stepY + stepY / 2;
+        tiles.push({ x: x - roomW_mm/2, y: y - roomH_mm/2, w, h, rot: 0, row: r, col: c });
+      }
+    }
+    return tiles;
+  }
+
+  // ───────── TRIANGLE (alternating flip) ─────────
+  if (shape === 'triangle') {
+    const base = paver.dims.base || w;
+    const stepX = base + grout;
+    const stepY = h + grout;
+    const cols = Math.ceil(roomW_mm / stepX) + 3;
+    const rows = Math.ceil(roomH_mm / stepY) + 2;
+    for (let r = 0; r < rows; r++) {
+      for (let c = -1; c < cols; c++) {
+        const x = c * stepX + stepX / 2;
+        const y = r * stepY + stepY / 2;
+        const flip = (r % 2 === 1) ? 180 : 0;
+        tiles.push({ x: x - roomW_mm/2, y: y - roomH_mm/2, w, h, rot: flip, row: r, col: c });
+      }
+    }
+    return tiles;
+  }
+
+  // ───────── ZIGZAG (tight side-by-side) ─────────
+  if (shape === 'zigzag') {
+    const stepX = w + grout;
+    const stepY = h * 0.6 + grout;   // zigzag rows overlap
+    const cols = Math.ceil(roomW_mm / stepX) + 2;
+    const rows = Math.ceil(roomH_mm / stepY) + 2;
+    for (let r = 0; r < rows; r++) {
+      const flip = (r % 2 === 1) ? 180 : 0;
+      for (let c = -1; c < cols; c++) {
+        const x = c * stepX + stepX / 2;
+        const y = r * stepY + stepY / 2;
+        tiles.push({ x: x - roomW_mm/2, y: y - roomH_mm/2, w, h, rot: flip, row: r, col: c });
+      }
+    }
+    return tiles;
+  }
+
+  // ───────── RECTANGULAR (brick / square) ─────────
   if (pattern === 'running') {
-    // Brick running bond — every other row offset by half
+    const stepW = w + grout;
+    const stepH = h + grout;
     const rows = Math.ceil(roomH_mm / stepH) + 1;
-    const cols = Math.ceil(roomW_mm / stepW) + 1;
+    const cols = Math.ceil(roomW_mm / stepW) + 2;
     for (let r = 0; r < rows; r++) {
       const offset = (r % 2 === 1) ? stepW / 2 : 0;
       for (let c = -1; c < cols; c++) {
         const x = c * stepW + offset + stepW / 2;
         const y = r * stepH + stepH / 2;
-        tiles.push({
-          x: x - roomW_mm / 2,
-          y: y - roomH_mm / 2,
-          w, h, rot: 0,
-          row: r, col: c
-        });
+        tiles.push({ x: x - roomW_mm/2, y: y - roomH_mm/2, w, h, rot: 0, row: r, col: c });
       }
     }
-  } else {
-    // stack — simple grid
-    const rows = Math.ceil(roomH_mm / stepH) + 1;
-    const cols = Math.ceil(roomW_mm / stepW) + 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = c * stepW + stepW / 2;
-        const y = r * stepH + stepH / 2;
-        tiles.push({
-          x: x - roomW_mm / 2,
-          y: y - roomH_mm / 2,
-          w, h, rot: 0,
-          row: r, col: c
-        });
-      }
-    }
+    return tiles;
   }
 
+  // stack
+  const stepW = w + grout;
+  const stepH = h + grout;
+  const rows = Math.ceil(roomH_mm / stepH) + 1;
+  const cols = Math.ceil(roomW_mm / stepW) + 1;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = c * stepW + stepW / 2;
+      const y = r * stepH + stepH / 2;
+      tiles.push({ x: x - roomW_mm/2, y: y - roomH_mm/2, w, h, rot: 0, row: r, col: c });
+    }
+  }
   return tiles;
 }
 
