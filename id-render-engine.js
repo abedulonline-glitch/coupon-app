@@ -928,6 +928,38 @@ class InteriorEngine {
     this._renderOnce();
   }
 
+    // Procedural dimple bump texture (like real pavers)
+  _makePaverBumpTexture() {
+    if (this._paverBumpTex) return this._paverBumpTex;
+    const size = 256;
+    const cvs = document.createElement('canvas');
+    cvs.width = cvs.height = size;
+    const ctx = cvs.getContext('2d');
+    // Base — mid grey
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, size, size);
+    // Dimple dots pattern
+    const dotR = 3;
+    const gap = 14;
+    for (let y = gap / 2; y < size; y += gap) {
+      for (let x = gap / 2; x < size; x += gap) {
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, dotR);
+        grad.addColorStop(0, '#3a3a3a');
+        grad.addColorStop(0.6, '#606060');
+        grad.addColorStop(1, '#808080');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, dotR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const tex = new THREE.CanvasTexture(cvs);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(4, 4);   // how many dimples per paver
+    this._paverBumpTex = tex;
+    return tex;
+  }
+   
    // ============================================================
   // PAVER FLOOR BUILDER
   // ============================================================
@@ -988,7 +1020,20 @@ class InteriorEngine {
     const individualMap = state.paver.individualColors || {};
 
     const matCache = {};
+       const bumpTex = this._makePaverBumpTexture();
     const makeMat = (hex) => {
+      if (matCache[hex]) return matCache[hex];
+      const m = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(hex),
+        roughness: surfaceDef.roughness,
+        metalness: surfaceDef.metalness,
+        bumpMap: bumpTex,
+        bumpScale: 0.008,
+        side: THREE.DoubleSide
+      });
+      matCache[hex] = m;
+      return m;
+    };
       if (matCache[hex]) return matCache[hex];
       const m = new THREE.MeshStandardMaterial({
         color: new THREE.Color(hex),
