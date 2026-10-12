@@ -178,26 +178,32 @@ export class PerspectiveCropper {
     }
 
     // Handles
-        // Handles — WhatsApp-style small dots with crosshair
+    // Handles — plain small squares (WhatsApp style)
     quad.forEach((p, i) => {
       const active = (i === this.dragIdx);
+      const half = active ? 6 : 5;
 
-      // Outer white ring
+      // Outer soft glow only when active
+      if (active) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,179,71,0.25)';
+        ctx.fill();
+      }
+
+      // Plain square handle
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.rect(p.x - half, p.y - half, half * 2, half * 2);
+      ctx.fillStyle = active ? '#ffb347' : '#ffffff';
       ctx.fill();
+      ctx.strokeStyle = active ? '#1a1a1a' : '#4f8cff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-      // Inner colored dot
+      // Precise center dot (tiny)
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
-      ctx.fillStyle = active ? '#ffb347' : '#4f8cff';
-      ctx.fill();
-
-      // Inner white center (precise point marker)
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
+      ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = active ? '#ffffff' : '#4f8cff';
       ctx.fill();
     });
   }
