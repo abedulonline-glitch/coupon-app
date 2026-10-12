@@ -665,6 +665,8 @@ class InteriorEngine {
     }
 
     this._buildStructure3D(state, pts, H);
+        // Skirting
+    this._buildSkirting(state); 
   }
 
   _defaultsForType(type) {
@@ -1123,6 +1125,306 @@ class InteriorEngine {
     this._buildPaverFloor(this.currentState, pts, L, W);
     this._renderOnce();
   }
+  
+    // ═══════════════════════════════════════════════
+  // SKIRTING (BASEBOARD) BUILDER
+  // ═══════════════════════════════════════════════
+  _buildSkirting(state) {
+    const S = state.skirting;
+    // Remove old
+    const old = this.roomGroup.getObjectByName('skirting');
+    if (old) this.roomGroup.remove(old);
+
+    if (!S?.enabled) return;
+
+    const H = (S.height || 150) * MM;
+    const T = (S.thickness || 12) * MM;
+    const pts = this._roomBounds?.pts;
+    if (!pts || !pts.length) return;
+
+    const grp = new THREE.Group();
+    grp.name = 'skirting';
+
+    const material = this._makeSkirtingMaterial(state, S);
+
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const dx = b.x - a.x, dz = b.y - a.y;
+      const wallLen = Math.hypot(dx, dz);
+      if (wallLen < 0.05) continue;
+
+      const wallAngle = Math.atan2(dx, dz);
+
+      // Compute outward/inward test
+      const mx = (a.x + b.x) / 2;
+      const mz = (a.y + b.y) / 2;
+      const tc = { x: -mx, z: -mz }; // toward origin (room center approx)
+
+      // Door gaps on this wall (in wall-space distance)
+      const gaps = this._findDoorGapsOnWall(a, b, state.structure || []);
+
+      // Build list of [start, end] segments to draw
+      const segs = this._computeSkirtingSegs(wallLen, gaps);
+
+      for (const seg of segs) {
+        const segLen = seg.end - seg.start;
+        if (segLen < 0.03) continue;
+
+        const tMid = (seg.start + seg.end) / 2;
+        const cx = a.x + (dx / wallLen) * tMid;
+        const cz = a.y + (dz / wallLen) * tMid;
+
+        const geo = this._makeSkirtingGeo(segLen, H, T, S.profile);
+        if (!geo) continue;
+
+        // Build mesh
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.position.set(cx, 0, cz);
+        mesh.rotation.y = wallAngle;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        grp.add(mesh);
+      }
+    }
+
+    this.roomGroup.add(grp);
+  }
+
+  // ----- Helpers -----
+
+  _makeSkirtingMaterial(state, S) {
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.5,
+      metalness: 0.05,
+      side: THREE.DoubleSide
+    });
+
+    // Solid color mode
+    if (S.material === 'solid') {
+      baseMat.color.set(S.color || '#ffffff');
+      return baseMat;
+    }
+
+    // Otherwise use a tile map
+    const tileKey = S.material; // 'floor' | 'wall' | 'accent'
+    const tileState = state.tiles?.[tileKey];
+    if (tileState?.url) {
+      const loader = new THREE.TextureLoader();
+      loader.setCrossOrigin('anonymous');
+      loader.load(tileState.url, (tex) => {
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        // Set repeat based on tile size
+        const tw = (tileState.size?.w || 600) / 1000;
+        const th = (tileState.size?.h || 600) / 1000;
+        // Use base repeat — actual UV comes from extrude geometry
+        tex.repeat.set(1, 1);
+        tex.needsUpdate = true;
+        baseMat.map = tex;
+        baseMat.color.set(0xffffff);
+        baseMat.needsUpdate = true;
+        this._renderOnce();
+      }, undefined, () => {});
+    } else {
+      // Fallback shades
+      if (S.material === 'wall') baseMat.color.set(0xd8d8d8);
+      else if (S.material === 'accent') baseMat.color.set(0xffb347);
+      else baseMat.color.set(0xeeeeee);
+    }
+    return baseMat;
+  }
+
+  _makeSkirtingGeo(segLen, H, T, profile) {
+    // Profile drawn in XY plane:
+    //   X: depth (0 → -T, going inward)
+    //   Y: height (0 → H)
+    // Extruded along +Z by segLen, then centered on Z.
+    const shape = new THREE.Shape();
+
+    const bevel = Math.min(T * 0.35, H * 0.15);
+    const noseR = Math.min(T * 0.5, H * 0.25);
+    const coveR = Math.min(T * 0.6, H * 0.3);
+
+    switch (profile) {
+
+      case 'flat':
+      default: {
+        shape.moveTo(0, 0);
+        shape.lineTo(-T, 0);
+        shape.lineTo(-T, H);
+        shape.lineTo(0, H);
+        shape.closePath();
+        break;
+      }
+
+      case 'beveled': {
+        // Front bottom is chamfered
+        shape.moveTo(0, 0);
+        shape.lineTo(-T, 0);
+        shape.lineTo(-T, H - bevel);
+        shape.lineTo(-T + bevel, H);
+        shape.lineTo(0, H);
+        shape.closePath();
+        break;
+      }
+
+      case 'bullnose': {
+        // Rounded top-front edge
+        shape.moveTo(0, 0);
+        shape.lineTo(-T, 0);
+        shape.lineTo(-T, H - noseR);
+        // Quadratic curve to top
+        shape.quadraticCurveTo(-T, H, -T + noseR, H);
+        shape.lineTo(0, H);
+        shape.closePath();
+        break;
+      }
+
+      case 'cove': {
+        // Front face curves at top (concave)
+        shape.moveTo(0, 0);
+        shape.lineTo(-T, 0);
+        shape.lineTo(-T, H - coveR);
+        shape.quadraticCurveTo(-T * 0.5, H - coveR * 0.5, 0, H - coveR * 0.3);
+        shape.lineTo(0, H);
+        shape.closePath();
+        break;
+      }
+    }
+
+    try {
+      const geo = new THREE.ExtrudeGeometry(shape, {
+        depth: segLen,
+        bevelEnabled: false,
+        curveSegments: 8
+      });
+      // Center on Z (extrusion direction)
+      geo.translate(0, 0, -segLen / 2);
+
+      // Generate UVs for wall tiles
+      // Apply a simple planar UV: u = along wall length, v = along height
+      const pos = geo.attributes.position;
+      const uv = geo.attributes.uv;
+      if (pos && uv) {
+        for (let i = 0; i < pos.count; i++) {
+          const px = pos.getX(i);
+          const py = pos.getY(i);
+          const pz = pos.getZ(i);
+          // u from Z (length direction, normalized by typical tile width 0.6m)
+          // v from Y (height direction)
+          uv.setXY(i, pz / 0.6, py / 0.6);
+        }
+        uv.needsUpdate = true;
+      }
+
+      return geo;
+    } catch (err) {
+      console.warn('Skirting geo failed:', err);
+      return null;
+    }
+  }
+
+  // Find door gaps along a wall segment
+  _findDoorGapsOnWall(a, b, structure) {
+    const dx = b.x - a.x, dz = b.y - a.y;
+    const wallLen = Math.hypot(dx, dz);
+    if (wallLen < 0.01) return [];
+    const wallDirX = dx / wallLen, wallDirZ = dz / wallLen;
+
+    const gaps = [];
+
+    for (const s of structure) {
+      if (s.type !== 'door') continue;
+
+      // Door world position (approx) — door is placed similar to how doors are built
+      // In _buildStructure3D, doors are placed using wx, wz from SVG coords
+      // We don't have wx directly here, so we reconstruct from structure s.x, s.y
+      // _buildStructure3D used: nx = (s.x - 40) / 520, nz = (s.y - 40) / 320
+      // and mapped into the wall bounding box.
+
+      // We don't have pts min/max here, so we approximate:
+      // Use structure s.x, s.y as parametric within room.
+      // Better approach: pass state and use same mapping.
+
+      // Simpler: use s.x / 600, s.y / 400 as fractions of the room bounding box
+      // The wall segment (a, b) spans real-world coords, so we project s into wall space.
+
+      // Since we don't have room bounds min/max here, we skip this. Instead we rely
+      // on door.params.width to create a gap near the door's parametric position.
+
+      // Compute door's "projection" onto this wall using its x,y SVG coords
+      // Assume room is at origin, size from wall bounds:
+      // We need the room bounds — use this._roomBounds.pts for min/max
+      const pts = this._roomBounds?.pts;
+      if (!pts) continue;
+      const xs = pts.map(p => p.x), zs = pts.map(p => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+      const rw = maxX - minX, rd = maxZ - minZ;
+
+      const doorNx = (s.x - 40) / 520;
+      const doorNz = (s.y - 40) / 320;
+      const doorWx = minX + doorNx * rw;
+      const doorWz = minZ + doorNz * rd;
+
+      // Project door onto this wall's line
+      const relX = doorWx - a.x;
+      const relZ = doorWz - a.y;
+      const projT = relX * wallDirX + relZ * wallDirZ; // parametric along wall
+
+      // Distance from door to wall line
+      const perpX = relX - projT * wallDirX;
+      const perpZ = relZ - projT * wallDirZ;
+      const perpDist = Math.hypot(perpX, perpZ);
+
+      // Must be close to wall (within 0.5m)
+      if (perpDist > 0.5) continue;
+
+      // Door width in meters
+      const doorWidthM = (s.params?.width || 0.9);
+      const halfW = doorWidthM / 2 + 0.05; // +5cm extra margin
+
+      gaps.push({
+        start: projT - halfW,
+        end: projT + halfW
+      });
+    }
+
+    return gaps;
+  }
+
+  _computeSkirtingSegs(wallLen, gaps) {
+    // Sort gaps by start
+    const sorted = gaps
+      .map(g => ({
+        start: Math.max(0, g.start),
+        end: Math.min(wallLen, g.end)
+      }))
+      .filter(g => g.end > g.start)
+      .sort((a, b) => a.start - b.start);
+
+    const segs = [];
+    let cursor = 0;
+
+    for (const g of sorted) {
+      if (g.start > cursor) {
+        segs.push({ start: cursor, end: g.start });
+      }
+      cursor = Math.max(cursor, g.end);
+    }
+    if (cursor < wallLen) {
+      segs.push({ start: cursor, end: wallLen });
+    }
+
+    // If no gaps, return the whole wall
+    if (!segs.length && !sorted.length) {
+      return [{ start: 0, end: wallLen }];
+    }
+
+    return segs;
+  } 
    // ⬇⬇⬇ এখান থেকে PART 2 শুরু হবে — এখনো সেভ করবেন না ⬇⬇⬇
 
   // ---------- TILES ----------
@@ -1142,6 +1444,36 @@ class InteriorEngine {
         res(tex);
       }, undefined, () => res(null));
     });
+
+         // ---------- Refresh skirting textures ----------
+    const skirtingGrp = this.roomGroup.getObjectByName('skirting');
+    if (skirtingGrp && state.skirting?.enabled) {
+      const S = state.skirting;
+      const tileKey = S.material;
+      if (tileKey !== 'solid') {
+        const ts = tiles[tileKey];
+        if (ts?.url) {
+          const tex = await loadTex(ts.url);
+          if (tex) {
+            const tileW = (ts.size?.w || 600) / 1000;
+            const tileH = (ts.size?.h || 600) / 1000;
+            skirtingGrp.traverse(mesh => {
+              if (!mesh.isMesh) return;
+              const m = mesh.material.clone();
+              const c = tex.clone();
+              c.wrapS = c.wrapT = THREE.RepeatWrapping;
+              c.colorSpace = THREE.SRGBColorSpace;
+              c.repeat.set(1 / tileW, 1 / tileH);
+              c.needsUpdate = true;
+              m.map = c;
+              m.color.set(0xffffff);
+              m.needsUpdate = true;
+              mesh.material = m;
+            });
+          }
+        }
+      }
+    }
 
     const apply = async (surfaceName, mesh, wMeters, hMeters) => {
       const t = tiles[surfaceName];
