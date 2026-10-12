@@ -30,7 +30,16 @@ const STATE = {
   furniture: [],          // {id, x, y, z, rot, color}
   outside:   { id: 'out-day' },
   lightMode: 'day',
-  cameraView:'iso'
+   paverMode: false,
+  paver: {
+    id: null,
+    customW: 200,
+    customH: 100,
+    pattern: 'running',
+    surface: 'rough',
+    color: '#b22222'
+  },
+   cameraView:'iso'
 };
 
 let engine = null;
@@ -596,6 +605,217 @@ $$('.id-surface-btn').forEach(btn => {
 });
 
 // ============================================================
+// PAVER MODE
+// ============================================================
+function showPaverPanel() {
+  $('#id-paverPanel').hidden = false;
+  $('#id-tileTabs')?.setAttribute('hidden', '');
+  $('#id-tileTabs')?.style.setProperty('display', 'none');
+  $('#id-tileSource')?.style.setProperty('display', 'none');
+  $('#id-tileGallery')?.style.setProperty('display', 'none');
+  $('#id-tileSizePanel')?.style.setProperty('display', 'none');
+}
+
+function showTilePanel() {
+  $('#id-paverPanel').hidden = true;
+  $('#id-tileTabs')?.removeAttribute('hidden');
+  $('#id-tileTabs')?.style.removeProperty('display');
+  $('#id-tileSource')?.style.removeProperty('display');
+  $('#id-tileGallery')?.style.removeProperty('display');
+  $('#id-tileSizePanel')?.style.removeProperty('display');
+}
+
+// Mode toggle
+document.getElementById('id-modeTile')?.addEventListener('click', () => {
+  STATE.paverMode = false;
+  document.getElementById('id-modeTile')?.classList.add('active');
+  document.getElementById('id-modePaver')?.classList.remove('active');
+  showTilePanel();
+  if (STATE.step === 7) refreshRender();
+});
+
+document.getElementById('id-modePaver')?.addEventListener('click', () => {
+  STATE.paverMode = true;
+  document.getElementById('id-modePaver')?.classList.add('active');
+  document.getElementById('id-modeTile')?.classList.remove('active');
+  showPaverPanel();
+  buildPaverUI();
+  if (STATE.step === 7) refreshRender();
+});
+
+// Build category + preset dropdowns
+function buildPaverUI() {
+  const lib = window.__id_paver;
+  if (!lib) return;
+
+  const catSel = document.getElementById('id-paverCategory');
+  if (catSel && catSel.options.length === 0) {
+    catSel.innerHTML = '';
+    lib.getCategories().forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.name;
+      catSel.appendChild(o);
+    });
+    catSel.value = 'brick';
+  }
+
+  refreshPaverPresets();
+  refreshPaverColors();
+}
+
+function refreshPaverPresets() {
+  const lib = window.__id_paver;
+  if (!lib) return;
+  const cat = document.getElementById('id-paverCategory')?.value || 'brick';
+  const list = lib.getPaversByCategory(cat);
+  const sel = document.getElementById('id-paverPreset');
+  if (!sel) return;
+  sel.innerHTML = '';
+  list.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = `${p.emoji} ${p.name} — ${p.dims.w}×${p.dims.h}mm`;
+    sel.appendChild(o);
+  });
+  if (list.length) {
+    const first = list[0];
+    sel.value = first.id;
+    STATE.paver.id = first.id;
+    STATE.paver.customW = first.dims.w;
+    STATE.paver.customH = first.dims.h;
+    STATE.paver.color = first.color;
+    syncPaverInputs(first);
+    updatePaverStats();
+  }
+}
+
+function refreshPaverColors() {
+  const lib = window.__id_paver;
+  if (!lib) return;
+  const wrap = document.getElementById('id-paverColorSwatches');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  lib.PAVER_COLORS.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'id-color-swatch';
+    b.style.background = c.hex;
+    b.title = c.name;
+    b.dataset.color = c.hex;
+    if (STATE.paver.color === c.hex) b.classList.add('active');
+    b.addEventListener('click', () => {
+      STATE.paver.color = c.hex;
+      document.querySelectorAll('.id-color-swatch').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      applyPaverChange();
+    });
+    wrap.appendChild(b);
+  });
+}
+
+function syncPaverInputs(def) {
+  const wI = document.getElementById('id-paverW');
+  const hI = document.getElementById('id-paverH');
+  if (wI) { wI.value = STATE.paver.customW; wI.min = def.limits.minW; wI.max = def.limits.maxW; }
+  if (hI) { hI.value = STATE.paver.customH; hI.min = def.limits.minH; hI.max = def.limits.maxH; }
+  const custom = document.getElementById('id-paverColorCustom');
+  if (custom) custom.value = STATE.paver.color;
+  const surf = document.getElementById('id-paverSurface');
+  if (surf) surf.value = STATE.paver.surface;
+  const pat = document.getElementById('id-paverPattern');
+  if (pat) pat.value = STATE.paver.pattern;
+}
+
+function updatePaverStats() {
+  const lib = window.__id_paver;
+  const paver = lib?.getPaver(STATE.paver.id);
+  if (!paver) return;
+  const roomW_mm = STATE.room.width * 304.8;
+  const roomH_mm = STATE.room.length * 304.8;
+  const stats = lib.calcBlockCount(paver, roomW_mm, roomH_mm, STATE.paver.customW, STATE.paver.customH);
+
+  const fmt = (n) => n >= 1000 ? (n/1000).toFixed(1) + 'k' : Math.round(n);
+  const el = (id) => document.getElementById(id);
+  if (el('id-paverCount'))   el('id-paverCount').textContent = fmt(stats.withWastage);
+  if (el('id-paverWastage')) el('id-paverWastage').textContent = stats.exact.toFixed(0);
+  if (el('id-paverRoom'))    el('id-paverRoom').textContent = `${STATE.room.length}×${STATE.room.width}ft`;
+}
+
+function applyPaverChange() {
+  updatePaverStats();
+  const hint = document.getElementById('id-paverHint');
+  const paver = window.__id_paver?.getPaver(STATE.paver.id);
+  if (hint && paver) {
+    hint.textContent = `✅ ${paver.name} — ${STATE.paver.customW}×${STATE.paver.customH}mm · ${STATE.paver.pattern}`;
+  }
+  if (STATE.step === 7) refreshRender();
+}
+
+// Category change
+document.getElementById('id-paverCategory')?.addEventListener('change', () => {
+  refreshPaverPresets();
+  applyPaverChange();
+});
+
+// Preset change
+document.getElementById('id-paverPreset')?.addEventListener('change', (e) => {
+  const lib = window.__id_paver;
+  const def = lib?.getPaver(e.target.value);
+  if (!def) return;
+  STATE.paver.id = def.id;
+  STATE.paver.customW = def.dims.w;
+  STATE.paver.customH = def.dims.h;
+  STATE.paver.color = def.color;
+  syncPaverInputs(def);
+  refreshPaverColors();
+  applyPaverChange();
+});
+
+// W input
+document.getElementById('id-paverW')?.addEventListener('input', (e) => {
+  const lib = window.__id_paver;
+  const def = lib?.getPaver(STATE.paver.id);
+  if (!def) return;
+  let v = parseFloat(e.target.value) || def.dims.w;
+  v = Math.max(def.limits.minW, Math.min(def.limits.maxW, v));
+  STATE.paver.customW = v;
+  applyPaverChange();
+});
+
+// H input
+document.getElementById('id-paverH')?.addEventListener('input', (e) => {
+  const lib = window.__id_paver;
+  const def = lib?.getPaver(STATE.paver.id);
+  if (!def) return;
+  let v = parseFloat(e.target.value) || def.dims.h;
+  v = Math.max(def.limits.minH, Math.min(def.limits.maxH, v));
+  STATE.paver.customH = v;
+  applyPaverChange();
+});
+
+// Surface dropdown
+document.getElementById('id-paverSurface')?.addEventListener('change', (e) => {
+  STATE.paver.surface = e.target.value;
+  applyPaverChange();
+});
+
+// Pattern dropdown
+document.getElementById('id-paverPattern')?.addEventListener('change', (e) => {
+  STATE.paver.pattern = e.target.value;
+  applyPaverChange();
+});
+
+// Custom color picker
+document.getElementById('id-paverColorCustom')?.addEventListener('input', (e) => {
+  STATE.paver.color = e.target.value;
+  document.querySelectorAll('.id-color-swatch').forEach(x => x.classList.remove('active'));
+  applyPaverChange();
+});
+
+// Init paver UI on load
+setTimeout(() => { try { buildPaverUI(); } catch(e) {} }, 200);
+
+// ============================================================
 // STEP 5 — TILE UPLOAD + CROP + SIZE
 // ============================================================
 $$('.id-tab').forEach(tab => {
@@ -1136,6 +1356,7 @@ function initEngine() {
   engine.startLive();
 }
 
+const _origRefreshRenderFn = typeof refreshRender === 'function' ? refreshRender : null;
 async function refreshRender() {
   if (!engine) return;
   try {
@@ -1795,5 +2016,13 @@ $('#id-ambient')?.addEventListener('input', (e) => {
 document.querySelectorAll('.id-tab').forEach(t => {
   t.addEventListener('click', () => setTimeout(refreshRotBar, 50));
 });
+
+// Paver mode STEP 5 → 7 transition
+(function() {
+  const nextBtn = document.getElementById('id-nextBtn');
+  if (nextBtn && nextBtn._paverPatched !== true) {
+    nextBtn._paverPatched = true;
+  }
+})();
 
 showStep(1);
