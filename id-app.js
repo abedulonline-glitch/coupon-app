@@ -31,13 +31,16 @@ const STATE = {
   outside:   { id: 'out-day' },
   lightMode: 'day',
    paverMode: false,
-  paver: {
+    paver: {
     id: null,
     customW: 200,
     customH: 100,
     pattern: 'running',
     surface: 'rough',
-    color: '#b22222'
+    color: '#b22222',
+    colorMode: 'solid',
+    colorB: '#9a9a9a',
+    individualColors: {}
   },
    cameraView:'iso'
 };
@@ -743,6 +746,9 @@ function updatePaverStats() {
 
 function applyPaverChange() {
   updatePaverStats();
+    const bRow = document.getElementById('id-paverBRow');
+  const mode = STATE.paver.colorMode || 'solid';
+  if (bRow) bRow.style.display = (mode === 'solid' || mode === 'random') ? 'none' : ''; 
   const hint = document.getElementById('id-paverHint');
   const paver = window.__id_paver?.getPaver(STATE.paver.id);
   if (hint && paver) {
@@ -805,12 +811,48 @@ document.getElementById('id-paverPattern')?.addEventListener('change', (e) => {
   applyPaverChange();
 });
 
+// Color Mode dropdown
+document.getElementById('id-paverColorMode')?.addEventListener('change', (e) => {
+  STATE.paver.colorMode = e.target.value;
+  const bRow = document.getElementById('id-paverBRow');
+  if (bRow) {
+    bRow.style.display = (e.target.value === 'solid' || e.target.value === 'random') ? 'none' : '';
+  }
+  if (e.target.value === 'individual') {
+    toast('🧑‍🎨 3D-তে প্যাভারে ক্লিক করুন রঙ বদলাতে', 'info', 2500);
+  }
+  applyPaverChange();
+});
+
+// Second color picker
+document.getElementById('id-paverColorB')?.addEventListener('input', (e) => {
+  STATE.paver.colorB = e.target.value;
+  applyPaverChange();
+});
+
 // Custom color picker
 document.getElementById('id-paverColorCustom')?.addEventListener('input', (e) => {
   STATE.paver.color = e.target.value;
   document.querySelectorAll('.id-color-swatch').forEach(x => x.classList.remove('active'));
   applyPaverChange();
 });
+
+// ═══════════════════════════════════════════════
+// INDIVIDUAL PAVER COLOR CLICK
+// ═══════════════════════════════════════════════
+window.__id_onPaverClick = (row, col) => {
+  if (STATE.paver.colorMode !== 'individual') return;
+  const key = `${row},${col}`;
+  const cur = STATE.paver.individualColors[key];
+  // Cycle through a palette on each click
+  const palette = ['#b22222', '#d2691e', '#daa520', '#9a9a9a', '#555555',
+                   '#8b6f47', '#d98b8b', '#eeeeee', '#222222', '#5a7a4a'];
+  let idx = palette.indexOf(cur);
+  idx = (idx + 1) % palette.length;
+  STATE.paver.individualColors[key] = palette[idx];
+  toast(`প্যাভার [${row},${col}] → ${palette[idx]}`, 'success', 1000);
+  if (STATE.step === 7) refreshRender(true);
+};
 
 // Init paver UI on load
 setTimeout(() => { try { buildPaverUI(); } catch(e) {} }, 200);
