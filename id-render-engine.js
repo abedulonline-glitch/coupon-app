@@ -15,6 +15,7 @@ import { UnrealBloomPass }   from 'three/addons/postprocessing/UnrealBloomPass.j
 import { SMAAPass }          from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass }        from 'three/addons/postprocessing/OutputPass.js';
 import { RGBELoader }        from 'three/addons/loaders/RGBELoader.js';
+import { PAVERS, buildShape, generateLayout, calcBlockCount } from './id-paver-library.js';
 
 const FT  = 0.3048;
 const DEG = Math.PI / 180;
@@ -43,6 +44,7 @@ class InteriorEngine {
     this.transformMode = 'translate';
     this._hdCanvas = null;
     this.tileMeshes = [];
+    this.paverGroup = null; 
     this.selectedTile = null;
     this._tileLongPressTimer = null; 
     this._onDown = this._onDown.bind(this);
@@ -633,7 +635,12 @@ class InteriorEngine {
 
     this._roomBounds = { pts, H, L: state.room.length * FT, W: state.room.width * FT };
     this._roomCenter = new THREE.Vector3(0, H / 2, 0);
-
+        // Paver mode? hide floor and build pavers
+    if (state.paverMode && state.paver && state.paver.id) {
+      floor.visible = false;
+      this._buildPaverFloor(state, pts, L, W);
+    }
+     
     this._buildStructure3D(state, pts, H);
   }
 
@@ -898,7 +905,154 @@ class InteriorEngine {
     this._renderOnce();
   }
 
-  // ⬇⬇⬇ এখান থেকে PART 2 শুরু হবে — এখনো সেভ করবেন না ⬇⬇⬇
+   // ============================================================
+  // PAVER FLOOR BUILDER
+  // ============================================================
+  _buildPaverFloor(state, roomPts, roomW_m, roomH_m) {
+    // Clean previous paver group
+    if (this.paverGroup) {
+      this._disposeGroup(this.paverGroup);
+      this.roomGroup.remove(this.paverGroup);
+    }
+
+    const paverDef = PAVERS[state.paver.id];
+    if (!paverDef) return;
+
+    const roomW_mm = roomW_m * 1000;
+    const roomH_mm = roomH_m * 1000;
+
+    const customW = state.paver.customW || paverDef.dims.w;
+    const customH = state.paver.customH || paverDef.dims.h;
+    const pattern = state.paver.pattern || 'stack';
+
+    // Layout positions (mm-based, centered)
+    const layout = generateLayout(paverDef, roomW_mm, roomH_mm, customW, customH, pattern);
+
+    // Build geometry (single shape reused for all instances)
+    const shape = buildShape(paverDef, customW, customH);
+
+    // Extrude for 3D thickness
+    const thickness_m = (paverDef.thickness || 60) * MM;
+    const extrudeOpts = {
+      depth: thickness_m,
+      bevelEnabled: true,
+      bevelThickness: 0.001,
+      bevelSize: 0.0008,
+      bevelSegments: 1
+    };
+
+    let geo;
+    try {
+      geo = new THREE.ExtrudeGeometry(shape, extrudeOpts);
+      // Scale from mm to m
+      geo.scale(MM, MM, 1);
+      // Rotate so extrusion is upward
+      geo.rotateX(-Math.PI / 2);
+      // Move so it sits at y=0
+      geo.translate(0, thickness_m, 0);
+    } catch (err) {
+      console.warn('Paver geometry failed:', err);
+      return;
+    }
+
+    // Material based on surface preset
+    const surfaceId = state.paver.surface || 'rough';
+    const surfaceDef = {
+      smooth:  { roughness: 0.35, metalness: 0.05 },
+      rough:   { roughness: 0.85, metalness: 0.02 },
+      granite: { roughness: 0.55, metalness: 0.15 }
+    }[surfaceId] || { roughness: 0.7, metalness: 0.05 };
+
+    const color = state.paver.color || paverDef.color || '#a8a8a8';
+
+    // Optional: apply tile texture if user uploaded one
+    const tileTexUrl = state.tiles?.floor?.url;
+    let material = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(color),
+      roughness: surfaceDef.roughness,
+      metalness: surfaceDef.metalness,
+      side: THREE.DoubleSide
+    });
+
+    // If user uploaded a texture, use it too
+    if (tileTexUrl) {
+      const loader = new THREE.TextureLoader();
+      loader.setCrossOrigin('anonymous');
+      loader.load(tileTexUrl, (tex) => {
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.repeat.set(1, 1);
+        tex.needsUpdate = true;
+        material.map = tex;
+        material.color.set(0xffffff);
+        material.needsUpdate = true;
+        this._renderOnce();
+      }, undefined, () => {});
+    }
+
+    // Room polygon test
+    const insideRoom = (px_m, pz_m) => {
+      if (!roomPts?.length) return true;
+      let inside = false;
+      for (let i = 0, j = roomPts.length - 1; i < roomPts.length; j = i++) {
+        const xi = roomPts[i].x, zi = roomPts[i].y;
+        const xj = roomPts[j].x, zj = roomPts[j].y;
+        const intersect = ((zi > pz_m) !== (zj > pz_m)) &&
+                          (px_m < (xj - xi) * (pz_m - zi) / (zj - zi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    };
+
+    const grp = new THREE.Group();
+    grp.name = 'paver-floor';
+
+    // Place each paver
+    for (const t of layout) {
+      const px_m = t.x * MM;
+      const pz_m = t.y * MM;
+
+      // Skip pavers fully outside room
+      if (!insideRoom(px_m, pz_m)) continue;
+
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.set(px_m, 0, pz_m);
+      mesh.rotation.y = (t.rot || 0) * (Math.PI / 180);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.isPaver = true;
+      mesh.userData.gridR = t.row;
+      mesh.userData.gridC = t.col;
+      grp.add(mesh);
+    }
+
+    this.paverGroup = grp;
+    this.roomGroup.add(grp);
+
+    // Store stats for UI
+    this._paverStats = {
+      count: grp.children.length,
+      layout: layout.length,
+      paver: paverDef.name,
+      customW, customH,
+      pattern
+    };
+  }
+
+  // Public: get paver stats
+  getPaverStats() { return this._paverStats; }
+
+  // Public: rebuild paver floor only (faster than full render)
+  async rebuildPavers() {
+    if (!this.currentState) return;
+    const pts = this._roomBounds?.pts;
+    if (!pts) return;
+    const L = this.currentState.room.length * FT;
+    const W = this.currentState.room.width * FT;
+    this._buildPaverFloor(this.currentState, pts, L, W);
+    this._renderOnce();
+  }
+   // ⬇⬇⬇ এখান থেকে PART 2 শুরু হবে — এখনো সেভ করবেন না ⬇⬇⬇
 
   // ---------- TILES ----------
   async _buildTiles(state) {
