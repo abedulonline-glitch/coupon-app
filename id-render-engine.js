@@ -928,17 +928,15 @@ class InteriorEngine {
     this._renderOnce();
   }
 
-    // Procedural dimple bump texture (like real pavers)
+  // Procedural dimple bump texture (like real pavers)
   _makePaverBumpTexture() {
     if (this._paverBumpTex) return this._paverBumpTex;
     const size = 256;
     const cvs = document.createElement('canvas');
     cvs.width = cvs.height = size;
     const ctx = cvs.getContext('2d');
-    // Base — mid grey
     ctx.fillStyle = '#808080';
     ctx.fillRect(0, 0, size, size);
-    // Dimple dots pattern
     const dotR = 3;
     const gap = 14;
     for (let y = gap / 2; y < size; y += gap) {
@@ -955,14 +953,11 @@ class InteriorEngine {
     }
     const tex = new THREE.CanvasTexture(cvs);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(4, 4);   // how many dimples per paver
+    tex.repeat.set(4, 4);
     this._paverBumpTex = tex;
     return tex;
   }
-   
-   // ============================================================
-  // PAVER FLOOR BUILDER
-  // ============================================================
+
   _buildPaverFloor(state, roomPts, roomW_m, roomH_m) {
     if (this.paverGroup) {
       this._disposeGroup(this.paverGroup);
@@ -1002,7 +997,6 @@ class InteriorEngine {
       return;
     }
 
-    // Surface
     const surfaceId = state.paver.surface || 'rough';
     const surfaceDef = {
       smooth:  { roughness: 0.35, metalness: 0.05 },
@@ -1010,17 +1004,14 @@ class InteriorEngine {
       granite: { roughness: 0.55, metalness: 0.15 }
     }[surfaceId] || { roughness: 0.7, metalness: 0.05 };
 
-    // Optional texture from tile upload
     const tileTexUrl = state.tiles?.floor?.url;
-
-    // Color mode + material caching
     const colorA = state.paver.color || paverDef.color || '#a8a8a8';
     const colorB = state.paver.colorB || '#9a9a9a';
     const colorMode = state.paver.colorMode || 'solid';
     const individualMap = state.paver.individualColors || {};
 
+    const bumpTex = this._makePaverBumpTexture();
     const matCache = {};
-       const bumpTex = this._makePaverBumpTexture();
     const makeMat = (hex) => {
       if (matCache[hex]) return matCache[hex];
       const m = new THREE.MeshStandardMaterial({
@@ -1034,22 +1025,7 @@ class InteriorEngine {
       matCache[hex] = m;
       return m;
     };
-      if (matCache[hex]) return matCache[hex];
-      const m = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(hex),
-        roughness: surfaceDef.roughness,
-        metalness: surfaceDef.metalness,
-        side: THREE.DoubleSide
-      });
-      if (tileTexUrl) {
-        // Load texture once and share
-        m._pendingTexture = true;
-      }
-      matCache[hex] = m;
-      return m;
-    };
 
-    // Preload texture if needed
     if (tileTexUrl) {
       const loader = new THREE.TextureLoader();
       loader.setCrossOrigin('anonymous');
@@ -1067,9 +1043,8 @@ class InteriorEngine {
       }, undefined, () => {});
     }
 
-    // Palette for random mode
-    const palette = ['#b22222', '#d2691e', '#daa520', '#9a9a9a',
-                     '#555555', '#8b6f47', '#d98b8b', '#eeeeee'];
+    const randomPalette = ['#b22222', '#d2691e', '#daa520', '#9a9a9a',
+                           '#555555', '#8b6f47', '#d98b8b', '#eeeeee'];
 
     const insideRoom = (px_m, pz_m) => {
       if (!roomPts?.length) return true;
@@ -1092,7 +1067,6 @@ class InteriorEngine {
       const pz_m = t.y * MM;
       if (!insideRoom(px_m, pz_m)) continue;
 
-      // Determine this paver's color
       let hex = colorA;
       const key = `${t.row},${t.col}`;
 
@@ -1107,12 +1081,13 @@ class InteriorEngine {
       } else if (colorMode === 'stripes-col') {
         hex = (t.col % 2 === 0) ? colorA : colorB;
       } else if (colorMode === 'random') {
-        hex = palette[(t.row * 7 + t.col * 3) % palette.length];
+        hex = randomPalette[(t.row * 7 + t.col * 3) % randomPalette.length];
       }
 
       const mat = makeMat(hex);
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(px_m, 0, pz_m);
+      if (t.rot) mesh.rotation.y = t.rot * DEG;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       mesh.userData.isPaver = true;
