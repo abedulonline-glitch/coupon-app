@@ -172,8 +172,9 @@ export function fmtSize(bytes) {
 
 // Expose globally
 if (typeof window !== 'undefined') {
-  window.__id_tilelib = {
+window.__id_tilelib = {
     saveTile, listTiles, getTile, deleteTile,
-    renameTile, clearAll, getStats, fmtSize
+    renameTile, clearAll, getStats, fmtSize,
+    blobToUrl
   };
 }
