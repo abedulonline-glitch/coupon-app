@@ -31,7 +31,12 @@ const STATE = {
   outside:   { id: 'out-day' },
   lightMode: 'day',
   
-    skirting: {
+     wallColors: {},       // { 0: '#fff', 1: '#f00', ... } — wall index → hex
+  ceilingColor: '#ffffff',
+  paintMode: false,
+  paintColor: '#ffffff',
+  
+   skirting: {
     enabled: false,
     height: 150,           // mm
     profile: 'flat',       // flat | beveled | bullnose | cove
