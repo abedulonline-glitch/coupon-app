@@ -1792,3 +1792,130 @@ input[type="range"]::-moz-range-thumb {
   .id-skirting-visual { height: 70px; }
   .id-skirting-block { height: 18px; }
 }
+
+/* ═══════════════════════════════════════════
+   PAINT TOOLBAR
+   ═══════════════════════════════════════════ */
+#id-paintBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--id-bg-2);
+  border: 1px solid var(--id-border);
+  border-radius: var(--id-radius);
+  margin-bottom: 10px;
+}
+
+#id-paintModeBtn {
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  color: var(--id-text);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+#id-paintModeBtn:hover {
+  border-color: var(--id-primary);
+  color: var(--id-primary);
+}
+#id-paintModeBtn.active-mode {
+  background: var(--id-success);
+  border-color: var(--id-success);
+  color: #fff;
+  animation: id-paint-pulse 2s infinite;
+}
+@keyframes id-paint-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(46,204,113,0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(46,204,113,0); }
+}
+
+#id-paintColorWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+#id-paintColor {
+  width: 34px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
+}
+#id-paintColorText {
+  width: 80px;
+  background: transparent;
+  border: none;
+  color: var(--id-text);
+  font-family: monospace;
+  font-size: 12px;
+  text-transform: lowercase;
+  outline: none;
+  padding: 4px;
+}
+#id-paintColorText:focus {
+  background: var(--id-bg-2);
+  border-radius: 4px;
+}
+
+#id-paintReset {
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  color: var(--id-text);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+#id-paintReset:hover {
+  border-color: var(--id-danger);
+  color: var(--id-danger);
+}
+
+#id-paintInfo {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--id-text-dim);
+  padding: 6px 10px;
+  background: var(--id-bg-3);
+  border-radius: 6px;
+  white-space: nowrap;
+}
+#id-paintInfo.active {
+  color: var(--id-success);
+}
+
+/* Painted wall counter badge */
+#id-paintCount {
+  display: inline-block;
+  margin-left: 4px;
+  background: var(--id-accent);
+  color: #1a1a1a;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+@media (max-width: 640px) {
+  #id-paintBar { gap: 6px; padding: 8px; }
+  #id-paintModeBtn,
+  #id-paintReset { font-size: 12px; padding: 7px 10px; }
+  #id-paintColorText { width: 68px; }
+  #id-paintInfo { width: 100%; margin: 4px 0 0 0; text-align: center; }
+}
