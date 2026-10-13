@@ -1225,28 +1225,42 @@ document.getElementById('id-cropOk')?.addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = '⏳ প্রসেস হচ্ছে...';
 
-  try {
+ try {
     const canvas = await pc.crop(outW, outH);
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
     const url = await uploadToImgBB(blob);
     closeCrop();
-      if (url) {
-    setTile(url);
-    toast('✅ টাইল যোগ হয়েছে', 'success');
-    // 📚 Auto-save to library
-    try {
-      if (window.__id_tilelib && blob) {
-        await window.__id_tilelib.saveTile({
-          blob,
-          name: `${STATE.activeTab === 'floor' ? 'ফ্লোর' : STATE.activeTab === 'wall' ? 'ওয়াল' : 'অ্যাকসেন্ট'} — ${new Date().toLocaleTimeString('bn-BD')}`,
-          surface: STATE.activeTab,
-          tileW: cur.size?.w || 600,
-          tileH: cur.size?.h || 600
-        });
-        if (typeof refreshTileLibrary === 'function') refreshTileLibrary();
-        toast('📚 লাইব্রেরিতে সেভ হয়েছে', 'info', 1500);
+
+    if (url) {
+      setTile(url);
+      toast('✅ টাইল যোগ হয়েছে', 'success');
+
+      // 📚 Auto-save to library
+      try {
+        if (window.__id_tilelib && blob) {
+          await window.__id_tilelib.saveTile({
+            blob,
+            name: `${STATE.activeTab === 'floor' ? 'ফ্লোর' : STATE.activeTab === 'wall' ? 'ওয়াল' : 'অ্যাকসেন্ট'} — ${new Date().toLocaleTimeString('bn-BD')}`,
+            surface: STATE.activeTab,
+            tileW: cur.size?.w || 600,
+            tileH: cur.size?.h || 600
+          });
+          if (typeof refreshTileLibrary === 'function') refreshTileLibrary();
+          toast('📚 লাইব্রেরিতে সেভ হয়েছে', 'info', 1500);
+        }
+      } catch (e) {
+        console.warn('Library save failed', e);
       }
-    } catch (e) { console.warn('Library save failed', e); }
+    }
+  } catch (err) {
+    console.error('Crop failed:', err);
+    toast('❌ ক্রপ ব্যর্থ', 'error');
+  } finally {
+    const btn = document.getElementById('id-cropOk');
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '✔️ ঠিক আছে';
+    }
   }
     // Auto-save to library
     try {
