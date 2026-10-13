@@ -109,76 +109,69 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
 
   // Map attachSide → wall name
   const attachMap = {
-    right:  'west',   // chamber on right, its west wall faces main room
+    right:  'west',
     left:   'east',
     top:    'south',
     bottom: 'north'
   };
-   // Track chamber for wall culling
-  const chamberWalls = [];
+  const attachWall = attachMap[attachSide] || 'west';
+
+  // Chamber center for culling
   const center = new THREE.Vector3(offset.x, H / 2, offset.z);
+  const chamberWalls = [];
 
   walls.forEach(w => {
     const isAttach = (w.name === attachWall);
 
     if (isAttach && cfg.door.enabled) {
+      // Build wall with door gap (split into segments)
       const segs = buildWallWithDoor(w.len, H, doorW, doorH, cfg.door.offsetFromCorner * MM);
       segs.forEach(seg => {
         const g = new THREE.BoxGeometry(seg.w, seg.h, 0.08);
         const m = new THREE.Mesh(g, wallMat.clone());
         m.position.set(w.x, seg.y, w.z);
         m.rotation.y = w.rY;
+        // Offset along wall direction for segments
         const along = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0,1,0), w.rY);
         m.position.x += along.x * seg.offset;
         m.position.z += along.z * seg.offset;
         m.receiveShadow = true;
         m.userData.isChamberWall = true;
-        chamberWalls.push({ mesh: m, center });
+        chamberWalls.push(m);
         group.add(m);
       });
     } else {
+      // Full wall
       const g = new THREE.BoxGeometry(w.len, H, 0.08);
       const m = new THREE.Mesh(g, wallMat.clone());
       m.position.set(w.x, H / 2, w.z);
       m.rotation.y = w.rY;
       m.receiveShadow = true;
       m.userData.isChamberWall = true;
-      chamberWalls.push({ mesh: m, center });
+      chamberWalls.push(m);
       group.add(m);
     }
   });
 
   // ─────────────────────────────────────────
-  // 4. STAIRCASE
-  // ─────────────────────────────────────────
-  // ─────────────────────────────────────────
-  // 4. STAIRCASE — starts right after door
+  // 4. STAIRCASE — starts right after door, INSIDE chamber
   // ─────────────────────────────────────────
   const stairGroup = buildStaircase(cfg, stats, tiles);
 
-  // Compute start position based on direction + chamber attach
   const dir = cfg.stair.direction;   // 'along-length' | 'along-width'
-  const doorOffsetM = (cfg.door.offsetFromCorner || 1500) * MM;
-
-  // Where does door open into chamber?
-  // Attach wall is at chamber's main-room side. Stair starts from that wall inward.
+  const clearance = 0.15;            // clearance from wall
 
   let sx, sz, sRotY = 0;
 
-  // Common: X-position from west edge (0.15m clearance from wall)
-  const clearance = 0.15;
-
-  // Attach wall determines starting Z direction
   if (dir === 'along-length') {
-    // Stair runs along L (Z axis)
-    // Start at north edge (bottom-left when viewed from above), right after door
-    sx = offset.x - W/2 + clearance;
-    sz = offset.z - L/2 + clearance;
+    // Stair runs along Z (length direction), starts at north edge
+    sx = offset.x - W / 2 + clearance;
+    sz = offset.z - L / 2 + clearance;
     sRotY = 0;
   } else {
-    // Stair runs along W (X axis) — rotate 90°
-    sx = offset.x - W/2 + clearance;
-    sz = offset.z - L/2 + clearance;
+    // Stair runs along X (width direction)
+    sx = offset.x - W / 2 + clearance;
+    sz = offset.z - L / 2 + clearance;
     sRotY = -Math.PI / 2;
   }
 
@@ -197,7 +190,14 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   }
 
   scene.add(group);
-  return { group, stats, offset, size: { W, L, H }, chamberWalls };
+  return {
+    group,
+    stats,
+    offset,
+    size: { W, L, H },
+    chamberWalls,
+    center
+  };
 }
 
 // ============================================================
@@ -302,7 +302,7 @@ function buildStaircase(cfg, stats, tiles) {
         new THREE.BoxGeometry(stairW, riserHeight, riserT),
         riserMat
       );
-      riser.position.set(stairW / 2, yBase + riserHeight / 2,     z - riserT / 2);
+         riser.position.set(stairW / 2, yBase + riserHeight / 2, z - riserT / 2);
       riser.castShadow = true;
       grp.add(riser);
     }
@@ -326,7 +326,7 @@ function buildStaircase(cfg, stats, tiles) {
       mg.position.set(
         stairW / 2,
         yBase + risePerStep - treadT - mold1 - moldGap / 2,
-            z - riserT / 2 + 0.01
+            z - riserT / 2 - 0.01
       );
       grp.add(mg);
     }
@@ -383,8 +383,8 @@ function buildRailing(cfg, stats) {
       new THREE.BoxGeometry(0.05, 0.06, railLen),
       railMat
     );
-    handrail.position.set(xOffset, totalH / 2 + H, -totalLen / 2);
-    handrail.rotation.x = angle;
+        handrail.position.set(xOffset, totalH / 2 + H, totalLen / 2);
+       handrail.rotation.x = -angle;
     grp.add(handrail);
 
     // Balusters
@@ -394,7 +394,7 @@ function buildRailing(cfg, stats) {
           new THREE.CylinderGeometry(0.012, 0.012, H, 8),
           railMat
         );
-        bal.position.set(xOffset, i * riseM + H / 2, -i * runM);
+                bal.position.set(xOffset, i * riseM + H / 2, i * runM);
         grp.add(bal);
       }
     } else if (type === 'wood') {
@@ -403,7 +403,7 @@ function buildRailing(cfg, stats) {
           new THREE.BoxGeometry(0.05, H, 0.05),
           railMat
         );
-        bal.position.set(xOffset, i * riseM + H / 2, -i * runM);
+                bal.position.set(xOffset, i * riseM + H / 2, i * runM);
         grp.add(bal);
       }
     } else if (type === 'glass') {
@@ -411,9 +411,9 @@ function buildRailing(cfg, stats) {
         new THREE.PlaneGeometry(railLen, H * 0.9),
         railMat
       );
-      glass.rotation.x = angle;
+            glass.rotation.x = -angle;
       glass.rotation.y = Math.PI / 2;
-      glass.position.set(xOffset, totalH / 2 + H / 2, -totalLen / 2);
+            glass.position.set(xOffset, totalH / 2 + H / 2, totalLen / 2);
       grp.add(glass);
     }
   });
