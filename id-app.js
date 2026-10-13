@@ -1615,7 +1615,15 @@ $('#id-loadBtn')?.addEventListener('click', async () => {
         row.addEventListener('click', () => {
           Object.assign(STATE, data);
              // Restore skirting UI
-                   // Restore paint
+
+                    // Restore stair chamber UI
+          setTimeout(() => {
+            if (typeof window.__id_syncStairUI === 'function') {
+              window.__id_syncStairUI();
+            }
+          }, 200); 
+           
+           // Restore paint
           setTimeout(() => {
             const info = document.getElementById('id-paintInfo');
             if (info && typeof window.__id_paintUpdate === 'function') {
@@ -2314,6 +2322,162 @@ document.querySelectorAll('.id-tab').forEach(t => {
 
   // Initial state (off)
   applySkirting();
+})();
+
+// ═══════════════════════════════════════════════
+// STAIR CHAMBER CONTROLS
+// ═══════════════════════════════════════════════
+(function initStairChamber() {
+  const SC = STATE.stairChamber;
+  if (!SC) return;
+
+  const $id = (id) => document.getElementById(id);
+
+  // ────── Helper: apply all inputs to state ──────
+  function applyAll() {
+    // Toggle
+    const tog = $id('id-scToggle');
+    SC.enabled = !!tog?.checked;
+    const panel = $id('id-scPanel');
+    if (panel) panel.hidden = !SC.enabled;
+
+    // Position + Size
+    SC.position = $id('id-scPosition')?.value || 'right';
+    SC.size.w = Math.max(4, Math.min(20, parseFloat($id('id-scW')?.value) || 8));
+    SC.size.l = Math.max(6, Math.min(30, parseFloat($id('id-scL')?.value) || 12));
+
+    // Door
+    SC.door.enabled = !!$id('id-scDoorEnabled')?.checked;
+    SC.door.width = Math.max(600, Math.min(1500, parseFloat($id('id-scDoorW')?.value) || 900));
+    SC.door.height = Math.max(1800, Math.min(2400, parseFloat($id('id-scDoorH')?.value) || 2100));
+
+    // Stair
+    SC.stair.totalHeight = Math.max(1500, Math.min(6000, parseFloat($id('id-scTotalH')?.value) || 3048));
+    SC.stair.autoSteps = !!$id('id-scAutoSteps')?.checked;
+    if (!SC.stair.autoSteps) {
+      SC.stair.totalSteps = Math.max(3, Math.min(30, parseFloat($id('id-scSteps')?.value) || 17));
+    } else {
+      SC.stair.totalSteps = Math.round(SC.stair.totalHeight / 180);
+      const stepsEl = $id('id-scSteps');
+      if (stepsEl) stepsEl.value = SC.stair.totalSteps;
+    }
+    SC.stair.treadThickness = Math.max(10, Math.min(40, parseFloat($id('id-scTreadT')?.value) || 20));
+    SC.stair.riserThickness = Math.max(10, Math.min(40, parseFloat($id('id-scRiserT')?.value) || 18));
+    SC.stair.treadDepth = Math.max(200, Math.min(400, parseFloat($id('id-scRun')?.value) || 280));
+    SC.stair.width = Math.max(700, Math.min(1800, parseFloat($id('id-scStairW')?.value) || 1000));
+    SC.stair.direction = $id('id-scDirection')?.value || 'along-length';
+
+    // Molding
+    SC.stair.molding1 = Math.max(2, Math.min(20, parseFloat($id('id-scMold1')?.value) || 5));
+    SC.stair.moldingGap = Math.max(2, Math.min(20, parseFloat($id('id-scMoldGap')?.value) || 8));
+    SC.stair.molding2 = Math.max(2, Math.min(20, parseFloat($id('id-scMold2')?.value) || 5));
+
+    // Materials
+    SC.stair.treadMaterial = $id('id-scTreadMat')?.value || 'custom';
+    SC.stair.treadColor = $id('id-scTreadColor')?.value || '#1a1a1a';
+    SC.stair.riserMaterial = $id('id-scRiserMat')?.value || 'custom';
+    SC.stair.riserColor = $id('id-scRiserColor')?.value || '#222222';
+    SC.stair.molding1Color = $id('id-scMold1Color')?.value || '#ffffff';
+    SC.stair.moldingGapColor = $id('id-scMoldGapColor')?.value || '#1a1a1a';
+    SC.stair.molding2Color = $id('id-scMold2Color')?.value || '#ffffff';
+    SC.wallColor = $id('id-scWallColor')?.value || '#f0f0f0';
+
+    // Railing
+    SC.railing.enabled = !!$id('id-scRailEnabled')?.checked;
+    SC.railing.type = $id('id-scRailType')?.value || 'metal';
+    SC.railing.height = Math.max(600, Math.min(1200, parseFloat($id('id-scRailH')?.value) || 900));
+    SC.railing.side = $id('id-scRailSide')?.value || 'right';
+
+    // Skirting
+    SC.skirtingStyle = $id('id-scSkirtStyle')?.value || 'plain';
+
+    // Update live stats
+    updateStairStats();
+
+    // Re-render if in Step 7
+    if (STATE.step === 7 && typeof refreshRender === 'function') {
+      refreshRender();
+    }
+  }
+
+  // ────── Live stats calc ──────
+  function updateStairStats() {
+    const stats = window.__id_stairChamber?.calcStairStats(SC);
+    if (!stats) return;
+
+    const riseEl = $id('id-scRiseVal');
+    const stepsEl = $id('id-scTotalStepsVal');
+    const lenEl = $id('id-scStairLenVal');
+
+    if (riseEl)  riseEl.textContent  = Math.round(stats.effectiveRise) + ' mm';
+    if (stepsEl) stepsEl.textContent = stats.steps;
+    if (lenEl)   lenEl.textContent   = Math.round(stats.stairLength) + ' mm';
+  }
+
+  // ────── Wire all inputs ──────
+  const inputs = [
+    'id-scToggle', 'id-scPosition', 'id-scW', 'id-scL',
+    'id-scDoorEnabled', 'id-scDoorW', 'id-scDoorH',
+    'id-scTotalH', 'id-scSteps', 'id-scAutoSteps',
+    'id-scTreadT', 'id-scRiserT', 'id-scRun',
+    'id-scStairW', 'id-scDirection',
+    'id-scMold1', 'id-scMoldGap', 'id-scMold2',
+    'id-scTreadMat', 'id-scTreadColor', 'id-scRiserMat', 'id-scRiserColor',
+    'id-scMold1Color', 'id-scMoldGapColor', 'id-scMold2Color',
+    'id-scWallColor',
+    'id-scRailEnabled', 'id-scRailType', 'id-scRailH', 'id-scRailSide',
+    'id-scSkirtStyle'
+  ];
+  inputs.forEach(id => {
+    const el = $id(id);
+    if (!el) return;
+    const evt = (el.type === 'checkbox' || el.tagName === 'SELECT') ? 'change' : 'input';
+    el.addEventListener(evt, applyAll);
+  });
+
+  // ────── Sync UI from state (for load) ──────
+  window.__id_syncStairUI = function () {
+    if (!SC) return;
+    $id('id-scToggle').checked = !!SC.enabled;
+    $id('id-scPosition').value = SC.position;
+    $id('id-scW').value = SC.size.w;
+    $id('id-scL').value = SC.size.l;
+    $id('id-scDoorEnabled').checked = !!SC.door.enabled;
+    $id('id-scDoorW').value = SC.door.width;
+    $id('id-scDoorH').value = SC.door.height;
+    $id('id-scTotalH').value = SC.stair.totalHeight;
+    $id('id-scSteps').value = SC.stair.totalSteps;
+    $id('id-scAutoSteps').checked = !!SC.stair.autoSteps;
+    $id('id-scTreadT').value = SC.stair.treadThickness;
+    $id('id-scRiserT').value = SC.stair.riserThickness;
+    $id('id-scRun').value = SC.stair.treadDepth;
+    $id('id-scStairW').value = SC.stair.width;
+    $id('id-scDirection').value = SC.stair.direction;
+    $id('id-scMold1').value = SC.stair.molding1;
+    $id('id-scMoldGap').value = SC.stair.moldingGap;
+    $id('id-scMold2').value = SC.stair.molding2;
+    $id('id-scTreadMat').value = SC.stair.treadMaterial;
+    $id('id-scTreadColor').value = SC.stair.treadColor;
+    $id('id-scRiserMat').value = SC.stair.riserMaterial;
+    $id('id-scRiserColor').value = SC.stair.riserColor;
+    $id('id-scMold1Color').value = SC.stair.molding1Color;
+    $id('id-scMoldGapColor').value = SC.stair.moldingGapColor;
+    $id('id-scMold2Color').value = SC.stair.molding2Color;
+    $id('id-scWallColor').value = SC.wallColor;
+    $id('id-scRailEnabled').checked = !!SC.railing.enabled;
+    $id('id-scRailType').value = SC.railing.type;
+    $id('id-scRailH').value = SC.railing.height;
+    $id('id-scRailSide').value = SC.railing.side;
+    $id('id-scSkirtStyle').value = SC.skirtingStyle;
+    $id('id-scPanel').hidden = !SC.enabled;
+    updateStairStats();
+  };
+
+  // Initial sync
+  updateStairStats();
+  const panel = $id('id-scPanel');
+  if (panel) panel.hidden = !SC.enabled;
+
 })();
 
 // ═══════════════════════════════════════════════
