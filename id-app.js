@@ -1533,7 +1533,18 @@ $('#id-loadBtn')?.addEventListener('click', async () => {
           <p>${data.shape || 'rect'} · ${(data.furniture || []).length} items</p>`;
         row.addEventListener('click', () => {
           Object.assign(STATE, data);
-                    // Restore skirting UI
+             // Restore skirting UI
+                   // Restore paint
+          setTimeout(() => {
+            const info = document.getElementById('id-paintInfo');
+            if (info && typeof window.__id_paintUpdate === 'function') {
+              window.__id_paintUpdate();
+            }
+            if (engine && STATE.paintMode !== undefined) {
+              engine.rebuildPaint?.();
+            }
+          }, 250);
+           
           setTimeout(() => {
             const S = STATE.skirting;
             if (!S) return;
@@ -2222,6 +2233,80 @@ document.querySelectorAll('.id-tab').forEach(t => {
 
   // Initial state (off)
   applySkirting();
+})();
+
+// ═══════════════════════════════════════════════
+// PAINT MODE — Wall & Ceiling Color
+// ═══════════════════════════════════════════════
+(function initPaintTool() {
+  const btn      = document.getElementById('id-paintModeBtn');
+  const colorIn  = document.getElementById('id-paintColor');
+  const colorTxt = document.getElementById('id-paintColorText');
+  const resetBtn = document.getElementById('id-paintReset');
+  const info     = document.getElementById('id-paintInfo');
+
+  if (!btn) return;
+
+  function updateInfo() {
+    const wallCount = Object.keys(STATE.wallColors || {}).length;
+    const ceilingPainted = STATE.ceilingColor && STATE.ceilingColor !== '#ffffff';
+    if (STATE.paintMode) {
+      info.classList.add('active');
+      info.innerHTML = `🖌️ রঙ করুন — দেয়ালে/সিলিং-এ ট্যাপ করুন
+        ${wallCount ? `<span id="id-paintCount">${wallCount} দেয়াল</span>` : ''}
+        ${ceilingPainted ? `<span id="id-paintCount">সিলিং</span>` : ''}`;
+    } else {
+      info.classList.remove('active');
+      info.innerHTML = '🖌️ পেইন্ট মোড বন্ধ';
+    }
+    btn.classList.toggle('active-mode', STATE.paintMode);
+  }
+
+  // Toggle Paint Mode
+  btn.addEventListener('click', () => {
+    STATE.paintMode = !STATE.paintMode;
+    updateInfo();
+    // Visual feedback: change canvas cursor
+    const canvas = document.getElementById('id-canvas');
+    if (canvas) {
+      canvas.style.cursor = STATE.paintMode ? 'crosshair' : 'grab';
+    }
+    toast(STATE.paintMode
+      ? '🎨 পেইন্ট মোড ON — দেয়ালে/সিলিং-এ ট্যাপ করুন'
+      : '🎨 পেইন্ট মোড OFF', 'info', 1500);
+  });
+
+  // Color picker change
+  colorIn?.addEventListener('input', () => {
+    STATE.paintColor = colorIn.value;
+    if (colorTxt) colorTxt.value = colorIn.value;
+  });
+
+  // Hex text change
+  colorTxt?.addEventListener('input', () => {
+    const v = colorTxt.value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+      STATE.paintColor = v;
+      colorIn.value = v;
+    }
+  });
+
+  // Reset all painted colors
+  resetBtn?.addEventListener('click', () => {
+    STATE.wallColors = {};
+    STATE.ceilingColor = '#ffffff';
+    engine?.rebuildPaint?.();
+    updateInfo();
+    toast('🧹 সব রঙ মুছে ফেলা হয়েছে', 'success', 1500);
+  });
+
+  // Initial
+  STATE.paintMode = false;
+  STATE.paintColor = colorIn?.value || '#ffffff';
+  updateInfo();
+
+  // Expose updater for engine callback
+  window.__id_paintUpdate = updateInfo;
 })();
 
 showStep(1);
