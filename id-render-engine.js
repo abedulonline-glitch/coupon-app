@@ -357,36 +357,43 @@ class InteriorEngine {
   // ---------- SELECTION ----------
   _onDown(e) {
     if (this.transform.dragging) return;
-         // PAINT MODE — highest priority
+    // PAINT MODE — highest priority
     if (window.__id_isPaintMode?.()) {
       const rect = this.canvas.getBoundingClientRect();
       this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       this.raycaster.setFromCamera(this.pointer, this.camera);
 
-      // First: check for ceiling
+      // Collect wall meshes (only visible ones)
+      const wallTargets = (this._wallMeshes || []).filter(w => w.visible);
       const ceilingMesh = this.roomGroup.getObjectByName('ceiling');
-      if (ceilingMesh) {
-        const hit = this.raycaster.intersectObject(ceilingMesh, false);
-        if (hit.length) {
-          window.__id_onPaint?.('ceiling', -1);
-          return;
+
+      // Combine targets
+      const targets = wallTargets.slice();
+      if (ceilingMesh && ceilingMesh.visible) targets.push(ceilingMesh);
+
+      if (targets.length) {
+        const hits = this.raycaster.intersectObjects(targets, false);
+        if (hits.length) {
+          const closest = hits[0].object;
+
+          // Ceiling?
+          if (closest === ceilingMesh) {
+            window.__id_onPaint?.('ceiling', -1);
+            return;
+          }
+
+          // Wall?
+          const idx = closest.userData.wallIndex;
+          if (idx != null) {
+            window.__id_onPaint?.('wall', idx);
+            return;
+          }
         }
       }
 
-      // Second: check walls
-      const wallHits = this.raycaster.intersectObjects(this._wallMeshes || [], false);
-      if (wallHits.length) {
-        const m = wallHits[0].object;
-        const idx = m.userData.wallIndex;
-        if (idx != null) {
-          window.__id_onPaint?.('wall', idx);
-          return;
-        }
-      }
-
-      // Third: check floor — ignore
-      return;   // paint mode consumed the click, no furniture select
+      // Clicked on nothing paintable — ignore
+      return;
     }
          // Paver individual mode click
     if (this.currentState?.paverMode &&
@@ -682,6 +689,7 @@ class InteriorEngine {
       m.rotation.y = Math.atan2(dx, dz) - Math.PI / 2;
       m.receiveShadow = true;
       m.userData.wallLen = len;
+      m.userData.wallIndex = i;
       walls.add(m);
     }
     this.roomGroup.add(walls);
@@ -1200,6 +1208,9 @@ class InteriorEngine {
 
       const paintHeight = H - skH - 0.005;
       if (paintHeight < 0.1) continue;
+             // Skip hidden walls
+      const wallMesh = this._wallMeshes?.[i];
+      if (wallMesh && !wallMesh.visible) continue;
 
       const geo = new THREE.PlaneGeometry(wallLen - 0.01, paintHeight);
       const mat = new THREE.MeshStandardMaterial({
