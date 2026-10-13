@@ -47,6 +47,7 @@ const STATE = {
     stair: {
       totalHeight: 3048,                   // mm (floor to floor)
       totalSteps: 17,                      // auto
+      type: 'straight',                      // 'straight'|'double-fold'
       autoSteps: true,
       treadThickness: 20,                  // mm (granite slab)
       riserThickness: 18,                  // mm
@@ -2365,6 +2366,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
     SC.stair.riserThickness = Math.max(10, Math.min(40, parseFloat($id('id-scRiserT')?.value) || 18));
     SC.stair.treadDepth = Math.max(200, Math.min(400, parseFloat($id('id-scRun')?.value) || 280));
     SC.stair.width = Math.max(700, Math.min(1800, parseFloat($id('id-scStairW')?.value) || 1000));
+    SC.stair.type = $id('id-scStairType')?.value || 'straight';
     SC.stair.direction = $id('id-scDirection')?.value || 'along-length';
 
     // Molding
@@ -2420,7 +2422,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
     'id-scDoorEnabled', 'id-scDoorW', 'id-scDoorH',
     'id-scTotalH', 'id-scSteps', 'id-scAutoSteps',
     'id-scTreadT', 'id-scRiserT', 'id-scRun',
-    'id-scStairW', 'id-scDirection',
+     'id-scStairW', 'id-scDirection', 'id-scStairType',
     'id-scMold1', 'id-scMoldGap', 'id-scMold2',
     'id-scTreadMat', 'id-scTreadColor', 'id-scRiserMat', 'id-scRiserColor',
     'id-scMold1Color', 'id-scMoldGapColor', 'id-scMold2Color',
@@ -2452,6 +2454,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
     $id('id-scRiserT').value = SC.stair.riserThickness;
     $id('id-scRun').value = SC.stair.treadDepth;
     $id('id-scStairW').value = SC.stair.width;
+    $id('id-scStairType').value = SC.stair.type || 'straight';
     $id('id-scDirection').value = SC.stair.direction;
     $id('id-scMold1').value = SC.stair.molding1;
     $id('id-scMoldGap').value = SC.stair.moldingGap;
