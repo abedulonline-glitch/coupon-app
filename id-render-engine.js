@@ -1240,20 +1240,27 @@ class InteriorEngine {
       grp.add(mesh);
     }
 
+    
     // ---------- CEILING OVERLAY ----------
     if (ceilingColor && ceilingColor !== '#ffffff') {
       const shape = new THREE.Shape(pts);
       const geo = new THREE.ShapeGeometry(shape);
       geo.rotateX(Math.PI / 2);
+
+      // Emissive material — সিলিং সবসময় উজ্জ্বল দেখাবে
+      const c = new THREE.Color(ceilingColor);
       const mat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(ceilingColor),
-        roughness: 0.9,
+        color: c,
+        emissive: c,
+        emissiveIntensity: 0.55,
+        roughness: 0.95,
         metalness: 0.0,
         side: THREE.DoubleSide
       });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.y = H - 0.008;
       mesh.name = 'paint-ceiling';
+      mesh.userData.isPaintCeiling = true;
       grp.add(mesh);
     }
 
