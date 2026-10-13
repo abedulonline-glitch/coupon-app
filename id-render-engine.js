@@ -703,6 +703,8 @@ class InteriorEngine {
     this._buildStructure3D(state, pts, H);
         // Skirting
     this._buildSkirting(state); 
+         // Paint overlays
+    this._buildPaint(state);
   }
 
   _defaultsForType(type) {
