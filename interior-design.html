@@ -45,6 +45,66 @@
 
 <body>
 
+<!-- ═══════════════════════════════════════════════
+     VIEWER MODE — Fullscreen Overlay (hidden by default)
+     ═══════════════════════════════════════════════ -->
+<div id="id-viewerMode" hidden>
+  <header id="id-viewerHeader">
+    <div class="id-vm-brand">
+      <span class="id-vm-logo">🎨</span>
+      <div>
+        <h2 id="id-vmTitle">ইন্টেরিয়র ডিজাইন</h2>
+        <p id="id-vmSubtitle">শেয়ার করা ডিজাইন</p>
+      </div>
+    </div>
+    <div class="id-vm-actions">
+      <button id="id-vmClone" class="id-vm-btn id-vm-primary" hidden>
+        💾 ক্লোন করুন
+      </button>
+      <button id="id-vmScreenshot" class="id-vm-btn">
+        📸 ছবি
+      </button>
+      <button id="id-vmFullscreen" class="id-vm-btn" title="ফুলস্ক্রিন">
+        ⛶
+      </button>
+    </div>
+  </header>
+
+  <div id="id-vmViewerWrap">
+    <canvas id="id-vmCanvas"></canvas>
+    <div id="id-vmLoading" class="id-vm-loading">
+      <div class="id-progress-spinner"></div>
+      <p>লোড হচ্ছে…</p>
+    </div>
+    <div id="id-vmError" class="id-vm-error" hidden>
+      <p id="id-vmErrorMsg">লিংক কাজ করছে না</p>
+      <button id="id-vmErrorBtn">← হোমপেজে ফিরুন</button>
+    </div>
+  </div>
+
+  <footer id="id-vmFooter">
+    <div id="id-vmHints">
+      🖱️ ড্র্যাগ করে ঘোরান · 🔍 স্ক্রল দিয়ে জুম · 📱 ফোন ঘোরালে follow
+    </div>
+    <div id="id-vmMeta">
+      <span id="id-vmViews">👁️ 0</span>
+      <span id="id-vmClones">💾 0</span>
+    </div>
+  </footer>
+
+  <!-- Password prompt -->
+  <div id="id-vmPasswordModal" hidden>
+    <div class="id-vm-pwd-box">
+      <h3>🔒 পাসওয়ার্ড প্রয়োজন</h3>
+      <input type="password" id="id-vmPasswordInput" placeholder="পাসওয়ার্ড দিন">
+      <div class="id-vm-pwd-actions">
+        <button id="id-vmPasswordSubmit">প্রবেশ করুন</button>
+      </div>
+      <p id="id-vmPasswordError" class="id-vm-pwd-error" hidden>ভুল পাসওয়ার্ড</p>
+    </div>
+  </div>
+</div>  
+  
 <div id="id-app">
 
   <!-- ==================== TOP BAR ==================== -->
