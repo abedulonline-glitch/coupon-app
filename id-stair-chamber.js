@@ -182,7 +182,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   // ─────────────────────────────────────────
   // 5. RAILING
   // ─────────────────────────────────────────
-  if (cfg.railing.enabled) {
+    if (cfg.railing.enabled && (cfg.stair?.type || 'straight') === 'straight') {
     const rails = buildRailing(cfg, stats);
     rails.position.copy(stairGroup.position);
     rails.rotation.copy(stairGroup.rotation);
@@ -242,7 +242,7 @@ function buildWallWithDoor(wallLen, wallH, doorW, doorH, offsetFromCorner) {
 // ============================================================
 // STAIRCASE (tread + riser + double molding)
 // ============================================================
-function buildStaircase(cfg, stats, tiles) {
+function buildStraight(cfg, stats, tiles) {
   const grp = new THREE.Group();
   grp.name = 'staircase';
 
@@ -344,6 +344,158 @@ function buildStaircase(cfg, stats, tiles) {
       );
       grp.add(m2);
     }
+  }
+
+  return grp;
+}
+
+// ============================================================
+// ROUTER — চয়েজ অনুযায়ী সঠিক বিল্ডার কল
+// ============================================================
+function buildStaircase(cfg, stats, tiles) {
+  const type = cfg.stair?.type || 'straight';
+  if (type === 'double-fold') return buildDoubleFold(cfg, stats, tiles);
+  return buildStraight(cfg, stats, tiles);
+}
+
+// ============================================================
+// REUSABLE STEP BUILDER (তিনটি layer molding + tread + riser)
+// ============================================================
+function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, treadT, riserT, mats, mold) {
+  const { treadMat, riserMat, mold1Mat, moldGapMat, mold2Mat } = mats;
+  const { m1: mold1, gap: moldGap, m2: mold2 } = mold;
+
+  // Tread (top slab)
+  const tread = new THREE.Mesh(
+    new THREE.BoxGeometry(stairW, treadT, runM),
+    treadMat
+  );
+  tread.position.set(cx, yBase + risePerStep - treadT / 2, z + runM / 2);
+  tread.castShadow = true; tread.receiveShadow = true;
+  grp.add(tread);
+
+  // Riser
+  const riserH = risePerStep - treadT;
+  if (riserH > 0.005) {
+    const riser = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW, riserH, riserT),
+      riserMat
+    );
+    riser.position.set(cx, yBase + riserH / 2, z - riserT / 2);
+    riser.castShadow = true;
+    grp.add(riser);
+  }
+
+  // Molding 1
+  if (mold1 > 0.001) {
+    const m1 = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, mold1, riserT + 0.02),
+      mold1Mat
+    );
+    m1.position.set(cx, yBase + risePerStep - treadT - mold1 / 2, z - riserT / 2 - 0.01);
+    grp.add(m1);
+  }
+  // Molding gap
+  if (moldGap > 0.001) {
+    const mg = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, moldGap, riserT + 0.02),
+      moldGapMat
+    );
+    mg.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap / 2, z - riserT / 2 - 0.01);
+    grp.add(mg);
+  }
+  // Molding 2
+  if (mold2 > 0.001) {
+    const m2 = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, mold2, riserT + 0.02),
+      mold2Mat
+    );
+    m2.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap - mold2 / 2, z - riserT / 2 - 0.01);
+    grp.add(m2);
+  }
+}
+
+// ============================================================
+// DOUBLE FOLD (U-SHAPE) — দুই flight + মাঝে landing
+// ============================================================
+function buildDoubleFold(cfg, stats, tiles) {
+  const grp = new THREE.Group();
+  grp.name = 'staircase-double-fold';
+
+  const treadT = stats.treadT * MM;
+  const riserT = stats.riserT * MM;
+  const runM = stats.runMm * MM;
+  const stairW = cfg.stair.width * MM;
+  const totalH = cfg.stair.totalHeight * MM;
+  const totalSteps = stats.steps;
+
+  // Split into two flights
+  const stepsPerFlight = Math.ceil(totalSteps / 2);
+  const flight2Steps = totalSteps - stepsPerFlight;
+  const risePerStep = totalH / totalSteps;
+  const landingY = stepsPerFlight * risePerStep;
+  const landingDepth = stairW * 1.0;  // square landing
+
+  // Materials (shared)
+  const treadMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(cfg.stair.treadColor || '#1a1a1a'),
+    roughness: 0.35, metalness: 0.1
+  });
+  const riserMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(cfg.stair.riserColor || '#222222'),
+    roughness: 0.55, metalness: 0.05
+  });
+  const mold1Mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(cfg.stair.molding1Color || '#ffffff'), roughness: 0.4, metalness: 0.15
+  });
+  const moldGapMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(cfg.stair.moldingGapColor || '#1a1a1a'), roughness: 0.5, metalness: 0.05
+  });
+  const mold2Mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(cfg.stair.molding2Color || '#ffffff'), roughness: 0.4, metalness: 0.15
+  });
+
+  const mats = { treadMat, riserMat, mold1Mat, moldGapMat, mold2Mat };
+  const mold = {
+    m1:  (cfg.stair.molding1  || 5) * MM,
+    gap: (cfg.stair.moldingGap|| 8) * MM,
+    m2:  (cfg.stair.molding2  || 5) * MM
+  };
+
+  // ───── FLIGHT 1: goes +Z, LEFT side (X: 0 → stairW) ─────
+  for (let i = 0; i < stepsPerFlight; i++) {
+    const yBase = i * risePerStep;
+    const z = i * runM;
+    _addStep(
+      grp, stairW / 2, yBase, z,
+      stairW, runM, risePerStep, treadT, riserT,
+      mats, mold
+    );
+  }
+
+  // ───── LANDING: spans full width (X: 0 → 2*stairW) ─────
+  const landing = new THREE.Mesh(
+    new THREE.BoxGeometry(stairW * 2, treadT, landingDepth),
+    treadMat
+  );
+  landing.position.set(
+    stairW,                          // center X
+    landingY - treadT / 2,
+    stepsPerFlight * runM + landingDepth / 2
+  );
+  landing.castShadow = true; landing.receiveShadow = true;
+  grp.add(landing);
+
+  // ───── FLIGHT 2: goes −Z, RIGHT side (X: stairW → 2*stairW) ─────
+  for (let i = 0; i < flight2Steps; i++) {
+    const yBase = landingY + i * risePerStep;
+    // Coming BACK from landing in −Z
+    const z = stepsPerFlight * runM + landingDepth - i * runM - runM;
+    _addStep(
+      grp, stairW * 1.5, yBase, z,
+      stairW, runM, risePerStep, treadT, riserT,
+      mats, mold
+    );
   }
 
   return grp;
