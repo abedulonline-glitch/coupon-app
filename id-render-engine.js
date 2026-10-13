@@ -2020,6 +2020,11 @@ class InteriorEngine {
 
   // ---------- RENDER API ----------
   async render(state) {
+        // Viewer mode check — hide edit elements when running in shared view
+    const isViewer = new URLSearchParams(location.search).has('view');
+    if (isViewer) {
+      // Do nothing different for now — just render
+    } 
     this.currentState = state;
     this._buildRoom(state);
     await this._buildTiles(state);
