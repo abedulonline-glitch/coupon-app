@@ -2239,6 +2239,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
 // PAINT MODE — Wall & Ceiling Color
 // ═══════════════════════════════════════════════
 // Engine hooks for paint mode
+// Engine hooks for paint mode
 window.__id_isPaintMode = () => !!STATE.paintMode;
 window.__id_getPaintColor = () => STATE.paintColor || '#ffffff';
 
