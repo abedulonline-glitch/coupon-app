@@ -1325,7 +1325,12 @@ class InteriorEngine {
         this._roomBounds,
         state.tiles
       );
-      this._stairStats = result?.stats || null;
+           this._stairStats = result?.stats || null;
+      this._stairChamberCenter = new THREE.Vector3(
+        result.offset.x,
+        result.size.H / 2,
+        result.offset.z
+      );
     } catch (err) {
       console.warn('Stair chamber build failed:', err);
     }
@@ -1979,18 +1984,40 @@ class InteriorEngine {
 
   _cullWalls() {
     if (!this.roomGroup || !this._roomCenter) return;
+
+    // ── Main room walls ──
     const walls = this.roomGroup.getObjectByName('walls');
-    if (!walls) return;
-    const cam = this.camera.position;
-    const center = this._roomCenter;
-    walls.children.forEach(w => {
-      const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(w.quaternion).normalize();
-      const toCam    = new THREE.Vector3().subVectors(cam, w.position).normalize();
-      const toCenter = new THREE.Vector3().subVectors(center, w.position).normalize();
-      const camSide    = normal.dot(toCam);
-      const centerSide = normal.dot(toCenter);
-      w.visible = (camSide * centerSide) >= 0;
-    });
+    if (walls) {
+      const cam = this.camera.position;
+      const center = this._roomCenter;
+      walls.children.forEach(w => {
+        const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(w.quaternion).normalize();
+        const toCam    = new THREE.Vector3().subVectors(cam, w.position).normalize();
+        const toCenter = new THREE.Vector3().subVectors(center, w.position).normalize();
+        const camSide    = normal.dot(toCam);
+        const centerSide = normal.dot(toCenter);
+        w.visible = (camSide * centerSide) >= 0;
+      });
+    }
+
+    // ── Stair chamber walls ──
+    const chamber = this.scene.getObjectByName('stair-chamber');
+    if (chamber) {
+      const cam = this.camera.position;
+      // Chamber center for culling
+      const scCenter = this._stairChamberCenter;
+      if (scCenter) {
+        chamber.children.forEach(child => {
+          if (!child.userData?.isChamberWall) return;
+          const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(child.quaternion).normalize();
+          const toCam = new THREE.Vector3().subVectors(cam, child.position).normalize();
+          const toCenter = new THREE.Vector3().subVectors(scCenter, child.position).normalize();
+          const camSide = normal.dot(toCam);
+          const centerSide = normal.dot(toCenter);
+          child.visible = (camSide * centerSide) >= 0;
+        });
+      }
+    }
   }
 
   // ---------- TIME / EXPOSURE / AMBIENT ----------
