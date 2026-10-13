@@ -47,6 +47,8 @@ class InteriorEngine {
     this.tileMeshes = [];
     this.paverGroup = null; 
     this.paverMeshes = [];
+    this.paintGroup = null;
+    this._wallMeshes = [];  // reference to wall meshes with wallIndex 
     this._paverRaycaster = new THREE.Raycaster();
     this._paverPointer = new THREE.Vector2();
     this._lastPaverClick = null; 
@@ -355,6 +357,37 @@ class InteriorEngine {
   // ---------- SELECTION ----------
   _onDown(e) {
     if (this.transform.dragging) return;
+         // PAINT MODE — highest priority
+    if (window.__id_isPaintMode?.()) {
+      const rect = this.canvas.getBoundingClientRect();
+      this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.pointer, this.camera);
+
+      // First: check for ceiling
+      const ceilingMesh = this.roomGroup.getObjectByName('ceiling');
+      if (ceilingMesh) {
+        const hit = this.raycaster.intersectObject(ceilingMesh, false);
+        if (hit.length) {
+          window.__id_onPaint?.('ceiling', -1);
+          return;
+        }
+      }
+
+      // Second: check walls
+      const wallHits = this.raycaster.intersectObjects(this._wallMeshes || [], false);
+      if (wallHits.length) {
+        const m = wallHits[0].object;
+        const idx = m.userData.wallIndex;
+        if (idx != null) {
+          window.__id_onPaint?.('wall', idx);
+          return;
+        }
+      }
+
+      // Third: check floor — ignore
+      return;   // paint mode consumed the click, no furniture select
+    }
          // Paver individual mode click
     if (this.currentState?.paverMode &&
         this.currentState?.paver?.colorMode === 'individual' &&
@@ -652,6 +685,9 @@ class InteriorEngine {
       walls.add(m);
     }
     this.roomGroup.add(walls);
+
+         // Store wall meshes reference for painting
+    this._wallMeshes = walls.children.slice();
 
     this._roomBounds = { pts, H, L: state.room.length * FT, W: state.room.width * FT };
     this._roomCenter = new THREE.Vector3(0, H / 2, 0);
@@ -1126,7 +1162,134 @@ class InteriorEngine {
     this._renderOnce();
   }
   
-    // ═══════════════════════════════════════════════
+     // ═══════════════════════════════════════════════
+  // WALL & CEILING PAINT — Overlay mesh system
+  // ═══════════════════════════════════════════════
+  _buildPaint(state) {
+    // Remove old paint group
+    const old = this.roomGroup.getObjectByName('paint-overlay');
+    if (old) this.roomGroup.remove(old);
+
+    const wallColors = state.wallColors || {};
+    const ceilingColor = state.ceilingColor;
+    const hasAnyPaint = Object.keys(wallColors).length > 0 ||
+                        (ceilingColor && ceilingColor !== '#ffffff');
+    if (!hasAnyPaint) return;
+
+    const S = state.skirting;
+    const skH = (S?.enabled ? (S.height || 150) : 0) * MM;
+
+    const pts = this._roomBounds?.pts;
+    const H = this._roomBounds?.H || 3;
+
+    const grp = new THREE.Group();
+    grp.name = 'paint-overlay';
+
+    // ---------- WALL OVERLAYS ----------
+    if (pts) {
+      for (let i = 0; i < pts.length; i++) {
+        const hex = wallColors[i];
+        if (!hex) continue;
+
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        const dx = b.x - a.x, dz = b.y - a.y;
+        const wallLen = Math.hypot(dx, dz);
+        if (wallLen < 0.05) continue;
+
+        // Paint area: from skirtingH to ceiling
+        const paintHeight = H - skH - 0.005;   // small margin from ceiling
+        if (paintHeight < 0.1) continue;
+
+        const geo = new THREE.PlaneGeometry(wallLen - 0.01, paintHeight);
+        const mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(hex),
+          roughness: 0.85,
+          metalness: 0.02,
+          side: THREE.DoubleSide
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+
+        // Position: midpoint of wall, offset slightly inward
+        const mx = (a.x + b.x) / 2;
+        const mz = (a.y + b.y) / 2;
+
+        // Inward normal — toward room center (0,0)
+        const wallDirX = dx / wallLen;
+        const wallDirZ = dz / wallLen;
+        // Perpendicular to wall direction (rotate 90° CW)
+        let nX = -wallDirZ;
+        let nZ = wallDirX;
+        // Flip if pointing away from center
+        if (nX * (-mx) + nZ * (-mz) < 0) {
+          nX = -nX; nZ = -nZ;
+        }
+
+        const offset = 0.008;   // 8mm inward
+        mesh.position.set(
+          mx + nX * offset,
+          skH + paintHeight / 2,
+          mz + nZ * offset
+        );
+        mesh.rotation.y = Math.atan2(dx, dz) - Math.PI / 2;
+
+        grp.add(mesh);
+      }
+    }
+
+    // ---------- CEILING OVERLAY ----------
+    if (ceilingColor && ceilingColor !== '#ffffff' && pts) {
+      // Reuse room shape geometry, offset slightly down
+      const shape = new THREE.Shape(pts);
+      const geo = new THREE.ShapeGeometry(shape);
+      geo.rotateX(Math.PI / 2);
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(ceilingColor),
+        roughness: 0.9,
+        metalness: 0.0,
+        side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = H - 0.008;   // 8mm below ceiling
+      mesh.name = 'paint-ceiling';
+      mesh.userData.isPaintCeiling = true;
+      grp.add(mesh);
+    }
+
+    this.paintGroup = grp;
+    this.roomGroup.add(grp);
+  }
+
+  // Public rebuild
+  rebuildPaint() {
+    if (!this.currentState) return;
+    this._buildPaint(this.currentState);
+    this._renderOnce();
+  }
+
+  // Public paint actions (called from app via __id_onPaint)
+  paintWall(wallIndex) {
+    if (!this.currentState) return false;
+    if (!this.currentState.wallColors) this.currentState.wallColors = {};
+    this.currentState.wallColors[wallIndex] = STATE?.paintColor ||
+      window.__id_getPaintColor?.() || '#ffffff';
+    this._buildPaint(this.currentState);
+    this._renderOnce();
+    return true;
+  }
+
+  paintCeiling() {
+    if (!this.currentState) return false;
+    this.currentState.ceilingColor =
+      STATE?.paintColor || window.__id_getPaintColor?.() || '#ffffff';
+    this._buildPaint(this.currentState);
+    this._renderOnce();
+    return true;
+  } 
+   
+   // ═══════════════════════════════════════════════
   // SKIRTING (BASEBOARD) BUILDER
   // ═══════════════════════════════════════════════
   _buildSkirting(state) {
