@@ -1215,6 +1215,7 @@ document.getElementById('id-cropCancelTop')?.addEventListener('click', closeCrop
 // OK — Save
 document.getElementById('id-cropOk')?.addEventListener('click', async () => {
   if (!pc) return;
+
   const cur = STATE.tiles[STATE.activeTab] || { size: { w: 600, h: 600 } };
   const tw = cur.size?.w || 600;
   const th = cur.size?.h || 600;
@@ -1225,46 +1226,23 @@ document.getElementById('id-cropOk')?.addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = '⏳ প্রসেস হচ্ছে...';
 
- try {
+  try {
     const canvas = await pc.crop(outW, outH);
     const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
     const url = await uploadToImgBB(blob);
     closeCrop();
 
-    if (url) {
-      setTile(url);
-      toast('✅ টাইল যোগ হয়েছে', 'success');
+    if (!url) {
+      toast('❌ আপলোড ব্যর্থ', 'error');
+      return;
+    }
 
-      // 📚 Auto-save to library
-      try {
-        if (window.__id_tilelib && blob) {
-          await window.__id_tilelib.saveTile({
-            blob,
-            name: `${STATE.activeTab === 'floor' ? 'ফ্লোর' : STATE.activeTab === 'wall' ? 'ওয়াল' : 'অ্যাকসেন্ট'} — ${new Date().toLocaleTimeString('bn-BD')}`,
-            surface: STATE.activeTab,
-            tileW: cur.size?.w || 600,
-            tileH: cur.size?.h || 600
-          });
-          if (typeof refreshTileLibrary === 'function') refreshTileLibrary();
-          toast('📚 লাইব্রেরিতে সেভ হয়েছে', 'info', 1500);
-        }
-      } catch (e) {
-        console.warn('Library save failed', e);
-      }
-    }
-  } catch (err) {
-    console.error('Crop failed:', err);
-    toast('❌ ক্রপ ব্যর্থ', 'error');
-  } finally {
-    const btn = document.getElementById('id-cropOk');
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '✔️ ঠিক আছে';
-    }
-  }
-    // Auto-save to library
+    setTile(url);
+    toast('✅ টাইল যোগ হয়েছে', 'success');
+
+    // 📚 Auto-save to library
     try {
-      if (window.__id_tilelib) {
+      if (window.__id_tilelib && blob) {
         await window.__id_tilelib.saveTile({
           blob,
           name: `${STATE.activeTab === 'floor' ? 'ফ্লোর' : STATE.activeTab === 'wall' ? 'ওয়াল' : 'অ্যাকসেন্ট'} — ${new Date().toLocaleTimeString('bn-BD')}`,
@@ -1272,18 +1250,22 @@ document.getElementById('id-cropOk')?.addEventListener('click', async () => {
           tileW: cur.size?.w || 600,
           tileH: cur.size?.h || 600
         });
-        refreshTileLibrary();
+        if (typeof refreshTileLibrary === 'function') refreshTileLibrary();
         toast('📚 লাইব্রেরিতে সেভ হয়েছে', 'info', 1500);
       }
-    } catch (e) { console.warn('Library save failed', e); }
-  }
-    else { toast('❌ আপলোড ব্যর্থ', 'error'); }
+    } catch (e) {
+      console.warn('Library save failed', e);
+    }
+
   } catch (err) {
-    console.error(err);
+    console.error('Crop failed:', err);
     toast('❌ ক্রপ ব্যর্থ', 'error');
   } finally {
-    btn.disabled = false;
-    btn.textContent = '✔️ ঠিক আছে';
+    const b = document.getElementById('id-cropOk');
+    if (b) {
+      b.disabled = false;
+      b.textContent = '✔️ ঠিক আছে';
+    }
   }
 });
 
