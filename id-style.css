@@ -2665,3 +2665,114 @@ input[type="range"]::-moz-range-thumb {
 }
 .id-lib-item-actions button:hover { background: var(--id-primary); }
 .id-lib-item-actions button.del:hover { background: var(--id-danger); }
+
+/* ═══════════════════════════════════════════════
+   STAIR CHAMBER SECTION
+   ═══════════════════════════════════════════════ */
+#id-stairChamberSection {
+  margin-bottom: 18px;
+  padding: 14px;
+  background: var(--id-bg-2);
+  border: 1px solid var(--id-border);
+  border-radius: var(--id-radius);
+  animation: id-fadeIn 0.3s ease;
+}
+
+.id-sc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.id-sc-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--id-text);
+}
+
+#id-scPanel {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#id-scPanel[hidden] { display: none !important; }
+
+.id-sc-block {
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.id-sc-block-title {
+  font-size: 11px;
+  color: var(--id-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.id-sc-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--id-text);
+  cursor: pointer;
+}
+.id-sc-check input[type="checkbox"] {
+  width: 18px; height: 18px;
+  accent-color: var(--id-primary);
+  cursor: pointer;
+}
+.id-sc-check-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--id-text-dim);
+  cursor: pointer;
+}
+
+.id-sc-small {
+  font-size: 11px;
+  color: var(--id-text-dim);
+  white-space: nowrap;
+}
+
+.id-sc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+.id-sc-stat {
+  background: var(--id-bg-3);
+  border: 1px solid var(--id-border);
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.id-sc-stat span {
+  display: block;
+  font-size: 10px;
+  color: var(--id-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.id-sc-stat b {
+  display: block;
+  font-size: 14px;
+  color: var(--id-accent);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  #id-stairChamberSection { padding: 10px; }
+  .id-sc-block { padding: 8px 10px; }
+  .id-sc-stats { grid-template-columns: 1fr 1fr; }
+  .id-sc-stat b { font-size: 12px; }
+}
