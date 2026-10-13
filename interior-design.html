@@ -24,14 +24,14 @@
 <!-- Firebase -->
 <script type="module">
   import { app, db, auth } from "./firebase-config-beta.js";
-  import { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp }
+  import { collection, addDoc, getDocs, getDoc, setDoc, query, where, deleteDoc, doc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
   window.__id_db   = db;
   window.__id_auth = auth;
-  window.__id_fs   = { collection, addDoc, getDocs, query, where, deleteDoc, doc, serverTimestamp };
+    window.__id_fs   = { collection, addDoc, getDocs, getDoc, setDoc, query, where, deleteDoc, doc, serverTimestamp };
   window.__id_authHelpers = { onAuthStateChanged };
   console.log("✅ Interior Design — Firebase প্রস্তুত");
 </script>
