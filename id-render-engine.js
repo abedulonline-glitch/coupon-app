@@ -16,6 +16,7 @@ import { SMAAPass }          from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass }        from 'three/addons/postprocessing/OutputPass.js';
 import { RGBELoader }        from 'three/addons/loaders/RGBELoader.js';
 import { PAVERS, buildShape, generateLayout, calcBlockCount } from './id-paver-library.js';
+import { buildStairChamber, calcStairStats } from './id-stair-chamber.js';
 
 const FT  = 0.3048;
 const MM = 0.001;
@@ -708,6 +709,8 @@ class InteriorEngine {
       this._buildPaverFloor(state, pts, Lp, Wp);
     }
 
+        // ───── Stair Chamber (before structure) ─────
+    this._buildStairChamber(state); 
     this._buildStructure3D(state, pts, H);
         // Skirting
     this._buildSkirting(state); 
@@ -1293,6 +1296,33 @@ class InteriorEngine {
     this._buildPaint(this.currentState);
     this._renderOnce();
     return true;
+  }
+   
+  // ═══════════════════════════════════════════════
+  // STAIR CHAMBER — Main room এর সাথে attached সিঁড়ির ঘর
+  // ═══════════════════════════════════════════════
+  _buildStairChamber(state) {
+    // Remove old chamber
+    const old = this.scene.getObjectByName('stair-chamber');
+    if (old) {
+      this._disposeGroup(old);
+      this.scene.remove(old);
+    }
+
+    const SC = state.stairChamber;
+    if (!SC?.enabled) return;
+
+    try {
+      const result = buildStairChamber(
+        this.scene,
+        SC,
+        this._roomBounds,
+        state.tiles
+      );
+      this._stairStats = result?.stats || null;
+    } catch (err) {
+      console.warn('Stair chamber build failed:', err);
+    }
   }
    
    // ═══════════════════════════════════════════════
@@ -1907,7 +1937,23 @@ class InteriorEngine {
 
   _setupCamera(state) {
     const b = this._roomBounds;
-    const L = b.L, W = b.W, H = b.H;
+    let L = b.L, W = b.W, H = b.H;
+
+    // If stair chamber enabled — expand the view bounds
+    const SC = state.stairChamber;
+    if (SC?.enabled) {
+      const scW = SC.size.w * FT;
+      const scL = SC.size.l * FT;
+      // Expand by chamber
+      if (SC.position === 'right' || SC.position === 'left') {
+        L = L + scW * 2;
+        W = Math.max(W, scL);
+      } else {
+        W = W + scL * 2;
+        L = Math.max(L, scW);
+      }
+    }
+
     const cy = H / 2;
     let pos, target;
     switch (state.cameraView || 'iso') {
@@ -1916,9 +1962,9 @@ class InteriorEngine {
       case 'top':
         pos = [0.001, Math.max(L, W) * 1.6, 0.001]; target = [0, 0, 0]; break;
       case 'corner':
-        pos = [L * 0.7, H * 0.85, W * 0.7]; target = [0, cy * 0.4, 0]; break;
+        pos = [L * 0.8, H * 0.9, W * 0.8]; target = [0, cy * 0.4, 0]; break;
       default:
-        pos = [L * 0.85, H * 1.3, W * 0.85]; target = [0, cy * 0.4, 0];
+        pos = [L * 0.9, H * 1.35, W * 0.9]; target = [0, cy * 0.4, 0];
     }
     this.camera.position.set(...pos);
     this.controls.target.set(...target);
@@ -2175,7 +2221,8 @@ class InteriorEngine {
     link.click();
   }
 
-  _disposeGroup(grp) {
+   _disposeGroup(grp) {
+    if (!grp) return;
     while (grp.children.length) {
       const c = grp.children.pop();
       grp.remove(c);
