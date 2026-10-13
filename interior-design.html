@@ -33,6 +33,15 @@
   window.__id_auth = auth;
     window.__id_fs   = { collection, addDoc, getDocs, getDoc, setDoc, query, where, deleteDoc, doc, serverTimestamp };
   window.__id_authHelpers = { onAuthStateChanged };
+
+  // Suppress Firestore offline warnings
+  const _origWarn = console.warn;
+  console.warn = function(...args) {
+    const s = args.join(' ');
+    if (s.includes('@firebase/firestore') || s.includes('Could not reach Cloud Firestore')) return;
+    _origWarn.apply(console, args);
+  };
+
   console.log("✅ Interior Design — Firebase প্রস্তুত");
 </script>
 
