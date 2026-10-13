@@ -2335,4 +2335,366 @@ window.__id_onPaint = (target, wallIndex) => {
   window.__id_paintUpdate = updateInfo;
 })();
 
+// ═══════════════════════════════════════════════
+// SHARE SYSTEM
+// ═══════════════════════════════════════════════
+(function initShareSystem() {
+  const modal    = document.getElementById('id-shareModal');
+  const openBtn  = document.getElementById('id-shareBtn');
+  const closeBtn = document.getElementById('id-shareClose');
+  const createBtn= document.getElementById('id-shareCreate');
+  const result   = document.getElementById('id-shareResult');
+  const linkInput= document.getElementById('id-shareLink');
+  const copyBtn  = document.getElementById('id-shareCopy');
+  const upgrade  = document.getElementById('id-upgradeCTA');
+  const upgradeBtn= document.getElementById('id-upgradeBtn');
+
+  if (!modal) return;
+
+  // ───────── PLAN FEATURES ─────────
+  const PLAN_FEATURES = {
+    free: {
+      shareExpiryDays: 30,
+      sharesPerMonth: 3,
+      allowClone: false,
+      allowHD: false,
+      allowQR: false,
+      allowPassword: false,
+      allowBranding: false
+    },
+    pro: {
+      shareExpiryDays: null,
+      sharesPerMonth: Infinity,
+      allowClone: true,
+      allowHD: true,
+      allowQR: true,
+      allowPassword: true,
+      allowBranding: true
+    }
+  };
+
+  function currentPlan() {
+    return STATE.userPlan || 'free';
+  }
+  function can(feature) {
+    return PLAN_FEATURES[currentPlan()][feature] === true ||
+           PLAN_FEATURES[currentPlan()][feature] === Infinity ||
+           PLAN_FEATURES[currentPlan()][feature] > 0;
+  }
+
+  // ───────── LOAD PLAN FROM LOCALSTORAGE ─────────
+  try {
+    const saved = JSON.parse(localStorage.getItem('id_plan') || '{}');
+    if (saved.plan) STATE.userPlan = saved.plan;
+    if (saved.expiresAt) STATE.planExpiresAt = saved.expiresAt;
+    if (saved.priceMonthly) STATE.proPriceMonthly = saved.priceMonthly;
+    if (saved.priceYearly) STATE.proPriceYearly = saved.priceYearly;
+    if (saved.shares !== undefined) STATE.sharesThisMonth = saved.shares;
+    if (saved.resetAt) STATE.monthResetAt = saved.resetAt;
+  } catch(e) {}
+
+  function savePlanLocal() {
+    localStorage.setItem('id_plan', JSON.stringify({
+      plan: STATE.userPlan,
+      expiresAt: STATE.planExpiresAt,
+      priceMonthly: STATE.proPriceMonthly,
+      priceYearly: STATE.proPriceYearly,
+      shares: STATE.sharesThisMonth,
+      resetAt: STATE.monthResetAt
+    }));
+  }
+
+  // ───────── MONTHLY RESET ─────────
+  function checkMonthlyReset() {
+    const now = Date.now();
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    if (!STATE.monthResetAt || now - STATE.monthResetAt > thirtyDays) {
+      STATE.sharesThisMonth = 0;
+      STATE.monthResetAt = now;
+      savePlanLocal();
+    }
+  }
+
+  // ───────── UPDATE UI ─────────
+  function updatePlanUI() {
+    checkMonthlyReset();
+    const plan = currentPlan();
+    const badge = document.getElementById('id-planBadge');
+    const usage = document.getElementById('id-planUsage');
+    const priceEl = document.getElementById('id-proPriceDisplay');
+    const expiryProTag = document.getElementById('id-expiryProTag');
+    const pwdProTag = document.getElementById('id-passwordProTag');
+    const cloneRow = document.getElementById('id-cloneRow');
+    const hdRow = document.getElementById('id-hdRow');
+    const brandingRow = document.getElementById('id-brandingRow');
+    const qrBtn = document.getElementById('id-shareQR');
+
+    // Badge
+    if (plan === 'pro') {
+      badge.className = 'id-plan-badge pro';
+      badge.textContent = '💎 Pro Plan';
+      usage.textContent = 'আনলিমিটেড শেয়ার';
+    } else {
+      badge.className = 'id-plan-badge free';
+      badge.textContent = '🆓 Free Plan';
+      const remaining = Math.max(0, PLAN_FEATURES.free.sharesPerMonth - STATE.sharesThisMonth);
+      usage.textContent = `${remaining}টি শেয়ার বাকি`;
+    }
+
+    // Price display (admin set or default)
+    if (priceEl) priceEl.textContent = `৳${STATE.proPriceMonthly}/মাস`;
+
+    // Pro tags — hide if user is already Pro
+    if (plan === 'pro') {
+      if (expiryProTag) expiryProTag.hidden = true;
+      if (pwdProTag) pwdProTag.hidden = true;
+      if (cloneRow) cloneRow.classList.remove('id-check-locked');
+      if (hdRow) hdRow.classList.remove('id-check-locked');
+      if (brandingRow) brandingRow.classList.remove('id-check-locked');
+      const cloneCb = document.getElementById('id-permClone');
+      const hdCb = document.getElementById('id-permHD');
+      const brandCb = document.getElementById('id-permBranding');
+      if (cloneCb) { cloneCb.disabled = false; cloneCb.checked = true; }
+      if (hdCb)    { hdCb.disabled = false; hdCb.checked = true; }
+      if (brandCb) { brandCb.disabled = false; brandCb.checked = true; }
+      if (qrBtn) qrBtn.disabled = false;
+      if (upgrade) upgrade.hidden = true;
+    } else {
+      if (expiryProTag) expiryProTag.hidden = false;
+      if (pwdProTag) pwdProTag.hidden = false;
+      if (cloneRow) cloneRow.classList.add('id-check-locked');
+      if (hdRow) hdRow.classList.add('id-check-locked');
+      if (brandingRow) brandingRow.classList.add('id-check-locked');
+      const cloneCb = document.getElementById('id-permClone');
+      const hdCb = document.getElementById('id-permHD');
+      const brandCb = document.getElementById('id-permBranding');
+      if (cloneCb) { cloneCb.disabled = true; cloneCb.checked = false; }
+      if (hdCb)    { hdCb.disabled = true; hdCb.checked = false; }
+      if (brandCb) { brandCb.disabled = true; brandCb.checked = false; }
+      if (qrBtn) qrBtn.disabled = true;
+      if (upgrade) upgrade.hidden = false;
+    }
+  }
+
+  // ───────── OPEN / CLOSE MODAL ─────────
+  openBtn?.addEventListener('click', () => {
+    if (!adminId) {
+      toast('প্রথমে লগইন করুন', 'error');
+      return;
+    }
+    modal.hidden = false;
+    modal.style.display = 'flex';
+    result.hidden = true;
+    updatePlanUI();
+  });
+
+  function closeModal() {
+    modal.hidden = true;
+    modal.style.display = 'none';
+  }
+  closeBtn?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // ───────── GENERATE SHARE ID ─────────
+  function generateShareId() {
+    const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+    let id = '';
+    for (let i = 0; i < 12; i++) {
+      id += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return id;
+  }
+
+  // ───────── CHECK SHARE LIMIT ─────────
+  function canCreateShare() {
+    const plan = currentPlan();
+    if (plan === 'pro') return { ok: true };
+    if (STATE.sharesThisMonth >= PLAN_FEATURES.free.sharesPerMonth) {
+      return { ok: false, msg: `এই মাসের ${PLAN_FEATURES.free.sharesPerMonth}টি শেয়ার শেষ। Pro নিন আনলিমিটেডের জন্য।` };
+    }
+    return { ok: true };
+  }
+
+  // ───────── CREATE SHARE ─────────
+  createBtn?.addEventListener('click', async () => {
+    const limit = canCreateShare();
+    if (!limit.ok) {
+      toast(limit.msg, 'error', 4000);
+      return;
+    }
+
+    if (!window.__id_fs || !window.__id_db) {
+      toast('Firebase প্রস্তুত নেই', 'error');
+      return;
+    }
+
+    createBtn.disabled = true;
+    createBtn.textContent = '⏳ তৈরি হচ্ছে...';
+
+    try {
+      const shareId = generateShareId();
+      const plan = currentPlan();
+
+      // Expiry
+      const expiryVal = document.getElementById('id-shareExpiry')?.value || '30';
+      let expiresAt = null;
+      if (expiryVal !== 'never') {
+        expiresAt = new Date(Date.now() + parseInt(expiryVal) * 86400000).toISOString();
+      }
+
+      // Password
+      const pwd = document.getElementById('id-sharePassword')?.value?.trim() || null;
+
+      // Permissions
+      const perms = {
+        rotate: document.getElementById('id-permRotate')?.checked ?? true,
+        colorView: document.getElementById('id-permColor')?.checked ?? false,
+        clone: plan === 'pro' ? (document.getElementById('id-permClone')?.checked ?? false) : false,
+        hd: plan === 'pro' ? (document.getElementById('id-permHD')?.checked ?? false) : false,
+        branding: plan === 'pro' ? (document.getElementById('id-permBranding')?.checked ?? false) : false
+      };
+
+      // Snapshot of the design
+      const snapshot = {
+        room: STATE.room,
+        shape: STATE.shape,
+        customPoints: STATE.customPoints,
+        structure: STATE.structure,
+        surfaces: STATE.surfaces,
+        tiles: STATE.tiles,
+        furniture: STATE.furniture,
+        outside: STATE.outside,
+        lightMode: STATE.lightMode,
+        cameraView: STATE.cameraView,
+        paverMode: STATE.paverMode,
+        paver: STATE.paver,
+        skirting: STATE.skirting,
+        wallColors: STATE.wallColors,
+        ceilingColor: STATE.ceilingColor
+      };
+
+      const { collection, doc, setDoc, serverTimestamp } = window.__id_fs;
+      const db = window.__id_db;
+
+      const shareDoc = {
+        shareId,
+        ownerId: adminId,
+        snapshot,
+        permissions: perms,
+        password: pwd,
+        expiresAt,
+        isPublic: true,
+        viewCount: 0,
+        cloneCount: 0,
+        plan: plan,          // record which plan created it
+        createdAt: serverTimestamp()
+      };
+
+      await setDoc(doc(db, 'sharedDesigns', shareId), shareDoc);
+
+      // Update local count
+      STATE.sharesThisMonth += 1;
+      savePlanLocal();
+      updatePlanUI();
+
+      // Build URL
+      const baseUrl = location.origin + location.pathname;
+      const shareUrl = `${baseUrl}?view=${shareId}`;
+
+      linkInput.value = shareUrl;
+      result.hidden = false;
+
+      const meta = document.getElementById('id-shareMeta');
+      if (meta) {
+        const expTxt = expiresAt
+          ? `⏰ ${new Date(expiresAt).toLocaleDateString('bn-BD')} পর্যন্ত`
+          : '∞ চিরস্থায়ী';
+        meta.textContent = `${expTxt} · 🔒 ${pwd ? 'পাসওয়ার্ড সুরক্ষিত' : 'পাবলিক'}`;
+      }
+
+      toast('✅ শেয়ার লিংক তৈরি হয়েছে', 'success');
+
+    } catch (err) {
+      console.error(err);
+      toast('❌ লিংক তৈরি ব্যর্থ: ' + err.message, 'error', 4000);
+    } finally {
+      createBtn.disabled = false;
+      createBtn.textContent = '🔗 শেয়ার লিংক তৈরি করুন';
+    }
+  });
+
+  // ───────── COPY LINK ─────────
+  copyBtn?.addEventListener('click', async () => {
+    const txt = linkInput.value;
+    if (!txt) return;
+    try {
+      await navigator.clipboard.writeText(txt);
+      copyBtn.classList.add('copied');
+      copyBtn.textContent = '✓';
+      toast('📋 লিংক কপি হয়েছে', 'success', 1500);
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.textContent = '📋';
+      }, 2000);
+    } catch (e) {
+      linkInput.select();
+      document.execCommand('copy');
+      toast('📋 লিংক কপি হয়েছে', 'success', 1500);
+    }
+  });
+
+  // ───────── QUICK SHARE ─────────
+  document.getElementById('id-shareWhatsapp')?.addEventListener('click', () => {
+    const url = linkInput.value;
+    if (!url) return;
+    const text = encodeURIComponent(`আমার ইন্টেরিয়র ডিজাইন দেখুন 🎨\n${url}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  });
+
+  document.getElementById('id-shareEmail')?.addEventListener('click', () => {
+    const url = linkInput.value;
+    if (!url) return;
+    const sub = encodeURIComponent('Interior Design Share');
+    const body = encodeURIComponent(`আমার ইন্টেরিয়র ডিজাইন দেখুন:\n${url}`);
+    location.href = `mailto:?subject=${sub}&body=${body}`;
+  });
+
+  document.getElementById('id-shareQR')?.addEventListener('click', () => {
+    if (!can('allowQR')) {
+      toast('💎 QR কোড Pro ফিচার', 'error', 2500);
+      return;
+    }
+    toast('QR কোড শীঘ্রই আসছে', 'info', 2000);
+  });
+
+  // ───────── UPGRADE BUTTON ─────────
+  upgradeBtn?.addEventListener('click', () => {
+    toast('💎 Payment integration শীঘ্রই আসছে', 'info', 3000);
+    // Future: open payment flow
+  });
+
+  // ───────── FETCH ADMIN PRICE (Firestore settings/pricing) ─────────
+  setTimeout(async () => {
+    if (!window.__id_db || !window.__id_fs) return;
+    try {
+      const { doc, getDoc } = window.__id_fs;
+      const db = window.__id_db;
+      const snap = await getDoc(doc(db, 'settings', 'pricing'));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.proMonthly) STATE.proPriceMonthly = data.proMonthly;
+        if (data.proYearly)  STATE.proPriceYearly  = data.proYearly;
+        savePlanLocal();
+        updatePlanUI();
+      }
+    } catch (e) {
+      // ignore — settings doc may not exist
+    }
+  }, 2000);
+
+  // Expose
+  window.__id_shareSystem = { open: () => openBtn?.click(), updatePlanUI };
+})();
 showStep(1);
