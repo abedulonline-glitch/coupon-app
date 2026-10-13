@@ -31,7 +31,54 @@ const STATE = {
   outside:   { id: 'out-day' },
   lightMode: 'day',
   
-     wallColors: {},       // { 0: '#fff', 1: '#f00', ... } — wall index → hex
+    stairChamber: {
+    enabled: false,
+    size: { w: 8, l: 12 },                 // ft
+    position: 'right',                     // 'right'|'left'|'top'|'bottom'
+    wallHeight: 10,                        // ft
+
+    door: {
+      enabled: true,
+      width: 900,                          // mm
+      height: 2100,                        // mm
+      offsetFromCorner: 1500               // mm (from chamber's wall corner)
+    },
+
+    stair: {
+      totalHeight: 3048,                   // mm (floor to floor)
+      totalSteps: 17,                      // auto
+      autoSteps: true,
+      treadThickness: 20,                  // mm (granite slab)
+      riserThickness: 18,                  // mm
+      molding1: 5,                         // mm
+      moldingGap: 8,                       // mm
+      molding2: 5,                         // mm
+      treadDepth: 280,                     // mm (run)
+      width: 1000,                         // mm
+      direction: 'along-length',           // 'along-length'|'along-width'
+
+      treadMaterial: 'custom',             // 'floor'|'wall'|'accent'|'custom'
+      riserMaterial: 'custom',
+      treadColor: '#1a1a1a',
+      riserColor: '#222222',
+      molding1Color: '#ffffff',
+      moldingGapColor: '#1a1a1a',
+      molding2Color: '#ffffff'
+    },
+
+    railing: {
+      enabled: false,
+      type: 'metal',                        // 'metal'|'wood'|'glass'
+      height: 900,                          // mm
+      side: 'right'                         // 'both'|'left'|'right'
+    },
+
+    skirtingStyle: 'plain',                 // 'plain'|'steps'
+    wallColor: '#f0f0f0',
+    floorColor: '#ffffff'
+  }, 
+   
+   wallColors: {},       // { 0: '#fff', 1: '#f00', ... } — wall index → hex
   ceilingColor: '#ffffff',
   paintMode: false,
   userPlan: 'free',              // 'free' | 'pro' | 'business'
