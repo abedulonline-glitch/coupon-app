@@ -495,6 +495,29 @@
         <button class="id-rot-btn" id="id-individualMode">🔲 ইন্ডিভিজুয়াল মোড</button>
         <button class="id-rot-btn" id="id-resetIndividual">🧹 সব রিসেট</button>
       </div>
+           <!-- ═══════════════════════════════════════════
+           PAINT TOOLBAR (Wall / Ceiling Color)
+           ═══════════════════════════════════════════ -->
+      <div id="id-paintBar">
+        <button id="id-paintModeBtn" title="পেইন্ট মোড চালু">
+          🎨 পেইন্ট মোড
+        </button>
+
+        <div id="id-paintColorWrap">
+          <input type="color" id="id-paintColor" value="#ffffff" title="রঙ বাছুন">
+          <input type="text" id="id-paintColorText" value="#ffffff"
+                 maxlength="7" spellcheck="false">
+        </div>
+
+        <button id="id-paintReset" title="সব রঙ রিসেট">
+          🧹 রিসেট
+        </button>
+
+        <span id="id-paintInfo">
+          🖌️ পেইন্ট মোড বন্ধ
+        </span>
+      </div>
+      
       <div id="id-viewerWrap">
         <canvas id="id-canvas"></canvas>
         <div id="id-viewerOverlay">
