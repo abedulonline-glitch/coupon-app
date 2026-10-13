@@ -550,6 +550,7 @@
         <button id="id-finalRender" class="id-highlight">✨ ফাইনাল HD রেন্ডার</button>
         <button id="id-downloadRender">⬇️ ডাউনলোড</button>
         <button id="id-saveToFirebase">☁️ ক্লাউডে সেভ</button>
+        <button id="id-shareBtn" class="id-highlight">📤 শেয়ার</button>
       </div>
     </section>
 
@@ -592,7 +593,121 @@
 <!-- ==================== CONTEXT MENU ==================== -->
 <div id="id-ctxMenu" hidden></div>
 
-<!-- ==================== TOAST ==================== -->
+<!-- ═══════════════════════════════════════════════
+     SHARE MODAL
+     ═══════════════════════════════════════════════ -->
+<div id="id-shareModal" hidden>
+  <div class="id-share-box">
+
+    <header class="id-share-header">
+      <span>📤 আপনার ডিজাইন শেয়ার করুন</span>
+      <button id="id-shareClose" title="বন্ধ">✕</button>
+    </header>
+
+    <!-- Plan Status Bar -->
+    <div id="id-planBar" class="id-plan-bar">
+      <span id="id-planBadge" class="id-plan-badge free">🆓 Free Plan</span>
+      <span id="id-planUsage" class="id-plan-usage">৩টি শেয়ার বাকি</span>
+    </div>
+
+    <!-- Settings -->
+    <div class="id-share-body">
+
+      <!-- Expiry -->
+      <div class="id-share-row">
+        <label>লিংকের বৈধতা</label>
+        <select id="id-shareExpiry">
+          <option value="7">৭ দিন</option>
+          <option value="14">১৪ দিন</option>
+          <option value="30" selected>৩০ দিন</option>
+          <option value="never" data-pro="true">∞ চিরস্থায়ী 💎</option>
+        </select>
+        <span class="id-pro-tag" id="id-expiryProTag" hidden>💎 Pro</span>
+      </div>
+
+      <!-- Password -->
+      <div class="id-share-row">
+        <label>পাসওয়ার্ড (optional)</label>
+        <input type="text" id="id-sharePassword" placeholder="খালি রাখলে পাবলিক" maxlength="20">
+        <span class="id-pro-tag" id="id-passwordProTag">💎 Pro</span>
+      </div>
+
+      <!-- Viewer Permissions -->
+      <div class="id-share-section-title">Viewer-কে অনুমতি দিন:</div>
+
+      <label class="id-share-check">
+        <input type="checkbox" id="id-permRotate" checked>
+        <span>🔍 3D ঘোরানো / জুম</span>
+        <span class="id-check-badge">Free</span>
+      </label>
+
+      <label class="id-share-check">
+        <input type="checkbox" id="id-permColor">
+        <span>🎨 রঙ বদলানো দেখুন</span>
+        <span class="id-check-badge">Free</span>
+      </label>
+
+      <label class="id-share-check id-check-locked" id="id-cloneRow">
+        <input type="checkbox" id="id-permClone" disabled>
+        <span>💾 Clone (নিজের কপি বানানো)</span>
+        <span class="id-pro-tag">💎 Pro</span>
+      </label>
+
+      <label class="id-share-check id-check-locked" id="id-hdRow">
+        <input type="checkbox" id="id-permHD" disabled>
+        <span>📸 HD ছবি নামানো</span>
+        <span class="id-pro-tag">💎 Pro</span>
+      </label>
+
+      <label class="id-share-check id-check-locked" id="id-brandingRow">
+        <input type="checkbox" id="id-permBranding" disabled>
+        <span>🏷️ নিজের লোগো দেখানো</span>
+        <span class="id-pro-tag">💎 Pro</span>
+      </label>
+
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="id-share-actions">
+      <button id="id-shareCreate" class="id-highlight">
+        🔗 শেয়ার লিংক তৈরি করুন
+      </button>
+    </div>
+
+    <!-- Result Box (hidden until link created) -->
+    <div id="id-shareResult" hidden>
+      <div class="id-share-result-title">✅ আপনার লিংক তৈরি!</div>
+      <div class="id-share-link-row">
+        <input type="text" id="id-shareLink" readonly>
+        <button id="id-shareCopy" title="কপি">📋</button>
+      </div>
+
+      <div class="id-share-quick">
+        <button id="id-shareWhatsapp" title="WhatsApp">📱 WhatsApp</button>
+        <button id="id-shareEmail" title="Email">📧 Email</button>
+        <button id="id-shareQR" title="QR Code" disabled>
+          🔲 QR <span class="id-pro-tag-sm">💎</span>
+        </button>
+      </div>
+
+      <div class="id-share-meta">
+        <span id="id-shareMeta"></span>
+      </div>
+    </div>
+
+    <!-- Upgrade CTA (Free users only) -->
+    <div id="id-upgradeCTA" class="id-upgrade-cta">
+      <div class="id-upgrade-text">
+        <b>💎 Pro-তে আপগ্রেড করুন</b>
+        <p>চিরস্থায়ী লিংক · Clone · HD · QR · Analytics</p>
+      </div>
+      <div class="id-upgrade-price" id="id-proPriceDisplay">৳199/মাস</div>
+      <button id="id-upgradeBtn">Pro নিন →</button>
+    </div>
+
+  </div>
+</div>
+  <!-- ==================== TOAST ==================== -->
 <div id="id-toast" hidden></div>
 
 <!-- ==================== SCRIPTS ==================== -->
