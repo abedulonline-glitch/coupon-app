@@ -34,6 +34,12 @@ const STATE = {
      wallColors: {},       // { 0: '#fff', 1: '#f00', ... } — wall index → hex
   ceilingColor: '#ffffff',
   paintMode: false,
+  userPlan: 'free',              // 'free' | 'pro' | 'business'
+  planExpiresAt: null,           // timestamp বা null
+  sharesThisMonth: 0,
+  monthResetAt: null,
+  proPriceMonthly: 199,          // admin override হবে
+  proPriceYearly: 1499,
   paintColor: '#ffffff',
   
    skirting: {
