@@ -2238,6 +2238,25 @@ document.querySelectorAll('.id-tab').forEach(t => {
 // ═══════════════════════════════════════════════
 // PAINT MODE — Wall & Ceiling Color
 // ═══════════════════════════════════════════════
+// Engine hooks for paint mode
+window.__id_isPaintMode = () => !!STATE.paintMode;
+window.__id_getPaintColor = () => STATE.paintColor || '#ffffff';
+
+window.__id_onPaint = (target, wallIndex) => {
+  if (!engine) return;
+  if (target === 'ceiling') {
+    engine.paintCeiling();
+    toast(`🎨 সিলিং → ${STATE.paintColor}`, 'success', 1200);
+  } else if (target === 'wall' && wallIndex >= 0) {
+    engine.paintWall(wallIndex);
+    const n = Object.keys(STATE.wallColors).length;
+    toast(`🎨 দেয়াল #${wallIndex + 1} → ${STATE.paintColor} (${n} দেয়াল)`, 'success', 1200);
+  }
+  if (typeof window.__id_paintUpdate === 'function') {
+    window.__id_paintUpdate();
+  }
+};
+
 (function initPaintTool() {
   const btn      = document.getElementById('id-paintModeBtn');
   const colorIn  = document.getElementById('id-paintColor');
