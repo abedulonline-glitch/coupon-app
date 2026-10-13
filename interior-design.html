@@ -186,6 +186,226 @@
       <h2>৩. স্ট্রাকচার — দরজা, জানালা, সিঁড়ি</h2>
       <p class="id-hint">টুল সিলেক্ট করুন, তারপর SVG-এর উপর ক্লিক করুন। এলিমেন্টে ক্লিক করলে মাপ দেখাবে।</p>
 
+          <!-- ═══════════════════════════════════════════
+           STAIR CHAMBER SECTION
+           ═══════════════════════════════════════════ -->
+      <div id="id-stairChamberSection">
+        <div class="id-sc-header">
+          <h3>🏠 সিঁড়ির ঘর (Stair Chamber)</h3>
+          <label class="id-switch">
+            <input type="checkbox" id="id-scToggle">
+            <span class="id-switch-slider"></span>
+          </label>
+        </div>
+
+        <div id="id-scPanel" hidden>
+
+          <!-- Position + Size -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">📐 অবস্থান ও মাপ</div>
+            <div class="id-row">
+              <label>দিক</label>
+              <select id="id-scPosition" style="flex:1">
+                <option value="right">➡️ মূল রুমের ডানে</option>
+                <option value="left">⬅️ মূল রুমের বাঁয়ে</option>
+                <option value="top">⬆️ মূল রুমের উপরে</option>
+                <option value="bottom">⬇️ মূল রুমের নিচে</option>
+              </select>
+            </div>
+            <div class="id-row">
+              <label>চওড়া (ft)</label>
+              <input type="number" id="id-scW" value="8" min="4" max="20">
+              <span>×</span>
+              <label>লম্বা (ft)</label>
+              <input type="number" id="id-scL" value="12" min="6" max="30">
+            </div>
+          </div>
+
+          <!-- Door -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">🚪 দরজা (মূল রুম থেকে)</div>
+            <label class="id-sc-check">
+              <input type="checkbox" id="id-scDoorEnabled" checked>
+              <span>দরজা যোগ করুন</span>
+            </label>
+            <div class="id-row">
+              <label>প্রস্থ (mm)</label>
+              <input type="number" id="id-scDoorW" value="900" min="600" max="1500">
+              <label>উচ্চতা (mm)</label>
+              <input type="number" id="id-scDoorH" value="2100" min="1800" max="2400">
+            </div>
+          </div>
+
+          <!-- Stair Parameters -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">🪜 সিঁড়ির ধাপ</div>
+
+            <div class="id-row">
+              <label>মোট উচ্চতা (mm)</label>
+              <input type="number" id="id-scTotalH" value="3048" min="1500" max="6000">
+              <label class="id-sc-small">≈ 10 ft</label>
+            </div>
+
+            <div class="id-row">
+              <label>ধাপ সংখ্যা</label>
+              <input type="number" id="id-scSteps" value="17" min="3" max="30">
+              <label class="id-sc-check-inline">
+                <input type="checkbox" id="id-scAutoSteps" checked>
+                <span>অটো</span>
+              </label>
+            </div>
+
+            <div class="id-row">
+              <label>Tread পুরুত্ব (mm)</label>
+              <input type="number" id="id-scTreadT" value="20" min="10" max="40" step="1">
+            </div>
+
+            <div class="id-row">
+              <label>Riser পুরুত্ব (mm)</label>
+              <input type="number" id="id-scRiserT" value="18" min="10" max="40" step="1">
+            </div>
+
+            <div class="id-row">
+              <label>Run (ধাপ গভীরতা mm)</label>
+              <input type="number" id="id-scRun" value="280" min="200" max="400">
+            </div>
+
+            <div class="id-row">
+              <label>সিঁড়ির প্রস্থ (mm)</label>
+              <input type="number" id="id-scStairW" value="1000" min="700" max="1800">
+            </div>
+
+            <div class="id-row">
+              <label>দিক</label>
+              <select id="id-scDirection" style="flex:1">
+                <option value="along-length">↕️ লম্বা বরাবর</option>
+                <option value="along-width">↔️ চওড়া বরাবর</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Molding (Double) -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">📏 ডাবল মোল্ডিং</div>
+
+            <div class="id-row">
+              <label>Molding 1 (mm)</label>
+              <input type="number" id="id-scMold1" value="5" min="2" max="20">
+              <label>Gap (mm)</label>
+              <input type="number" id="id-scMoldGap" value="8" min="2" max="20">
+            </div>
+
+            <div class="id-row">
+              <label>Molding 2 (mm)</label>
+              <input type="number" id="id-scMold2" value="5" min="2" max="20">
+            </div>
+          </div>
+
+          <!-- Materials -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">🎨 মেটেরিয়াল</div>
+
+            <div class="id-row">
+              <label>Tread</label>
+              <select id="id-scTreadMat" style="flex:1">
+                <option value="custom" selected>কাস্টম রঙ</option>
+                <option value="floor">🟫 ফ্লোর টাইল</option>
+                <option value="wall">🧱 ওয়াল টাইল</option>
+                <option value="accent">🎯 অ্যাকসেন্ট</option>
+              </select>
+              <input type="color" id="id-scTreadColor" value="#1a1a1a">
+            </div>
+
+            <div class="id-row">
+              <label>Riser</label>
+              <select id="id-scRiserMat" style="flex:1">
+                <option value="custom" selected>কাস্টম রঙ</option>
+                <option value="floor">🟫 ফ্লোর টাইল</option>
+                <option value="wall">🧱 ওয়াল টাইল</option>
+                <option value="accent">🎯 অ্যাকসেন্ট</option>
+              </select>
+              <input type="color" id="id-scRiserColor" value="#222222">
+            </div>
+
+            <div class="id-row">
+              <label>Molding 1</label>
+              <input type="color" id="id-scMold1Color" value="#ffffff" style="flex:1">
+            </div>
+
+            <div class="id-row">
+              <label>Molding Gap</label>
+              <input type="color" id="id-scMoldGapColor" value="#1a1a1a" style="flex:1">
+            </div>
+
+            <div class="id-row">
+              <label>Molding 2</label>
+              <input type="color" id="id-scMold2Color" value="#ffffff" style="flex:1">
+            </div>
+
+            <div class="id-row">
+              <label>ঘরের দেয়াল</label>
+              <input type="color" id="id-scWallColor" value="#f0f0f0" style="flex:1">
+            </div>
+          </div>
+
+          <!-- Railing -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">🔗 রেলিং</div>
+            <label class="id-sc-check">
+              <input type="checkbox" id="id-scRailEnabled">
+              <span>রেলিং যোগ করুন</span>
+            </label>
+            <div class="id-row">
+              <label>ধরন</label>
+              <select id="id-scRailType" style="flex:1">
+                <option value="metal">⚙️ মেটাল</option>
+                <option value="wood">🪵 কাঠ</option>
+                <option value="glass">🔷 গ্লাস</option>
+              </select>
+              <label>উচ্চতা (mm)</label>
+              <input type="number" id="id-scRailH" value="900" min="600" max="1200">
+            </div>
+            <div class="id-row">
+              <label>দিক</label>
+              <select id="id-scRailSide" style="flex:1">
+                <option value="right">ডানে</option>
+                <option value="left">বাঁয়ে</option>
+                <option value="both">দুই পাশে</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Skirting Style -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">📐 স্কার্টিং</div>
+            <div class="id-row">
+              <label>ধরন</label>
+              <select id="id-scSkirtStyle" style="flex:1">
+                <option value="plain">সোজা (Plain)</option>
+                <option value="steps">ধাপে ধাপে (Steps)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Live Stats -->
+          <div id="id-scStats" class="id-sc-stats">
+            <div class="id-sc-stat">
+              <span>প্রতি ধাপের rise</span>
+              <b id="id-scRiseVal">— mm</b>
+            </div>
+            <div class="id-sc-stat">
+              <span>মোট ধাপ</span>
+              <b id="id-scTotalStepsVal">—</b>
+            </div>
+            <div class="id-sc-stat">
+              <span>সিঁড়ির মোট লম্বা</span>
+              <b id="id-scStairLenVal">— mm</b>
+            </div>
+          </div>
+
+        </div>
+      </div> 
+      
       <div class="id-struct-toolbar">
         <button class="id-struct-tool" data-tool="door">🚪 দরজা</button>
         <button class="id-struct-tool" data-tool="window">🪟 জানালা</button>
