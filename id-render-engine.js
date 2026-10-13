@@ -646,6 +646,12 @@ class InteriorEngine {
   }
 
   _buildRoom(state) {
+        // Dispose stair chamber on rebuild
+    const oldSC = this.scene.getObjectByName('stair-chamber');
+    if (oldSC) {
+      this._disposeGroup(oldSC);
+      this.scene.remove(oldSC);
+    } 
     this._disposeGroup(this.roomGroup);
     this.tileMeshes = [];
     this.selectedTile = null; 
