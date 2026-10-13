@@ -1168,7 +1168,6 @@ class InteriorEngine {
   // WALL & CEILING PAINT — Overlay mesh system
   // ═══════════════════════════════════════════════
   _buildPaint(state) {
-    // Remove old paint group
     const old = this.roomGroup.getObjectByName('paint-overlay');
     if (old) this.roomGroup.remove(old);
 
@@ -1183,70 +1182,58 @@ class InteriorEngine {
 
     const pts = this._roomBounds?.pts;
     const H = this._roomBounds?.H || 3;
+    if (!pts) return;
 
     const grp = new THREE.Group();
     grp.name = 'paint-overlay';
 
     // ---------- WALL OVERLAYS ----------
-    if (pts) {
-      for (let i = 0; i < pts.length; i++) {
-        const hex = wallColors[i];
-        if (!hex) continue;
+    for (let i = 0; i < pts.length; i++) {
+      const hex = wallColors[i];
+      if (!hex) continue;
 
-        const a = pts[i];
-        const b = pts[(i + 1) % pts.length];
-        const dx = b.x - a.x, dz = b.y - a.y;
-        const wallLen = Math.hypot(dx, dz);
-        if (wallLen < 0.05) continue;
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const dx = b.x - a.x, dz = b.y - a.y;
+      const wallLen = Math.hypot(dx, dz);
+      if (wallLen < 0.05) continue;
 
-        // Paint area: from skirtingH to ceiling
-        const paintHeight = H - skH - 0.005;   // small margin from ceiling
-        if (paintHeight < 0.1) continue;
+      const paintHeight = H - skH - 0.005;
+      if (paintHeight < 0.1) continue;
 
-        const geo = new THREE.PlaneGeometry(wallLen - 0.01, paintHeight);
-        const mat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(hex),
-          roughness: 0.85,
-          metalness: 0.02,
-          side: THREE.DoubleSide
-        });
+      const geo = new THREE.PlaneGeometry(wallLen - 0.01, paintHeight);
+      const mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(hex),
+        roughness: 0.85,
+        metalness: 0.02,
+        side: THREE.DoubleSide
+      });
 
-        const mesh = new THREE.Mesh(geo, mat);
+      const mesh = new THREE.Mesh(geo, mat);
+      const mx = (a.x + b.x) / 2;
+      const mz = (a.y + b.y) / 2;
+      const wallDirX = dx / wallLen;
+      const wallDirZ = dz / wallLen;
+      let nX = -wallDirZ;
+      let nZ = wallDirX;
+      if (nX * (-mx) + nZ * (-mz) < 0) { nX = -nX; nZ = -nZ; }
 
-        // Position: midpoint of wall, offset slightly inward
-        const mx = (a.x + b.x) / 2;
-        const mz = (a.y + b.y) / 2;
+      const offset = 0.008;
+      mesh.position.set(
+        mx + nX * offset,
+        skH + paintHeight / 2,
+        mz + nZ * offset
+      );
+      mesh.rotation.y = Math.atan2(dx, dz) - Math.PI / 2;
 
-        // Inward normal — toward room center (0,0)
-        const wallDirX = dx / wallLen;
-        const wallDirZ = dz / wallLen;
-        // Perpendicular to wall direction (rotate 90° CW)
-        let nX = -wallDirZ;
-        let nZ = wallDirX;
-        // Flip if pointing away from center
-        if (nX * (-mx) + nZ * (-mz) < 0) {
-          nX = -nX; nZ = -nZ;
-        }
-
-        const offset = 0.008;   // 8mm inward
-        mesh.position.set(
-          mx + nX * offset,
-          skH + paintHeight / 2,
-          mz + nZ * offset
-        );
-        mesh.rotation.y = Math.atan2(dx, dz) - Math.PI / 2;
-
-        grp.add(mesh);
-      }
+      grp.add(mesh);
     }
 
     // ---------- CEILING OVERLAY ----------
-    if (ceilingColor && ceilingColor !== '#ffffff' && pts) {
-      // Reuse room shape geometry, offset slightly down
+    if (ceilingColor && ceilingColor !== '#ffffff') {
       const shape = new THREE.Shape(pts);
       const geo = new THREE.ShapeGeometry(shape);
       geo.rotateX(Math.PI / 2);
-
       const mat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(ceilingColor),
         roughness: 0.9,
@@ -1254,9 +1241,8 @@ class InteriorEngine {
         side: THREE.DoubleSide
       });
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.y = H - 0.008;   // 8mm below ceiling
+      mesh.position.y = H - 0.008;
       mesh.name = 'paint-ceiling';
-      mesh.userData.isPaintCeiling = true;
       grp.add(mesh);
     }
 
@@ -1275,8 +1261,8 @@ class InteriorEngine {
   paintWall(wallIndex) {
     if (!this.currentState) return false;
     if (!this.currentState.wallColors) this.currentState.wallColors = {};
-    this.currentState.wallColors[wallIndex] = STATE?.paintColor ||
-      window.__id_getPaintColor?.() || '#ffffff';
+    const hex = window.__id_getPaintColor?.() || '#ffffff';
+    this.currentState.wallColors[wallIndex] = hex;
     this._buildPaint(this.currentState);
     this._renderOnce();
     return true;
@@ -1284,12 +1270,12 @@ class InteriorEngine {
 
   paintCeiling() {
     if (!this.currentState) return false;
-    this.currentState.ceilingColor =
-      STATE?.paintColor || window.__id_getPaintColor?.() || '#ffffff';
+    const hex = window.__id_getPaintColor?.() || '#ffffff';
+    this.currentState.ceilingColor = hex;
     this._buildPaint(this.currentState);
     this._renderOnce();
     return true;
-  } 
+  }
    
    // ═══════════════════════════════════════════════
   // SKIRTING (BASEBOARD) BUILDER
