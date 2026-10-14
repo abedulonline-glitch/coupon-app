@@ -159,25 +159,9 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   // ─────────────────────────────────────────
   const stairGroup = buildStaircase(cfg, stats, tiles);
 
-  const dir = cfg.stair.direction;   // 'along-length' | 'along-width'
-  const clearance = 0.15;            // clearance from wall
-
-  let sx, sz, sRotY = 0;
-
-  if (dir === 'along-length') {
-    // Stair runs along Z (length direction), starts at north edge
-    sx = offset.x - W / 2 + clearance;
-    sz = offset.z - L / 2 + clearance;
-    sRotY = 0;
-  } else {
-    // Stair runs along X (width direction)
-    sx = offset.x - W / 2 + clearance;
-    sz = offset.z - L / 2 + clearance;
-    sRotY = -Math.PI / 2;
-  }
-
-  stairGroup.position.set(sx, 0, sz);
-  stairGroup.rotation.y = sRotY;
+  // ★ Chamber center এ রাখো — double fold এর জন্য
+  stairGroup.position.set(offset.x, 0, offset.z);
+  stairGroup.rotation.y = 0;
   group.add(stairGroup);
 
   // ─────────────────────────────────────────
