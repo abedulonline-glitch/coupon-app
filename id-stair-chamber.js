@@ -388,19 +388,16 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const mats = makeMats(cfg);
   const mold = makeMold(cfg);
 
-  // ───── STEP 1: Landing back wall ঘেঁষে ─────
-  const backWallZ = -innerHalfL + 0.02;
-   // ───── Underside slab material ─────
+  // ─── Slab material ───
   const slabT = 0.15;
   const slabMat = makeSlabMaterial();
   const totalMolding = mold.m1 + mold.gap + mold.m2;
 
-  // ───── STEP 1: Landing back wall ঘেঁষে ─────
+  // ───── Landing — back wall ঘেঁষে ─────
   const backWallZ = -innerHalfL + 0.02;
   const landFarZ = backWallZ;
   const landNearZ = landFarZ + landingDepth;
 
-  // Landing — slab thickness = slabT
   const landing = new THREE.Mesh(
     new THREE.BoxGeometry(2 * innerHalfW, slabT, landingDepth),
     mats.treadMat
@@ -410,7 +407,7 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   landing.receiveShadow = true;
   grp.add(landing);
 
-  // ───── STEP 2: Flight 1 — Landing থেকে front দিকে ─────
+  // ───── Flight 1 — Landing এর near edge থেকে front দিকে ─────
   const f1_cx = -innerHalfW + effectiveStairW / 2;
   const f1TotalRun = stepsPerFlight * runM;
   const f1TopBackEdge = landNearZ + riserT;
@@ -439,7 +436,7 @@ function buildDoubleFold(cfg, stats, W, L, H) {
     slabMat
   );
 
-  // ───── STEP 3: Flight 2 — Landing থেকে front দিকে ─────
+  // ───── Flight 2 — Landing এর near edge থেকে front দিকে ─────
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2StartZ = landNearZ;
 
