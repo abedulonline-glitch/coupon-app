@@ -263,6 +263,50 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, treadT, riserT, 
 }
 
 // ============================================================
+// UNDERSIDE SLAB — ঢালু স্ল্যাব (সব ধরনের সিঁড়িতে ব্যবহারের জন্য)
+// ============================================================
+function _addUndersideSlab(grp, cx, startZ, startY, endZ, endY, width, thickness, material) {
+  const start = new THREE.Vector3(cx, startY, startZ);
+  const end = new THREE.Vector3(cx, endY, endZ);
+  const dir = new THREE.Vector3().subVectors(end, start);
+  const length = dir.length();
+  if (length < 0.01) return null;
+  dir.normalize();
+
+  const slab = new THREE.Mesh(
+    new THREE.BoxGeometry(width, thickness, length),
+    material
+  );
+
+  const quat = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 0, 1),
+    dir
+  );
+  slab.setRotationFromQuaternion(quat);
+
+  const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+  const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(quat);
+  slab.position.copy(mid).addScaledVector(localUp, -thickness / 2);
+
+  slab.castShadow = true;
+  slab.receiveShadow = true;
+  grp.add(slab);
+  return slab;
+}
+
+// ============================================================
+// SLAB MATERIAL — ধূসর সিমেন্ট
+// ============================================================
+function makeSlabMaterial() {
+  return new THREE.MeshStandardMaterial({
+    color: 0xa0a0a0,
+    roughness: 0.85,
+    metalness: 0.02,
+    side: THREE.DoubleSide
+  });
+}
+
+// ============================================================
 // STRAIGHT
 // ============================================================
 function buildStraight(cfg, stats, W, L, H) {
@@ -283,6 +327,7 @@ function buildStraight(cfg, stats, W, L, H) {
   const innerHalfL = L / 2 - 0.04;
   const startZ = innerHalfL - 0.10;
 
+  // ─── Flight steps ───
   for (let i = 0; i < steps; i++) {
     _addStep(
       grp, stairW / 2, i * risePerStep,
@@ -290,6 +335,23 @@ function buildStraight(cfg, stats, W, L, H) {
       stairW, runM, risePerStep, treadT, riserT, mats, mold, true
     );
   }
+
+  // ─── Underside slab ───
+  const totalMolding = mold.m1 + mold.gap + mold.m2;
+  const slabT = 0.15;
+  const slabMat = makeSlabMaterial();
+
+  const flightTopY = steps * risePerStep;
+  const flightStartZ = startZ + runM / 2;             // front of first tread
+  const flightEndZ = startZ - (steps - 0.5) * runM;   // back of last tread
+
+  _addUndersideSlab(
+    grp, stairW / 2,
+    flightStartZ, slabT,                              // bottom: slab bottom touches floor
+    flightEndZ, flightTopY - treadT - totalMolding,   // top: just below last molding
+    stairW, slabT,
+    slabMat
+  );
 
   return grp;
 }
@@ -328,19 +390,27 @@ function buildDoubleFold(cfg, stats, W, L, H) {
 
   // ───── STEP 1: Landing back wall ঘেঁষে ─────
   const backWallZ = -innerHalfL + 0.02;
+   // ───── Underside slab material ─────
+  const slabT = 0.15;
+  const slabMat = makeSlabMaterial();
+  const totalMolding = mold.m1 + mold.gap + mold.m2;
+
+  // ───── STEP 1: Landing back wall ঘেঁষে ─────
+  const backWallZ = -innerHalfL + 0.02;
   const landFarZ = backWallZ;
   const landNearZ = landFarZ + landingDepth;
 
+  // Landing — slab thickness = slabT
   const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(2 * innerHalfW, treadT, landingDepth),
+    new THREE.BoxGeometry(2 * innerHalfW, slabT, landingDepth),
     mats.treadMat
   );
-  landing.position.set(0, landingY - treadT / 2, (landFarZ + landNearZ) / 2);
+  landing.position.set(0, landingY - slabT / 2, (landFarZ + landNearZ) / 2);
   landing.castShadow = true;
   landing.receiveShadow = true;
   grp.add(landing);
 
-  // ───── STEP 2: Flight 1 — Top step landing-এ সংযুক্ত ─────
+  // ───── STEP 2: Flight 1 — Landing থেকে front দিকে ─────
   const f1_cx = -innerHalfW + effectiveStairW / 2;
   const f1TotalRun = stepsPerFlight * runM;
   const f1TopBackEdge = landNearZ + riserT;
@@ -356,7 +426,20 @@ function buildDoubleFold(cfg, stats, W, L, H) {
     );
   }
 
-  // ───── STEP 3: Flight 2 — landing-এর far edge থেকে শুরু ─────
+  // Flight 1 — Underside slab
+  const f1TopY = stepsPerFlight * risePerStep;
+  const f1SlabStartZ = f1StartZ + runM / 2;
+  const f1SlabEndZ = f1StartZ - (stepsPerFlight - 0.5) * runM;
+
+  _addUndersideSlab(
+    grp, f1_cx,
+    f1SlabStartZ, slabT,
+    f1SlabEndZ, f1TopY - treadT - totalMolding,
+    effectiveStairW, slabT,
+    slabMat
+  );
+
+  // ───── STEP 3: Flight 2 — Landing থেকে front দিকে ─────
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2StartZ = landNearZ;
 
@@ -370,9 +453,21 @@ function buildDoubleFold(cfg, stats, W, L, H) {
     );
   }
 
+  // Flight 2 — Underside slab
+  const f2TopY = landingY + flight2Steps * risePerStep;
+  const f2SlabStartZ = f2StartZ - runM / 2;
+  const f2SlabEndZ = f2StartZ + (flight2Steps - 0.5) * runM;
+
+  _addUndersideSlab(
+    grp, f2_cx,
+    f2SlabStartZ, landingY - slabT,
+    f2SlabEndZ, f2TopY - treadT - totalMolding,
+    effectiveStairW, slabT,
+    slabMat
+  );
+
   return grp;
 }
-
 // ============================================================
 // MATERIALS
 // ============================================================
