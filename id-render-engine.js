@@ -2032,26 +2032,6 @@ class InteriorEngine {
     }
   }
 
-    // ── Stair chamber walls ──
-    const chamber = this.scene.getObjectByName('stair-chamber');
-    if (chamber) {
-      const cam = this.camera.position;
-      // Chamber center for culling
-      const scCenter = this._stairChamberCenter;
-      if (scCenter) {
-        chamber.children.forEach(child => {
-          if (!child.userData?.isChamberWall) return;
-          const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(child.quaternion).normalize();
-          const toCam = new THREE.Vector3().subVectors(cam, child.position).normalize();
-          const toCenter = new THREE.Vector3().subVectors(scCenter, child.position).normalize();
-          const camSide = normal.dot(toCam);
-          const centerSide = normal.dot(toCenter);
-          child.visible = (camSide * centerSide) >= 0;
-        });
-      }
-    }
-  }
-
   // ---------- TIME / EXPOSURE / AMBIENT ----------
   setTimeOfDay(hour) {
     const t = ((hour % 24) + 24) % 24;
