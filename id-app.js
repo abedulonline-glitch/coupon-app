@@ -2536,13 +2536,6 @@ document.querySelectorAll('.id-tab').forEach(t => {
     updateStairStats();
   };
 
-  // Initial sync
-  updateStairStats();
-  const panel = $id('id-scPanel');
-  if (panel) panel.hidden = !SC.enabled;
-
-})();
-
 // ═══════════════════════════════════════════════
 // PAINT MODE — Wall & Ceiling Color
 // ═══════════════════════════════════════════════
