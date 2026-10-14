@@ -1982,13 +1982,14 @@ class InteriorEngine {
     this.controls.update();
   }
 
-  _cullWalls() {
+   _cullWalls() {
     if (!this.roomGroup || !this._roomCenter) return;
+
+    const cam = this.camera.position;
 
     // ── Main room walls ──
     const walls = this.roomGroup.getObjectByName('walls');
     if (walls) {
-      const cam = this.camera.position;
       const center = this._roomCenter;
       walls.children.forEach(w => {
         const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(w.quaternion).normalize();
@@ -1999,6 +2000,37 @@ class InteriorEngine {
         w.visible = (camSide * centerSide) >= 0;
       });
     }
+
+    // ── Main room ceiling — hide if camera is above it ──
+    const mainCeiling = this.roomGroup.getObjectByName('ceiling');
+    if (mainCeiling) {
+      const isAbove = cam.y > mainCeiling.position.y - 0.05;
+      mainCeiling.visible = !isAbove;
+    }
+
+    // ── Stair chamber ──
+    const chamber = this.scene.getObjectByName('stair-chamber');
+    if (chamber) {
+      const scCenter = this._stairChamberCenter;
+
+      chamber.children.forEach(child => {
+        // Walls
+        if (child.userData?.isChamberWall && scCenter) {
+          const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(child.quaternion).normalize();
+          const toCam = new THREE.Vector3().subVectors(cam, child.position).normalize();
+          const toCenter = new THREE.Vector3().subVectors(scCenter, child.position).normalize();
+          const camSide = normal.dot(toCam);
+          const centerSide = normal.dot(toCenter);
+          child.visible = (camSide * centerSide) >= 0;
+        }
+
+        // Ceiling — hide if camera above
+        if (child.userData?.isChamberCeiling) {
+          child.visible = cam.y < child.position.y - 0.05;
+        }
+      });
+    }
+  }
 
     // ── Stair chamber walls ──
     const chamber = this.scene.getObjectByName('stair-chamber');
