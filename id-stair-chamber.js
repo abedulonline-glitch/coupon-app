@@ -438,21 +438,19 @@ function buildDoubleFold(cfg, stats, tiles) {
   const totalH = cfg.stair.totalHeight * MM;
   const totalSteps = stats.steps;
 
-  // ★ Standard clearances (consistent with auto-fit)
-  const wallClearance = 0.15;    // 150mm — skirting + border tile এর জন্য
-  const middleGap = 0.10;        // 100mm — দুই flight-এর মাঝে
-
-  // Chamber available space
+  // Chamber dimensions
   const chamberW = cfg.size.w * FT;
   const chamberL = cfg.size.l * FT;
 
-  // ★ Effective stair width — chamber-এ ফিট করার জন্য হিসাব
+  const wallClearance = 0.15;    // দেওয়াল থেকে সিঁড়ির দূরত্ব (skirting + border)
+  const middleGap = 0.10;        // দুই flight-এর মাঝে
+
+  // ★ Flight width auto-fit with clearance
   const availableForFlights = chamberW - (2 * wallClearance) - middleGap;
   let effectiveStairW = stairW;
   if (2 * stairW > availableForFlights) {
     effectiveStairW = availableForFlights / 2;
   }
-  // Safety minimum
   effectiveStairW = Math.max(effectiveStairW, 0.5);
 
   // Steps split
@@ -460,7 +458,7 @@ function buildDoubleFold(cfg, stats, tiles) {
   const flight2Steps = totalSteps - stepsPerFlight;
   const risePerStep = totalH / totalSteps;
   const landingY = stepsPerFlight * risePerStep;
-  const landingDepth = effectiveStairW;
+  const landingDepth = effectiveStairW;   // square landing
 
   // Materials
   const treadMat = new THREE.MeshStandardMaterial({
@@ -488,12 +486,11 @@ function buildDoubleFold(cfg, stats, tiles) {
     m2:  (cfg.stair.molding2  || 5) * MM
   };
 
-  // ★ FLIGHT 1 — left side, starts AFTER wall clearance
-  const f1StartX = wallClearance;
-  const f1CenterX = f1StartX + effectiveStairW / 2;
+  // ★ Entry clearance — দরজার পরপরই সিঁড়ি শুরু
+  const entryClearance = 0.05;   // 50mm দেওয়াল থেকে
 
-  // ★ Entry clearance — staircase starts a bit away from door area
-  const entryClearance = 0.30;   // 300mm
+  // ★ Flight 1 — LEFT side, ascending +Z
+  const f1CenterX = wallClearance + effectiveStairW / 2;
 
   for (let i = 0; i < stepsPerFlight; i++) {
     const yBase = i * risePerStep;
@@ -505,24 +502,26 @@ function buildDoubleFold(cfg, stats, tiles) {
     );
   }
 
-  // ★ LANDING — spans both flights + middle gap
-  const landingW = (2 * effectiveStairW) + middleGap;
-  const landingZ = entryClearance + stepsPerFlight * runM + landingDepth / 2;
+  // ★ LANDING — spans FULL chamber width (wall to wall)
+  // This ensures landing touches both walls, no gap
+  const landingW = chamberW;
+  const landingZ_near = entryClearance + stepsPerFlight * runM;
+  const landingZ_far = landingZ_near + landingDepth;
 
   const landing = new THREE.Mesh(
     new THREE.BoxGeometry(landingW, treadT, landingDepth),
     treadMat
   );
   landing.position.set(
-    wallClearance + landingW / 2,
+    chamberW / 2,                    // ★ center of chamber (touches both walls)
     landingY - treadT / 2,
-    landingZ
+    landingZ_near + landingDepth / 2
   );
   landing.castShadow = true;
   landing.receiveShadow = true;
   grp.add(landing);
 
-  // ★ FLIGHT 2 — right side, 180° flipped
+  // ★ FLIGHT 2 — RIGHT side, ascending -Z (toward origin)
   const flight2Group = new THREE.Group();
 
   for (let i = 0; i < flight2Steps; i++) {
@@ -535,14 +534,17 @@ function buildDoubleFold(cfg, stats, tiles) {
     );
   }
 
-  // ★ Position Flight 2:
-  //   X: right flight center — clearance + stairW + gap + stairW/2
-  //   Y: landing height
-  //   Z: far edge of landing (start from there in reverse)
+  // ★ Flight 2 position:
+  //   X = right flight center
+  //   Y = landingY (base of first step at landing surface)
+  //   Z = landing's FAR edge (with 180° rotation, flight goes -Z)
   const f2CenterX = wallClearance + effectiveStairW + middleGap + effectiveStairW / 2;
-  const f2StartZ = entryClearance + stepsPerFlight * runM + landingDepth + runM;
 
-  flight2Group.position.set(f2CenterX, landingY, f2StartZ);
+  flight2Group.position.set(
+    f2CenterX,
+    landingY,
+    landingZ_far + runM           // ★ start exactly after landing + 1 step offset for rotation
+  );
   flight2Group.rotation.y = Math.PI;
   grp.add(flight2Group);
 
