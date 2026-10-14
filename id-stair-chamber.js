@@ -186,7 +186,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
     'west': -Math.PI / 2,
     'east': Math.PI / 2
   };
-  stairGroup.rotation.y = doorRotations[attachWall] || 0;
+  stairGroup.rotation.y = (doorRotations[attachWall] || 0) + Math.PI / 2;
   stairGroup.position.set(offset.x, 0, offset.z);
   group.add(stairGroup);
 
