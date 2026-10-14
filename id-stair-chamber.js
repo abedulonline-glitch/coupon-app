@@ -358,7 +358,7 @@ function buildDoubleFold(cfg, stats, W, L, H) {
 
   // ───── STEP 3: Flight 2 — landing-এর far edge থেকে শুরু ─────
   const f2_cx = innerHalfW - effectiveStairW / 2;
-  const f2StartZ = landFarZ;
+  const f2StartZ = landNearZ;
 
   for (let i = 0; i < flight2Steps; i++) {
     _addStep(
