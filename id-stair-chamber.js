@@ -361,62 +361,70 @@ function buildStaircase(cfg, stats, tiles) {
 // ============================================================
 // REUSABLE STEP BUILDER (তিনটি layer molding + tread + riser)
 // ============================================================
-function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, treadT, riserT, mats, mold) {
+function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, treadT, riserT, mats, mold, reverse = false) {
   const { treadMat, riserMat, mold1Mat, moldGapMat, mold2Mat } = mats;
   const { m1: mold1, gap: moldGap, m2: mold2 } = mold;
 
-  // Tread (top slab)
+  // Direction factor: forward (+1) or reverse (-1)
+  const dir = reverse ? -1 : 1;
+
+  // Tread — front edge at z, extends in direction
+  const treadZ = z + dir * runM / 2;
   const tread = new THREE.Mesh(
     new THREE.BoxGeometry(stairW, treadT, runM),
     treadMat
   );
-  tread.position.set(cx, yBase + risePerStep - treadT / 2, z + runM / 2);
-  tread.castShadow = true; tread.receiveShadow = true;
+  tread.position.set(cx, yBase + risePerStep - treadT / 2, treadZ);
+  tread.castShadow = true;
+  tread.receiveShadow = true;
   grp.add(tread);
 
-  // Riser
+  // Riser — at front edge of tread (visible from ascending direction)
   const riserH = risePerStep - treadT;
   if (riserH > 0.005) {
+    const riserZ = z - dir * riserT / 2;   // ← reversed by direction
     const riser = new THREE.Mesh(
       new THREE.BoxGeometry(stairW, riserH, riserT),
       riserMat
     );
-    riser.position.set(cx, yBase + riserH / 2, z - riserT / 2);
+    riser.position.set(cx, yBase + riserH / 2, riserZ);
     riser.castShadow = true;
     grp.add(riser);
   }
 
-  // Molding 1
+  // Moldings — same side as riser
+  const moldZ = z - dir * riserT / 2 - dir * 0.01;
+
   if (mold1 > 0.001) {
     const m1 = new THREE.Mesh(
       new THREE.BoxGeometry(stairW + 0.02, mold1, riserT + 0.02),
       mold1Mat
     );
-    m1.position.set(cx, yBase + risePerStep - treadT - mold1 / 2, z - riserT / 2 - 0.01);
+    m1.position.set(cx, yBase + risePerStep - treadT - mold1 / 2, moldZ);
     grp.add(m1);
   }
-  // Molding gap
   if (moldGap > 0.001) {
     const mg = new THREE.Mesh(
       new THREE.BoxGeometry(stairW + 0.02, moldGap, riserT + 0.02),
       moldGapMat
     );
-    mg.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap / 2, z - riserT / 2 - 0.01);
+    mg.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap / 2, moldZ);
     grp.add(mg);
   }
-  // Molding 2
   if (mold2 > 0.001) {
     const m2 = new THREE.Mesh(
       new THREE.BoxGeometry(stairW + 0.02, mold2, riserT + 0.02),
       mold2Mat
     );
-    m2.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap - mold2 / 2, z - riserT / 2 - 0.01);
+    m2.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap - mold2 / 2, moldZ);
     grp.add(m2);
   }
 }
 
+
 // ============================================================
 // DOUBLE FOLD (U-SHAPE) — দুই flight + মাঝে landing
+// Flight 1: সোজা উপরে (+Z), Flight 2: ১৮০° ঘুরে (−Z)
 // ============================================================
 function buildDoubleFold(cfg, stats, tiles) {
   const grp = new THREE.Group();
@@ -434,9 +442,9 @@ function buildDoubleFold(cfg, stats, tiles) {
   const flight2Steps = totalSteps - stepsPerFlight;
   const risePerStep = totalH / totalSteps;
   const landingY = stepsPerFlight * risePerStep;
-  const landingDepth = stairW * 1.0;  // square landing
+  const landingDepth = stairW * 1.0;    // square landing
 
-  // Materials (shared)
+  // Materials
   const treadMat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(cfg.stair.treadColor || '#1a1a1a'),
     roughness: 0.35, metalness: 0.1
@@ -462,14 +470,17 @@ function buildDoubleFold(cfg, stats, tiles) {
     m2:  (cfg.stair.molding2  || 5) * MM
   };
 
-  // ───── FLIGHT 1: goes +Z, LEFT side (X: 0 → stairW) ─────
+  // ───── FLIGHT 1: LEFT side (X: 0 → stairW), ascends +Z ─────
   for (let i = 0; i < stepsPerFlight; i++) {
     const yBase = i * risePerStep;
     const z = i * runM;
     _addStep(
-      grp, stairW / 2, yBase, z,
+      grp,
+      stairW / 2,        // X center of left half
+      yBase, z,
       stairW, runM, risePerStep, treadT, riserT,
-      mats, mold
+      mats, mold,
+      false             // forward direction
     );
   }
 
@@ -479,24 +490,46 @@ function buildDoubleFold(cfg, stats, tiles) {
     treadMat
   );
   landing.position.set(
-    stairW,                          // center X
-    landingY - treadT / 2,
-    stepsPerFlight * runM + landingDepth / 2
+    stairW,                              // X center
+    landingY - treadT / 2,               // top surface at landingY
+    stepsPerFlight * runM + landingDepth / 2  // Z center
   );
-  landing.castShadow = true; landing.receiveShadow = true;
+  landing.castShadow = true;
+  landing.receiveShadow = true;
   grp.add(landing);
 
-  // ───── FLIGHT 2: goes −Z, RIGHT side (X: stairW → 2*stairW) ─────
+  // ───── FLIGHT 2: RIGHT side (X: stairW → 2*stairW) ─────
+  // Trick: build as forward flight, then rotate 180° around Y
+  // and position at far edge of landing
+  const flight2Group = new THREE.Group();
+
   for (let i = 0; i < flight2Steps; i++) {
-    const yBase = landingY + i * risePerStep;
-    // Coming BACK from landing in −Z
-    const z = stepsPerFlight * runM + landingDepth - i * runM - runM;
+    const yBase = i * risePerStep;      // local — starts at 0
+    const z = i * runM;                 // local — goes +Z (forward in local space)
     _addStep(
-      grp, stairW * 1.5, yBase, z,
+      flight2Group,
+      0,                                 // X center local = 0
+      yBase, z,
       stairW, runM, risePerStep, treadT, riserT,
-      mats, mold
+      mats, mold,
+      false                              // local direction is forward
     );
   }
+
+  // After 180° rotation around Y:
+  //   local +X → world -X
+  //   local +Z → world -Z
+  // So we position so that the ROTATED group's local origin sits at:
+  //   X = 2*stairW (so after rotation flight sits at X: stairW → 2*stairW)
+  //   Z = stepsPerFlight*runM + landingDepth  (far edge of landing)
+  //   Y = landingY (starts at landing height)
+  flight2Group.position.set(
+    stairW * 2,
+    landingY,
+    stepsPerFlight * runM + landingDepth
+  );
+  flight2Group.rotation.y = Math.PI;
+  grp.add(flight2Group);
 
   return grp;
 }
