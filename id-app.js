@@ -2366,6 +2366,38 @@ document.querySelectorAll('.id-tab').forEach(t => {
     SC.stair.riserThickness = Math.max(10, Math.min(40, parseFloat($id('id-scRiserT')?.value) || 18));
     SC.stair.treadDepth = Math.max(200, Math.min(400, parseFloat($id('id-scRun')?.value) || 280));
     SC.stair.width = Math.max(700, Math.min(1800, parseFloat($id('id-scStairW')?.value) || 1000));
+         // ★ AUTO-FIT chamber width for double-fold
+    if (SC.stair.type === 'double-fold') {
+      const stairWmm = SC.stair.width;
+      const gapMm = 100;                              // middle gap
+      const wallClearance = 150;                      // skirting + border
+      const minChamberWmm = (2 * stairWmm) + gapMm + (2 * wallClearance);
+      const minChamberWft = Math.ceil(minChamberWmm / 304.8);   // mm → ft, round up
+
+      if (SC.size.w < minChamberWft) {
+        SC.size.w = minChamberWft;
+        const wEl = $id('id-scW');
+        if (wEl) wEl.value = SC.size.w;
+        toast(`⚠️ Chamber width auto-set to ${SC.size.w} ft (দুই flight + clearance)`, 'info', 2500);
+      }
+
+      // ★ Auto-fit length too (steps × run + landing + entry clearance)
+      const stats = window.__id_stairChamber?.calcStairStats(SC);
+      if (stats) {
+        const flightLen = stats.stairLength / 2;
+        const landingDepth = stairWmm;
+        const entryClearance = 500;                   // door থেকে সিঁড়ি পর্যন্ত
+        const minChamberLmm = flightLen + landingDepth + entryClearance + 300;
+        const minChamberLft = Math.ceil(minChamberLmm / 304.8);
+
+        if (SC.size.l < minChamberLft) {
+          SC.size.l = minChamberLft;
+          const lEl = $id('id-scL');
+          if (lEl) lEl.value = SC.size.l;
+          toast(`⚠️ Chamber length auto-set to ${SC.size.l} ft`, 'info', 2500);
+        }
+      }
+    }
     SC.stair.type = $id('id-scStairType')?.value || 'straight';
     SC.stair.direction = $id('id-scDirection')?.value || 'along-length';
 
