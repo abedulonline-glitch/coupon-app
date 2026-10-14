@@ -1,6 +1,5 @@
 /* ============================================================
-   Interior Design Studio — id-stair-chamber.js
-   Complete File (v7 — Auto-Size Chamber + Door-Aware Orientation)
+   Interior Design Studio — id-stair-chamber.js  (v8 — Final)
    ============================================================ */
 
 import * as THREE from 'three';
@@ -9,13 +8,12 @@ const FT  = 0.3048;
 const MM  = 0.001;
 
 // ============================================================
-// MINIMUM CHAMBER SIZE CALCULATOR
+// MIN CHAMBER SIZE CALCULATOR
 // ============================================================
 export function computeMinChamberSize(cfg) {
   const stairW_m = cfg.stair.width * MM;
   const runM_m   = cfg.stair.treadDepth * MM;
   const totalH   = cfg.stair.totalHeight;
-  const treadT   = cfg.stair.treadThickness * MM;
 
   const totalSteps = cfg.stair.autoSteps
     ? Math.max(3, Math.round(totalH / 180))
@@ -24,27 +22,22 @@ export function computeMinChamberSize(cfg) {
   const stepsPerFlight = Math.ceil(totalSteps / 2);
   const landingDepth_m = stairW_m;
 
-  const middleGap_m  = 0.05;
-  const wallT_m      = 0.08;
-  const clearance_m  = 0.15;   // door side + back wall
+  const middleGap_m = 0.05;
+  const wallT_m     = 0.08;
+  const clearance_m = 0.20;
 
   let w_m, l_m;
 
   if ((cfg.stair.type || 'straight') === 'double-fold') {
-    // Width: 2 flights + middle gap + wall thickness × 2
     w_m = 2 * stairW_m + middleGap_m + 2 * wallT_m + 0.05;
-
-    // Length: flight1 (stepsPerFlight × run) + landing + flight2 area + clearances
-    // Actually length needed = max(N1, N2) × run + landing + 2 clearances
     l_m = stepsPerFlight * runM_m + landingDepth_m + 2 * clearance_m + 2 * wallT_m;
   } else {
-    // Straight staircase
     w_m = stairW_m + 2 * wallT_m + 0.10;
     l_m = totalSteps * runM_m + 2 * clearance_m + 2 * wallT_m;
   }
 
   return {
-    w_ft: Math.ceil((w_m / FT) * 2) / 2,   // Round up to nearest 0.5 ft
+    w_ft: Math.ceil((w_m / FT) * 2) / 2,
     l_ft: Math.ceil((l_m / FT) * 2) / 2,
     w_m, l_m
   };
@@ -75,17 +68,9 @@ export function calcStairStats(cfg) {
 // BUILD STAIR CHAMBER
 // ============================================================
 export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
-  // ─── AUTO-SIZE ───
   const minSize = computeMinChamberSize(cfg);
   const actualW_ft = Math.max(cfg.size.w, minSize.w_ft);
   const actualL_ft = Math.max(cfg.size.l, minSize.l_ft);
-
-  const autoAdjusted = {
-    width:  actualW_ft > cfg.size.w,
-    length: actualL_ft > cfg.size.l,
-    actualW: actualW_ft,
-    actualL: actualL_ft
-  };
 
   const group = new THREE.Group();
   group.name = 'stair-chamber';
@@ -98,7 +83,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
 
   const offset = computeChamberOffset(cfg, mainRoomBounds, W, L);
 
-  // ─── FLOOR ───
+  // FLOOR
   const floorMat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(cfg.floorColor || '#ffffff'),
     roughness: 0.55, metalness: 0.05
@@ -110,7 +95,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   floor.receiveShadow = true;
   group.add(floor);
 
-  // ─── CEILING ───
+  // CEILING
   const ceilMat = new THREE.MeshStandardMaterial({
     color: 0xdddddd, roughness: 0.9, side: THREE.DoubleSide
   });
@@ -121,7 +106,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   ceil.userData.isChamberCeiling = true;
   group.add(ceil);
 
-  // ─── WALLS ───
+  // WALLS
   const wallMat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(cfg.wallColor || '#f0f0f0'),
     roughness: 0.85, metalness: 0.02, side: THREE.DoubleSide
@@ -133,10 +118,10 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   const doorH = (cfg.door.height || 2100) * MM;
 
   const walls = [
-    { name: 'north', x: offset.x, z: offset.z - halfL, rY: 0,           len: W },
-    { name: 'south', x: offset.x, z: offset.z + halfL, rY: 0,           len: W },
-    { name: 'east',  x: offset.x + halfW, z: offset.z, rY: Math.PI/2,   len: L },
-    { name: 'west',  x: offset.x - halfW, z: offset.z, rY: Math.PI/2,   len: L }
+    { name: 'north', x: offset.x, z: offset.z - halfL, rY: 0,         len: W },
+    { name: 'south', x: offset.x, z: offset.z + halfL, rY: 0,         len: W },
+    { name: 'east',  x: offset.x + halfW, z: offset.z, rY: Math.PI/2, len: L },
+    { name: 'west',  x: offset.x - halfW, z: offset.z, rY: Math.PI/2, len: L }
   ];
 
   const attachMap = {
@@ -176,10 +161,9 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
     }
   });
 
-  // ─── STAIRCASE ───
-  const stairGroup = buildStaircase(cfg, stats, tiles, W, L, H, attachWall);
+  // STAIRCASE
+  const stairGroup = buildStaircase(cfg, stats, W, L, H);
 
-  // Rotate so "door side" is +Z in build space
   const doorRotations = {
     'south': 0,
     'north': Math.PI,
@@ -190,7 +174,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   stairGroup.position.set(offset.x, 0, offset.z);
   group.add(stairGroup);
 
-  // ─── RAILING (straight only) ───
+  // RAILING (straight only)
   if (cfg.railing.enabled && (cfg.stair?.type || 'straight') === 'straight') {
     const rails = buildRailing(cfg, stats);
     rails.position.copy(stairGroup.position);
@@ -199,7 +183,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   }
 
   scene.add(group);
-  return { group, stats, offset, size: { W, L, H }, chamberWalls, center, autoAdjusted };
+  return { group, stats, offset, size: { W, L, H }, chamberWalls, center };
 }
 
 // ============================================================
@@ -229,10 +213,10 @@ function buildWallWithDoor(wallLen, wallH, doorW, doorH, offsetFromCorner) {
 // ============================================================
 // ROUTER
 // ============================================================
-function buildStaircase(cfg, stats, tiles, W, L, H, attachWall) {
+function buildStaircase(cfg, stats, W, L, H) {
   const type = cfg.stair?.type || 'straight';
-  if (type === 'double-fold') return buildDoubleFold(cfg, stats, tiles, W, L, H);
-  return buildStraight(cfg, stats, tiles, W, L, H);
+  if (type === 'double-fold') return buildDoubleFold(cfg, stats, W, L, H);
+  return buildStraight(cfg, stats, W, L, H);
 }
 
 // ============================================================
@@ -281,7 +265,7 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, treadT, riserT, 
 // ============================================================
 // STRAIGHT
 // ============================================================
-function buildStraight(cfg, stats, tiles, W, L, H) {
+function buildStraight(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-straight';
 
@@ -297,12 +281,12 @@ function buildStraight(cfg, stats, tiles, W, L, H) {
   const steps = stats.steps;
 
   const innerHalfL = L / 2 - 0.04;
-  const startZ = innerHalfL - 0.10;   // near front (door side)
+  const startZ = innerHalfL - 0.10;
 
   for (let i = 0; i < steps; i++) {
     _addStep(
       grp, stairW / 2, i * risePerStep,
-      startZ - i * runM,                // ★ goes toward back
+      startZ - i * runM,
       stairW, runM, risePerStep, treadT, riserT, mats, mold, true
     );
   }
@@ -311,9 +295,9 @@ function buildStraight(cfg, stats, tiles, W, L, H) {
 }
 
 // ============================================================
-// DOUBLE FOLD (U-SHAPE)
+// DOUBLE FOLD — Landing দেওয়াল ঘেঁষে, দুই flight landing থেকে
 // ============================================================
-function buildDoubleFold(cfg, stats, tiles, W, L, H) {
+function buildDoubleFold(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-double-fold';
 
@@ -329,7 +313,6 @@ function buildDoubleFold(cfg, stats, tiles, W, L, H) {
 
   const middleGap = 0.05;
 
-  // Flight width — fit within chamber
   const maxStairW = (2 * innerHalfW - middleGap) / 2;
   const stairW = Math.min(cfg.stair.width * MM, maxStairW);
   const effectiveStairW = Math.max(stairW, 0.5);
@@ -343,13 +326,9 @@ function buildDoubleFold(cfg, stats, tiles, W, L, H) {
   const mats = makeMats(cfg);
   const mold = makeMold(cfg);
 
-  // ══════════════════════════════════════════════════════
-  // STEP 1: Landing কে back wall ঘেঁষে বসাও
-  // ══════════════════════════════════════════════════════
-  const backWallZ = -innerHalfL;
-  const frontWallZ = innerHalfL;
-
-  const landFarZ = backWallZ + 0.02;                // দেওয়াল ঘেঁষে
+  // ───── STEP 1: Landing back wall ঘেঁষে ─────
+  const backWallZ = -innerHalfL + 0.02;
+  const landFarZ = backWallZ;
   const landNearZ = landFarZ + landingDepth;
 
   const landing = new THREE.Mesh(
@@ -361,14 +340,11 @@ function buildDoubleFold(cfg, stats, tiles, W, L, H) {
   landing.receiveShadow = true;
   grp.add(landing);
 
-  // ══════════════════════════════════════════════════════
-  // STEP 2: Flight 1 — Landing-এর near edge থেকে front দিকে
-  // ★ Top tread landing-এর সাথে সংযুক্ত
-  // ══════════════════════════════════════════════════════
+  // ───── STEP 2: Flight 1 — Top step landing-এ সংযুক্ত ─────
   const f1_cx = -innerHalfW + effectiveStairW / 2;
-  // Flight 1 এর top tread back edge = landNearZ
-  // reverse=true এ _addStep এ top tread back edge = f1StartZ - stepsPerFlight*runM
-  const f1StartZ = landNearZ + stepsPerFlight * runM;
+  const f1TotalRun = stepsPerFlight * runM;
+  const f1TopBackEdge = landNearZ + riserT;
+  const f1StartZ = f1TopBackEdge + f1TotalRun;
 
   for (let i = 0; i < stepsPerFlight; i++) {
     _addStep(
@@ -376,14 +352,11 @@ function buildDoubleFold(cfg, stats, tiles, W, L, H) {
       i * risePerStep,
       f1StartZ - i * runM,
       effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold,
-      true
+      mats, mold, true
     );
   }
 
-  // ══════════════════════════════════════════════════════
-  // STEP 3: Flight 2 — Landing-এর far edge থেকে front দিকে
-  // ══════════════════════════════════════════════════════
+  // ───── STEP 3: Flight 2 — landing-এর far edge থেকে শুরু ─────
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2StartZ = landFarZ;
 
@@ -393,13 +366,15 @@ function buildDoubleFold(cfg, stats, tiles, W, L, H) {
       landingY + i * risePerStep,
       f2StartZ + i * runM,
       effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold,
-      false
+      mats, mold, false
     );
   }
 
+  return grp;
+}
+
 // ============================================================
-// MATERIALS + MOLD
+// MATERIALS
 // ============================================================
 function makeMats(cfg) {
   return {
@@ -432,7 +407,7 @@ function makeMold(cfg) {
 }
 
 // ============================================================
-// RAILING
+// RAILING (straight only)
 // ============================================================
 function buildRailing(cfg, stats) {
   const grp = new THREE.Group();
