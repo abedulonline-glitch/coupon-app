@@ -438,12 +438,24 @@ function buildDoubleFold(cfg, stats, tiles) {
   const totalH = cfg.stair.totalHeight * MM;
   const totalSteps = stats.steps;
 
-  // Split into two flights
+  // ★ Flight গুলোর মধ্যে ছোট gap (5cm)
+  const gap = 0.05;
+
+  // ★ Safety: chamber-এ ফিট হচ্ছে কি না
+  const availW = (cfg.size.w * FT) - 0.3;   // 0.15 clearance × 2
+  const neededW = 2 * stairW + gap;
+  let effectiveStairW = stairW;
+  if (neededW > availW) {
+    // দুই flight + gap ফিট না হলে stair প্রস্থ কমিয়ে দাও
+    effectiveStairW = (availW - gap) / 2;
+  }
+
+  // Steps split
   const stepsPerFlight = Math.ceil(totalSteps / 2);
   const flight2Steps = totalSteps - stepsPerFlight;
   const risePerStep = totalH / totalSteps;
   const landingY = stepsPerFlight * risePerStep;
-  const landingDepth = stairW * 1.0;    // square landing
+  const landingDepth = effectiveStairW * 1.0;
 
   // Materials
   const treadMat = new THREE.MeshStandardMaterial({
@@ -471,63 +483,54 @@ function buildDoubleFold(cfg, stats, tiles) {
     m2:  (cfg.stair.molding2  || 5) * MM
   };
 
-  // ───── FLIGHT 1: LEFT side (X: 0 → stairW), ascends +Z ─────
+  // ───── FLIGHT 1: LEFT side, ascends +Z ─────
+  const f1CenterX = effectiveStairW / 2;
   for (let i = 0; i < stepsPerFlight; i++) {
     const yBase = i * risePerStep;
     const z = i * runM;
     _addStep(
-      grp,
-      stairW / 2,        // X center of left half
-      yBase, z,
-      stairW, runM, risePerStep, treadT, riserT,
-      mats, mold,
-      false             // forward direction
+      grp, f1CenterX, yBase, z,
+      effectiveStairW, runM, risePerStep, treadT, riserT,
+      mats, mold, false
     );
   }
 
-  // ───── LANDING: spans full width (X: 0 → 2*stairW) ─────
+  // ───── LANDING: spans both flights + gap ─────
+  const landingW = 2 * effectiveStairW + gap;
   const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(stairW * 2, treadT, landingDepth),
+    new THREE.BoxGeometry(landingW, treadT, landingDepth),
     treadMat
   );
   landing.position.set(
-    stairW,                              // X center
-    landingY - treadT / 2,               // top surface at landingY
-    stepsPerFlight * runM + landingDepth / 2  // Z center
+    landingW / 2,                                             // center X
+    landingY - treadT / 2,                                    // top at landingY
+    stepsPerFlight * runM + landingDepth / 2                  // center Z
   );
   landing.castShadow = true;
   landing.receiveShadow = true;
   grp.add(landing);
 
-  // ───── FLIGHT 2: RIGHT side (X: stairW → 2*stairW) ─────
-  // Trick: build as forward flight, then rotate 180° around Y
-  // and position at far edge of landing
+  // ───── FLIGHT 2: RIGHT side, 180° rotated ─────
   const flight2Group = new THREE.Group();
 
   for (let i = 0; i < flight2Steps; i++) {
-    const yBase = i * risePerStep;      // local — starts at 0
-    const z = i * runM;                 // local — goes +Z (forward in local space)
+    const yBase = i * risePerStep;
+    const z = i * runM;
     _addStep(
-      flight2Group,
-      0,                                 // X center local = 0
-      yBase, z,
-      stairW, runM, risePerStep, treadT, riserT,
-      mats, mold,
-      false                              // local direction is forward
+      flight2Group, 0, yBase, z,
+      effectiveStairW, runM, risePerStep, treadT, riserT,
+      mats, mold, false
     );
   }
 
-  // After 180° rotation around Y:
-  //   local +X → world -X
-  //   local +Z → world -Z
-  // So we position so that the ROTATED group's local origin sits at:
-  //   X = 2*stairW (so after rotation flight sits at X: stairW → 2*stairW)
-  //   Z = stepsPerFlight*runM + landingDepth  (far edge of landing)
-  //   Y = landingY (starts at landing height)
+  // ★ Flight 2 position:
+  //   - X: right flight center (aft effectiveStairW + gap)
+  //   - Y: landing top
+  //   - Z: just past landing's far edge (so no overlap)
   flight2Group.position.set(
-    stairW * 2,
+    1.5 * effectiveStairW + gap,                              // ★ FIX: was stairW*2
     landingY,
-    stepsPerFlight * runM + landingDepth
+    stepsPerFlight * runM + landingDepth + runM               // ★ FIX: + runM
   );
   flight2Group.rotation.y = Math.PI;
   grp.add(flight2Group);
