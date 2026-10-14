@@ -473,10 +473,21 @@ function buildDoubleFold(cfg, stats, tiles) {
 
   // ══════════════════════════════════════════════════════
   // FLIGHT 1 — LEFT side, দেওয়াল ঘেঁষে, উল্টো দিকে (ascend −Z)
+  // ★ TOP step back wall ঘেঁষে থাকবে
   // ══════════════════════════════════════════════════════
-  const f1_cx = -innerHalfW + effectiveStairW / 2;   // ★ দেওয়াল ঘেঁষে
-  const entryClearance = 0.10;                        // দরজা থেকে ছোট clearance
-  const f1StartZ = innerHalfL - entryClearance;
+  const f1_cx = -innerHalfW + effectiveStairW / 2;
+
+  // Flight 1 এ কত জায়গা লাগবে: N step × runM
+  const f1TotalRun = stepsPerFlight * runM;
+
+  // Top step (i = stepsPerFlight - 1) এর back edge থাকবে back wall থেকে 10cm দূরে
+  // Formula: f1StartZ = backWallZ + clearance + totalRun
+  const backWallZ = -innerHalfL;
+  const f1StartZ_raw = backWallZ + 0.10 + f1TotalRun;
+
+  // Front wall থেকে 10cm clearance রাখো (chamber ছোট হলে clamp)
+  const frontWallZ = innerHalfL;
+  const f1StartZ = Math.min(f1StartZ_raw, frontWallZ - 0.10);
 
   for (let i = 0; i < stepsPerFlight; i++) {
     _addStep(
@@ -485,7 +496,7 @@ function buildDoubleFold(cfg, stats, tiles) {
       f1StartZ - i * runM,
       effectiveStairW, runM, risePerStep, treadT, riserT,
       mats, mold,
-      true                                            // ★ reverse: ascends −Z
+      true
     );
   }
 
@@ -495,6 +506,14 @@ function buildDoubleFold(cfg, stats, tiles) {
   const f1TopTreadEnd = f1StartZ - stepsPerFlight * runM;
   let landNearZ = f1TopTreadEnd;
   let landFarZ  = landNearZ - landingDepth;
+
+  // ★ North দেওয়ালে clamp
+  const northWallZ = -innerHalfL;
+  if (landFarZ < northWallZ + 0.05) {
+    const shift = (northWallZ + 0.05) - landFarZ;
+    landFarZ += shift;
+    landNearZ += shift;
+  }
 
   // ★ North দেওয়ালে clamp (02cm gap)
   if (landFarZ < -innerHalfL + 0.02) {
@@ -515,8 +534,9 @@ function buildDoubleFold(cfg, stats, tiles) {
   // ══════════════════════════════════════════════════════
   // FLIGHT 2 — RIGHT side, দেওয়াল ঘেঁষে, সোজা দিকে (ascend +Z)
   // ══════════════════════════════════════════════════════
-  const f2_cx = innerHalfW - effectiveStairW / 2;    // ★ দেওয়াল ঘেঁষে
-  const f2StartZ = landFarZ + riserT;                // landing এর সাথে লাগানো
+   const f2_cx = innerHalfW - effectiveStairW / 2;
+  // ★ Flight 2 ঠিক landing এর far edge থেকে শুরু হবে
+  const f2StartZ = landFarZ;ো
 
   for (let i = 0; i < flight2Steps; i++) {
     _addStep(
