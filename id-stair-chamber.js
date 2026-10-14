@@ -343,57 +343,60 @@ function buildDoubleFold(cfg, stats, tiles, W, L, H) {
   const mats = makeMats(cfg);
   const mold = makeMold(cfg);
 
-  // ───── FLIGHT 1 — LEFT side, going from FRONT (+Z) toward BACK (−Z) ─────
-  const f1_cx = -innerHalfW + effectiveStairW / 2;
-  const startZ = innerHalfL - 0.10;    // near door side
+  // ══════════════════════════════════════════════════════
+  // STEP 1: Landing কে back wall ঘেঁষে বসাও
+  // ══════════════════════════════════════════════════════
+  const backWallZ = -innerHalfL;
+  const frontWallZ = innerHalfL;
 
-  for (let i = 0; i < stepsPerFlight; i++) {
-    _addStep(
-      grp, f1_cx,
-      i * risePerStep,
-      startZ - i * runM,
-      effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold, true
-    );
-  }
-
-  // ───── LANDING — spans full width, at back ─────
-  const f1TopBackEdge = startZ - stepsPerFlight * runM;
-  let landNearZ = f1TopBackEdge;
-  let landFarZ = landNearZ - landingDepth;
-
-  // Clamp to back wall
-  const backWallInner = -innerHalfL;
-  if (landFarZ < backWallInner + 0.02) {
-    const shift = (backWallInner + 0.02) - landFarZ;
-    landFarZ += shift;
-    landNearZ += shift;
-  }
+  const landFarZ = backWallZ + 0.02;                // দেওয়াল ঘেঁষে
+  const landNearZ = landFarZ + landingDepth;
 
   const landing = new THREE.Mesh(
     new THREE.BoxGeometry(2 * innerHalfW, treadT, landingDepth),
     mats.treadMat
   );
   landing.position.set(0, landingY - treadT / 2, (landFarZ + landNearZ) / 2);
-  landing.castShadow = true; landing.receiveShadow = true;
+  landing.castShadow = true;
+  landing.receiveShadow = true;
   grp.add(landing);
 
-  // ───── FLIGHT 2 — RIGHT side, from BACK toward FRONT (+Z) ─────
+  // ══════════════════════════════════════════════════════
+  // STEP 2: Flight 1 — Landing-এর near edge থেকে front দিকে
+  // ★ Top tread landing-এর সাথে সংযুক্ত
+  // ══════════════════════════════════════════════════════
+  const f1_cx = -innerHalfW + effectiveStairW / 2;
+  // Flight 1 এর top tread back edge = landNearZ
+  // reverse=true এ _addStep এ top tread back edge = f1StartZ - stepsPerFlight*runM
+  const f1StartZ = landNearZ + stepsPerFlight * runM;
+
+  for (let i = 0; i < stepsPerFlight; i++) {
+    _addStep(
+      grp, f1_cx,
+      i * risePerStep,
+      f1StartZ - i * runM,
+      effectiveStairW, runM, risePerStep, treadT, riserT,
+      mats, mold,
+      true
+    );
+  }
+
+  // ══════════════════════════════════════════════════════
+  // STEP 3: Flight 2 — Landing-এর far edge থেকে front দিকে
+  // ══════════════════════════════════════════════════════
   const f2_cx = innerHalfW - effectiveStairW / 2;
-  const f2StartZ = landFarZ;   // start right at landing far edge
+  const f2StartZ = landFarZ;
 
   for (let i = 0; i < flight2Steps; i++) {
     _addStep(
       grp, f2_cx,
       landingY + i * risePerStep,
-      f2StartZ + i * runM,       // ★ goes toward front (+Z)
+      f2StartZ + i * runM,
       effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold, false
+      mats, mold,
+      false
     );
   }
-
-  return grp;
-}
 
 // ============================================================
 // MATERIALS + MOLD
