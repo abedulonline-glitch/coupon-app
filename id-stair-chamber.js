@@ -417,120 +417,117 @@ function buildDoubleFold(cfg, stats, tiles) {
 
   const treadT = stats.treadT * MM;
   const riserT = stats.riserT * MM;
-  const runM = stats.runMm * MM;
-  const stairW = cfg.stair.width * MM;
+  const runM   = stats.runMm * MM;
   const totalH = cfg.stair.totalHeight * MM;
   const totalSteps = stats.steps;
 
-  // Chamber dimensions
   const chamberW = cfg.size.w * FT;
   const chamberL = cfg.size.l * FT;
+  const wallT = 0.08;               // chamber wall thickness
 
-  const wallClearance = 0.15;    // দেওয়াল থেকে সিঁড়ির দূরত্ব (skirting + border)
-  const middleGap = 0.10;        // দুই flight-এর মাঝে
+  // ★ Inner bounds — দেওয়ালের ভিতরের face
+  const innerHalfW = chamberW / 2 - wallT / 2;
+  const innerHalfL = chamberL / 2 - wallT / 2;
 
-  // ★ Flight width auto-fit with clearance
-  const availableForFlights = chamberW - (2 * wallClearance) - middleGap;
-  let effectiveStairW = stairW;
-  if (2 * stairW > availableForFlights) {
-    effectiveStairW = availableForFlights / 2;
-  }
-  effectiveStairW = Math.max(effectiveStairW, 0.5);
+  const middleGap = 0.05;           // দুই flight এর মাঝে ছোট gap
 
-  // Steps split
+  // ★ Auto-fit: chamber-এ দুই flight + gap ফিট করতে হবে
+  const maxStairW = (2 * innerHalfW - middleGap) / 2;
+  const stairW = Math.min(cfg.stair.width * MM, maxStairW);
+  const effectiveStairW = Math.max(stairW, 0.5);
+
   const stepsPerFlight = Math.ceil(totalSteps / 2);
   const flight2Steps = totalSteps - stepsPerFlight;
   const risePerStep = totalH / totalSteps;
   const landingY = stepsPerFlight * risePerStep;
-  const landingDepth = effectiveStairW;   // square landing
+  const landingDepth = effectiveStairW;
 
   // Materials
-  const treadMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(cfg.stair.treadColor || '#1a1a1a'),
-    roughness: 0.35, metalness: 0.1
-  });
-  const riserMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(cfg.stair.riserColor || '#222222'),
-    roughness: 0.55, metalness: 0.05
-  });
-  const mold1Mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(cfg.stair.molding1Color || '#ffffff'), roughness: 0.4, metalness: 0.15
-  });
-  const moldGapMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(cfg.stair.moldingGapColor || '#1a1a1a'), roughness: 0.5, metalness: 0.05
-  });
-  const mold2Mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(cfg.stair.molding2Color || '#ffffff'), roughness: 0.4, metalness: 0.15
-  });
-
-  const mats = { treadMat, riserMat, mold1Mat, moldGapMat, mold2Mat };
+  const mats = {
+    treadMat: new THREE.MeshStandardMaterial({
+      color: new THREE.Color(cfg.stair.treadColor || '#1a1a1a'),
+      roughness: 0.35, metalness: 0.1
+    }),
+    riserMat: new THREE.MeshStandardMaterial({
+      color: new THREE.Color(cfg.stair.riserColor || '#222222'),
+      roughness: 0.55, metalness: 0.05
+    }),
+    mold1Mat: new THREE.MeshStandardMaterial({
+      color: new THREE.Color(cfg.stair.molding1Color || '#ffffff'),
+      roughness: 0.4, metalness: 0.15
+    }),
+    moldGapMat: new THREE.MeshStandardMaterial({
+      color: new THREE.Color(cfg.stair.moldingGapColor || '#1a1a1a'),
+      roughness: 0.5, metalness: 0.05
+    }),
+    mold2Mat: new THREE.MeshStandardMaterial({
+      color: new THREE.Color(cfg.stair.molding2Color || '#ffffff'),
+      roughness: 0.4, metalness: 0.15
+    })
+  };
   const mold = {
-    m1:  (cfg.stair.molding1  || 5) * MM,
-    gap: (cfg.stair.moldingGap|| 8) * MM,
-    m2:  (cfg.stair.molding2  || 5) * MM
+    m1:  (cfg.stair.molding1   || 5) * MM,
+    gap: (cfg.stair.moldingGap || 8) * MM,
+    m2:  (cfg.stair.molding2   || 5) * MM
   };
 
-  // ★ Entry clearance — দরজার পরপরই সিঁড়ি শুরু
-  const entryClearance = 0.05;   // 50mm দেওয়াল থেকে
-
-  // ★ Flight 1 — LEFT side, ascending +Z
-  const f1CenterX = wallClearance + effectiveStairW / 2;
+  // ══════════════════════════════════════════════════════
+  // FLIGHT 1 — LEFT side, দেওয়াল ঘেঁষে, উল্টো দিকে (ascend −Z)
+  // ══════════════════════════════════════════════════════
+  const f1_cx = -innerHalfW + effectiveStairW / 2;   // ★ দেওয়াল ঘেঁষে
+  const entryClearance = 0.10;                        // দরজা থেকে ছোট clearance
+  const f1StartZ = innerHalfL - entryClearance;
 
   for (let i = 0; i < stepsPerFlight; i++) {
-    const yBase = i * risePerStep;
-    const z = entryClearance + i * runM;
     _addStep(
-      grp, f1CenterX, yBase, z,
+      grp, f1_cx,
+      i * risePerStep,
+      f1StartZ - i * runM,
       effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold, false
+      mats, mold,
+      true                                            // ★ reverse: ascends −Z
     );
   }
 
-  // ★ LANDING — spans FULL chamber width (wall to wall)
-  // This ensures landing touches both walls, no gap
-  const landingW = chamberW;
-  const landingZ_near = entryClearance + stepsPerFlight * runM;
-  const landingZ_far = landingZ_near + landingDepth;
+  // ══════════════════════════════════════════════════════
+  // LANDING — দেওয়াল থেকে দেওয়াল, north দিকে
+  // ══════════════════════════════════════════════════════
+  const f1TopTreadEnd = f1StartZ - stepsPerFlight * runM;
+  let landNearZ = f1TopTreadEnd;
+  let landFarZ  = landNearZ - landingDepth;
+
+  // ★ North দেওয়ালে clamp (02cm gap)
+  if (landFarZ < -innerHalfL + 0.02) {
+    const shift = (-innerHalfL + 0.02) - landFarZ;
+    landFarZ += shift;
+    landNearZ += shift;
+  }
 
   const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(landingW, treadT, landingDepth),
-    treadMat
+    new THREE.BoxGeometry(2 * innerHalfW, treadT, landingDepth),   // ★ পুরো width
+    mats.treadMat
   );
-  landing.position.set(
-    chamberW / 2,                    // ★ center of chamber (touches both walls)
-    landingY - treadT / 2,
-    landingZ_near + landingDepth / 2
-  );
+  landing.position.set(0, landingY - treadT / 2, (landFarZ + landNearZ) / 2);
   landing.castShadow = true;
   landing.receiveShadow = true;
   grp.add(landing);
 
-  // ★ FLIGHT 2 — RIGHT side, ascending -Z (toward origin)
-  const flight2Group = new THREE.Group();
+  // ══════════════════════════════════════════════════════
+  // FLIGHT 2 — RIGHT side, দেওয়াল ঘেঁষে, সোজা দিকে (ascend +Z)
+  // ══════════════════════════════════════════════════════
+  const f2_cx = innerHalfW - effectiveStairW / 2;    // ★ দেওয়াল ঘেঁষে
+  const f2StartZ = landFarZ + riserT;                // landing এর সাথে লাগানো
 
   for (let i = 0; i < flight2Steps; i++) {
-    const yBase = i * risePerStep;
-    const z = i * runM;
     _addStep(
-      flight2Group, 0, yBase, z,
+      grp, f2_cx,
+      landingY + i * risePerStep,
+      f2StartZ + i * runM,
       effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold, false
+      mats, mold,
+      false                                           // ★ normal: ascends +Z
     );
   }
-
-  // ★ Flight 2 position:
-  //   X = right flight center
-  //   Y = landingY (base of first step at landing surface)
-  //   Z = landing's FAR edge (with 180° rotation, flight goes -Z)
-  const f2CenterX = wallClearance + effectiveStairW + middleGap + effectiveStairW / 2;
-
-  flight2Group.position.set(
-    f2CenterX,
-    landingY,
-    landingZ_far + runM           // ★ start exactly after landing + 1 step offset for rotation
-  );
-  flight2Group.rotation.y = Math.PI;
-  grp.add(flight2Group);
 
   return grp;
 }
