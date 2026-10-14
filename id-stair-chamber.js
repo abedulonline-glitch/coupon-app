@@ -81,6 +81,7 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   const ceilGeo = new THREE.PlaneGeometry(W, L);
   ceilGeo.rotateX(Math.PI / 2);
   const ceil = new THREE.Mesh(ceilGeo, ceilMat);
+  ceil.userData.isChamberCeiling = true; 
   ceil.position.set(offset.x, H, offset.z);
   group.add(ceil);
 
