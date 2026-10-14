@@ -2426,13 +2426,41 @@ document.querySelectorAll('.id-tab').forEach(t => {
     SC.skirtingStyle = $id('id-scSkirtStyle')?.value || 'plain';
 
     // Update live stats
-    updateStairStats();
+      // ★ Auto-adjust chamber size based on stair config
+  function autoFitChamber() {
+    if (!window.__id_stairChamber?.computeMinChamberSize) return;
+    const min = window.__id_stairChamber.computeMinChamberSize(SC);
+    const wEl = $id('id-scW');
+    const lEl = $id('id-scL');
+    let changed = false;
 
-    // Re-render if in Step 7
-    if (STATE.step === 7 && typeof refreshRender === 'function') {
-      refreshRender();
+    if (wEl && SC.size.w < min.w_ft) {
+      SC.size.w = min.w_ft;
+      wEl.value = min.w_ft;
+      changed = true;
+    }
+    if (lEl && SC.size.l < min.l_ft) {
+      SC.size.l = min.l_ft;
+      lEl.value = min.l_ft;
+      changed = true;
+    }
+    if (changed) {
+      toast(`📐 Chamber auto-sized to ${SC.size.w}×${SC.size.l} ft`, 'info', 2500);
     }
   }
+
+  // Wrap applyAll to include auto-fit
+  const _origApplyAll = applyAll;
+  applyAll = function () {
+    _origApplyAll();
+    autoFitChamber();
+    updateStairStats();
+    if (STATE.step === 7 && typeof refreshRender === 'function') refreshRender();
+  };
+
+  // Initial sync
+  autoFitChamber();
+  updateStairStats();
 
   // ────── Live stats calc ──────
   function updateStairStats() {
