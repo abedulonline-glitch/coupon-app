@@ -499,6 +499,9 @@ function buildStraight(cfg, stats, W, L, H) {
 // ============================================================
 // DOUBLE FOLD — Landing দেওয়াল ঘেঁষে, দুই flight landing থেকে
 // ============================================================
+// ============================================================
+// DOUBLE FOLD — Landing দেওয়াল ঘেঁষে, দুই flight landing থেকে
+// ============================================================
 function buildDoubleFold(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-double-fold';
@@ -525,10 +528,37 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const mats = _makeFinishMats(finish);
   const runM = stats.runMm * MM;
 
-  // ── Flight 1 core (concrete) ──
-  const f1_cx = -innerHalfW + effectiveStairW / 2;
-  const f1_startZ = innerHalfL - 0.10;
+  // ─────────────────────────────────────────
+  // STEP 1: Landing — back wall ঘেঁষে
+  // ─────────────────────────────────────────
+  const landingDepth = effectiveStairW;
+  const landFarZ  = -innerHalfL + 0.02;            // back wall থেকে 2cm ফাঁক
+  const landNearZ = landFarZ + landingDepth;       // landing-এর front edge
 
+  const landing = new THREE.Mesh(
+    new THREE.BoxGeometry(2 * innerHalfW, finish.tread.thickness + 0.10, landingDepth),
+    mats.tread
+  );
+  landing.position.set(
+    0,
+    landingY - (finish.tread.thickness + 0.10) / 2,
+    (landFarZ + landNearZ) / 2
+  );
+  landing.castShadow = true;
+  landing.receiveShadow = true;
+  grp.add(landing);
+
+  // ─────────────────────────────────────────
+  // STEP 2: Flight 1 — top step Landing-এর near edge ঘেঁষে
+  // ─────────────────────────────────────────
+  const f1_cx = -innerHalfW + effectiveStairW / 2;
+
+  // F1 top step back edge = landNearZ
+  // _addStep(reverse=true): top back edge at (f1_startZ - stepsPerFlight*runM)
+  // তাই: f1_startZ = landNearZ + stepsPerFlight * runM
+  const f1_startZ = landNearZ + stepsPerFlight * runM;
+
+  // F1 Concrete Core
   const f1Shape = new THREE.Shape();
   f1Shape.moveTo(0, 0);
   for (let i = 0; i < stepsPerFlight; i++) {
@@ -540,36 +570,36 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   f1Shape.lineTo(0, 0);
   f1Shape.closePath();
 
-  const f1Geo = new THREE.ExtrudeGeometry(f1Shape, { depth: effectiveStairW, bevelEnabled: false });
+  const f1Geo = new THREE.ExtrudeGeometry(f1Shape, {
+    depth: effectiveStairW,
+    bevelEnabled: false
+  });
   const f1Core = new THREE.Mesh(f1Geo, [mats.side, mats.bottom]);
   f1Core.rotation.y = -Math.PI / 2;
   f1Core.position.set(f1_cx + effectiveStairW / 2, 0, f1_startZ);
-  f1Core.castShadow = true; f1Core.receiveShadow = true;
+  f1Core.castShadow = true;
+  f1Core.receiveShadow = true;
   grp.add(f1Core);
 
-  // F1 steps
+  // F1 Steps (Tread + Riser + Molding)
   for (let i = 0; i < stepsPerFlight; i++) {
-    _addStep(grp, f1_cx, i * riseM, f1_startZ - i * runM, effectiveStairW, runM, riseM, finish, mats, true);
+    _addStep(
+      grp, f1_cx,
+      i * riseM,
+      f1_startZ - i * runM,
+      effectiveStairW, runM, riseM,
+      finish, mats,
+      true
+    );
   }
 
-  // ── Landing ──
-  const landingDepth = effectiveStairW;
-  const backWallZ = -innerHalfL + 0.02;
-  const landFarZ = backWallZ;
-  const landNearZ = landFarZ + landingDepth;
-
-  const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(2 * innerHalfW, finish.tread.thickness + 0.10, landingDepth),
-    mats.tread
-  );
-  landing.position.set(0, landingY - (finish.tread.thickness + 0.10) / 2, (landFarZ + landNearZ) / 2);
-  landing.castShadow = true; landing.receiveShadow = true;
-  grp.add(landing);
-
-  // ── Flight 2 core ──
+  // ─────────────────────────────────────────
+  // STEP 3: Flight 2 — Landing-এর near edge থেকে
+  // ─────────────────────────────────────────
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2_startZ = landNearZ;
 
+  // F2 Concrete Core
   const f2Shape = new THREE.Shape();
   f2Shape.moveTo(0, 0);
   for (let i = 0; i < flight2Steps; i++) {
@@ -581,16 +611,27 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   f2Shape.lineTo(0, 0);
   f2Shape.closePath();
 
-  const f2Geo = new THREE.ExtrudeGeometry(f2Shape, { depth: effectiveStairW, bevelEnabled: false });
+  const f2Geo = new THREE.ExtrudeGeometry(f2Shape, {
+    depth: effectiveStairW,
+    bevelEnabled: false
+  });
   const f2Core = new THREE.Mesh(f2Geo, [mats.side, mats.bottom]);
   f2Core.rotation.y = -Math.PI / 2;
   f2Core.position.set(f2_cx + effectiveStairW / 2, landingY, f2_startZ);
-  f2Core.castShadow = true; f2Core.receiveShadow = true;
+  f2Core.castShadow = true;
+  f2Core.receiveShadow = true;
   grp.add(f2Core);
 
-  // F2 steps
+  // F2 Steps
   for (let i = 0; i < flight2Steps; i++) {
-    _addStep(grp, f2_cx, landingY + i * riseM, f2_startZ + i * runM, effectiveStairW, runM, riseM, finish, mats, false);
+    _addStep(
+      grp, f2_cx,
+      landingY + i * riseM,
+      f2_startZ + i * runM,
+      effectiveStairW, runM, riseM,
+      finish, mats,
+      false
+    );
   }
 
   return grp;
