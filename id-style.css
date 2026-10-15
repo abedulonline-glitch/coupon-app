@@ -2776,3 +2776,14 @@ input[type="range"]::-moz-range-thumb {
   .id-sc-stats { grid-template-columns: 1fr 1fr; }
   .id-sc-stat b { font-size: 12px; }
 }
+
+.id-sc-finish-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--id-accent);
+  margin-top: 12px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--id-border);
+}
+.id-sc-finish-title:first-child { margin-top: 0; }
