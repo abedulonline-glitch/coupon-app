@@ -222,44 +222,197 @@ function buildStaircase(cfg, stats, W, L, H) {
 // ============================================================
 // STEP BUILDER
 // ============================================================
-function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, treadT, riserT, mats, mold, reverse) {
-  const { treadMat, riserMat, mold1Mat, moldGapMat, mold2Mat } = mats;
-  const { m1: mold1, gap: moldGap, m2: mold2 } = mold;
-
+function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, reverse) {
   const dir = reverse ? -1 : 1;
 
-  const treadZ = z + dir * runM / 2;
-  const tread = new THREE.Mesh(new THREE.BoxGeometry(stairW, treadT, runM), treadMat);
-  tread.position.set(cx, yBase + risePerStep - treadT / 2, treadZ);
+  const treadT = finish.tread.thickness;
+  const treadOH = finish.tread.overhang;
+  const riserT = finish.riser.thickness;
+  const moldPat = finish.molding.pattern;
+  const moldT = finish.molding.thickness;
+  const moldGap = finish.molding.gap;
+
+  // ── TREAD ──
+  const tread = new THREE.Mesh(
+    new THREE.BoxGeometry(stairW + treadOH * 2, treadT, runM + treadOH),
+    mats.tread
+  );
+  tread.position.set(
+    cx,
+    yBase + risePerStep - treadT / 2,
+    z + dir * (runM / 2 + treadOH / 2)
+  );
   tread.castShadow = true; tread.receiveShadow = true;
   grp.add(tread);
 
+  // ── RISER ──
   const riserH = risePerStep - treadT;
   if (riserH > 0.005) {
-    const riserZ = z - dir * riserT / 2;
-    const riser = new THREE.Mesh(new THREE.BoxGeometry(stairW, riserH, riserT), riserMat);
-    riser.position.set(cx, yBase + riserH / 2, riserZ);
+    const riser = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW, riserH, riserT),
+      mats.riser
+    );
+    riser.position.set(cx, yBase + riserH / 2, z - dir * riserT / 2);
     riser.castShadow = true;
     grp.add(riser);
   }
 
-  const moldZ = z - dir * riserT / 2 - dir * 0.01;
+  // ── MOLDING ──
+  if (moldPat === 'none') return;
 
-  if (mold1 > 0.001) {
-    const m1 = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, mold1, riserT + 0.02), mold1Mat);
-    m1.position.set(cx, yBase + risePerStep - treadT - mold1 / 2, moldZ);
+  const moldZ = z - dir * riserT / 2 - dir * 0.008;
+  const moldY0 = yBase + risePerStep - treadT;
+
+  if (moldPat === 'simple') {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016),
+      mats.mold1
+    );
+    m.position.set(cx, moldY0 - moldT / 2, moldZ);
+    grp.add(m);
+  }
+  else if (moldPat === 'double') {
+    const m1 = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016),
+      mats.mold1
+    );
+    m1.position.set(cx, moldY0 - moldT / 2, moldZ);
     grp.add(m1);
-  }
-  if (moldGap > 0.001) {
-    const mg = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldGap, riserT + 0.02), moldGapMat);
-    mg.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap / 2, moldZ);
-    grp.add(mg);
-  }
-  if (mold2 > 0.001) {
-    const m2 = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, mold2, riserT + 0.02), mold2Mat);
-    m2.position.set(cx, yBase + risePerStep - treadT - mold1 - moldGap - mold2 / 2, moldZ);
+
+    const gap = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, moldGap, riserT + 0.016),
+      mats.mold2
+    );
+    gap.position.set(cx, moldY0 - moldT - moldGap / 2, moldZ);
+    grp.add(gap);
+
+    const m2 = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016),
+      mats.mold1
+    );
+    m2.position.set(cx, moldY0 - moldT - moldGap - moldT / 2, moldZ);
     grp.add(m2);
   }
+  else if (moldPat === 'bevel') {
+    const bevel = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW + 0.02, moldT * 1.4, riserT + 0.016),
+      mats.mold1
+    );
+    bevel.position.set(cx, moldY0 - moldT * 0.7, moldZ);
+    bevel.rotation.x = -0.25;
+    grp.add(bevel);
+  }
+}
+
+// ============================================================
+// FINISH CONFIG EXTRACTOR
+// ============================================================
+function _getFinish(cfg) {
+  const f = cfg.stair.finish || {};
+  return {
+    tread: {
+      source:   f.tread?.source   || 'solid',
+      color:    f.tread?.color    || '#1a1a1a',
+      imageUrl: f.tread?.imageUrl || null,
+      thickness: (f.tread?.thickness || 20) * MM,
+      overhang:  (f.tread?.overhang  || 10) * MM
+    },
+    riser: {
+      source:   f.riser?.source   || 'solid',
+      color:    f.riser?.color    || '#222222',
+      imageUrl: f.riser?.imageUrl || null,
+      thickness: (f.riser?.thickness || 18) * MM
+    },
+    molding: {
+      pattern:   f.molding?.pattern || 'simple',
+      color1:    f.molding?.color1  || '#ffffff',
+      color2:    f.molding?.color2  || '#1a1a1a',
+      thickness: (f.molding?.thickness || 5) * MM,
+      gap:       (f.molding?.gap       || 8) * MM
+    },
+    sideSlope: {
+      source:   f.sideSlope?.source   || 'wall',
+      color:    f.sideSlope?.color    || '#d0d0d0',
+      imageUrl: f.sideSlope?.imageUrl || null,
+      tileW:    (f.sideSlope?.tileW || 200) * MM,
+      tileH:    (f.sideSlope?.tileH || 100) * MM
+    },
+    bottomFace: {
+      color: f.bottomFace?.color || '#d0d0d0'
+    }
+  };
+}
+
+// ============================================================
+// FINISH MATERIALS
+// ============================================================
+function _makeFinishMats(finish) {
+  const makeMat = (color, opts = {}) => new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color),
+    roughness: opts.rough ?? 0.4,
+    metalness: opts.metal ?? 0.1,
+    side: opts.side ?? THREE.FrontSide
+  });
+
+  return {
+    tread:  makeMat(finish.tread.color,  { rough: 0.25, metal: 0.2 }),
+    riser:  makeMat(finish.riser.color,  { rough: 0.4,  metal: 0.1 }),
+    mold1:  makeMat(finish.molding.color1, { rough: 0.4, metal: 0.15 }),
+    mold2:  makeMat(finish.molding.color2, { rough: 0.4, metal: 0.15 }),
+    side:   makeMat(finish.sideSlope.color, { rough: 0.85, metal: 0.02, side: THREE.DoubleSide }),
+    bottom: makeMat(finish.bottomFace.color, { rough: 0.9,  metal: 0.0,  side: THREE.DoubleSide })
+  };
+}
+
+// ============================================================
+// CONCRETE CORE — stepped top + sloped bottom (single mesh)
+// Materials: [capMaterial, wallMaterial]
+//   cap = side slope (visible from sides)
+//   wall = bottom face (visible from below)
+// ============================================================
+function _buildConcreteCore(cfg, stats, W, L, H, cx) {
+  const finish = _getFinish(cfg);
+  const mats = _makeFinishMats(finish);
+
+  const treadT = finish.tread.thickness;
+  const riserT = finish.riser.thickness;
+  const runM   = stats.runMm * MM;
+  const riseM  = (cfg.stair.totalHeight * MM) / stats.steps;
+  const steps  = stats.steps;
+  const stairW = Math.min(cfg.stair.width * MM, W - 0.3);
+
+  const slabT = 0.10;   // concrete slab under steps
+
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+
+  // Stepped top
+  for (let i = 0; i < steps; i++) {
+    const zFront = -i * runM;
+    const zBack  = -(i + 1) * runM;
+    const yTop   = (i + 1) * riseM - treadT;
+    shape.lineTo(zFront, yTop);
+    shape.lineTo(zBack,  yTop);
+  }
+
+  // Bottom sloped
+  const zEnd = -steps * runM;
+  const yEnd = steps * riseM - treadT;
+  shape.lineTo(zEnd, yEnd - slabT);
+  shape.lineTo(0, 0);
+  shape.closePath();
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: stairW,
+    bevelEnabled: false,
+    curveSegments: 1
+  });
+
+  const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
+  core.rotation.y = -Math.PI / 2;
+  core.castShadow = true;
+  core.receiveShadow = true;
+  return { core, stairW, finish, mats, riserT, treadT, runM, riseM, steps };
 }
 
 // ============================================================
@@ -313,45 +466,29 @@ function buildStraight(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-straight';
 
-  const treadT = stats.treadT * MM;
-  const riserT = stats.riserT * MM;
-  const runM   = stats.runMm * MM;
-  const stairW = cfg.stair.width * MM;
-
-  const mats = makeMats(cfg);
-  const mold = makeMold(cfg);
-
-  const risePerStep = (cfg.stair.totalHeight * MM) / stats.steps;
-  const steps = stats.steps;
-
   const innerHalfL = L / 2 - 0.04;
   const startZ = innerHalfL - 0.10;
+  const stairW = Math.min(cfg.stair.width * MM, W - 0.3);
+  const cx = 0;
 
-  // ─── Flight steps ───
+  // ── Concrete core ──
+  const built = _buildConcreteCore(cfg, stats, W, L, H, cx);
+  built.core.position.set(cx + built.stairW / 2, 0, startZ);
+  grp.add(built.core);
+
+  const { finish, mats, runM, riseM, steps } = built;
+
+  // ── Treads + Risers + Moldings ──
   for (let i = 0; i < steps; i++) {
     _addStep(
-      grp, stairW / 2, i * risePerStep,
+      grp, cx,
+      i * riseM,
       startZ - i * runM,
-      stairW, runM, risePerStep, treadT, riserT, mats, mold, true
+      stairW, runM, riseM,
+      finish, mats,
+      true
     );
   }
-
-  // ─── Underside slab ───
-  const totalMolding = mold.m1 + mold.gap + mold.m2;
-  const slabT = 0.15;
-  const slabMat = makeSlabMaterial();
-
-  const flightTopY = steps * risePerStep;
-  const flightStartZ = startZ + runM / 2;             // front of first tread
-  const flightEndZ = startZ - (steps - 0.5) * runM;   // back of last tread
-
-  _addUndersideSlab(
-    grp, stairW / 2,
-    flightStartZ, slabT,                              // bottom: slab bottom touches floor
-    flightEndZ, flightTopY - treadT - totalMolding,   // top: just below last molding
-    stairW, slabT,
-    slabMat
-  );
 
   return grp;
 }
@@ -363,9 +500,6 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-double-fold';
 
-  const treadT = stats.treadT * MM;
-  const riserT = stats.riserT * MM;
-  const runM   = stats.runMm * MM;
   const totalH = cfg.stair.totalHeight * MM;
   const totalSteps = stats.steps;
 
@@ -381,87 +515,80 @@ function buildDoubleFold(cfg, stats, W, L, H) {
 
   const stepsPerFlight = Math.ceil(totalSteps / 2);
   const flight2Steps = totalSteps - stepsPerFlight;
-  const risePerStep = totalH / totalSteps;
-  const landingY = stepsPerFlight * risePerStep;
+  const riseM = totalH / totalSteps;
+  const landingY = stepsPerFlight * riseM;
+
+  const finish = _getFinish(cfg);
+  const mats = _makeFinishMats(finish);
+  const runM = stats.runMm * MM;
+
+  // ── Flight 1 core (concrete) ──
+  const f1_cx = -innerHalfW + effectiveStairW / 2;
+  const f1_startZ = innerHalfL - 0.10;
+
+  const f1Shape = new THREE.Shape();
+  f1Shape.moveTo(0, 0);
+  for (let i = 0; i < stepsPerFlight; i++) {
+    const yTop = (i + 1) * riseM - finish.tread.thickness;
+    f1Shape.lineTo(-i * runM, yTop);
+    f1Shape.lineTo(-(i + 1) * runM, yTop);
+  }
+  f1Shape.lineTo(-stepsPerFlight * runM, stepsPerFlight * riseM - finish.tread.thickness - 0.10);
+  f1Shape.lineTo(0, 0);
+  f1Shape.closePath();
+
+  const f1Geo = new THREE.ExtrudeGeometry(f1Shape, { depth: effectiveStairW, bevelEnabled: false });
+  const f1Core = new THREE.Mesh(f1Geo, [mats.side, mats.bottom]);
+  f1Core.rotation.y = -Math.PI / 2;
+  f1Core.position.set(f1_cx + effectiveStairW / 2, 0, f1_startZ);
+  f1Core.castShadow = true; f1Core.receiveShadow = true;
+  grp.add(f1Core);
+
+  // F1 steps
+  for (let i = 0; i < stepsPerFlight; i++) {
+    _addStep(grp, f1_cx, i * riseM, f1_startZ - i * runM, effectiveStairW, runM, riseM, finish, mats, true);
+  }
+
+  // ── Landing ──
   const landingDepth = effectiveStairW;
-
-  const mats = makeMats(cfg);
-  const mold = makeMold(cfg);
-
-  // ─── Slab material ───
-  const slabT = 0.15;
-  const slabMat = makeSlabMaterial();
-  const totalMolding = mold.m1 + mold.gap + mold.m2;
-
-  // ───── Landing — back wall ঘেঁষে ─────
   const backWallZ = -innerHalfL + 0.02;
   const landFarZ = backWallZ;
   const landNearZ = landFarZ + landingDepth;
 
   const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(2 * innerHalfW, slabT, landingDepth),
-    mats.treadMat
+    new THREE.BoxGeometry(2 * innerHalfW, finish.tread.thickness + 0.10, landingDepth),
+    mats.tread
   );
-  landing.position.set(0, landingY - slabT / 2, (landFarZ + landNearZ) / 2);
-  landing.castShadow = true;
-  landing.receiveShadow = true;
+  landing.position.set(0, landingY - (finish.tread.thickness + 0.10) / 2, (landFarZ + landNearZ) / 2);
+  landing.castShadow = true; landing.receiveShadow = true;
   grp.add(landing);
 
-  // ───── Flight 1 — Landing এর near edge থেকে front দিকে ─────
-  const f1_cx = -innerHalfW + effectiveStairW / 2;
-  const f1TotalRun = stepsPerFlight * runM;
-  const f1TopBackEdge = landNearZ + riserT;
-  const f1StartZ = f1TopBackEdge + f1TotalRun;
-
-  for (let i = 0; i < stepsPerFlight; i++) {
-    _addStep(
-      grp, f1_cx,
-      i * risePerStep,
-      f1StartZ - i * runM,
-      effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold, true
-    );
-  }
-
-  // Flight 1 — Underside slab
-  const f1TopY = stepsPerFlight * risePerStep;
-  const f1SlabStartZ = f1StartZ + runM / 2;
-  const f1SlabEndZ = f1StartZ - (stepsPerFlight - 0.5) * runM;
-
-  _addUndersideSlab(
-    grp, f1_cx,
-    f1SlabStartZ, slabT,
-    f1SlabEndZ, f1TopY - treadT - totalMolding,
-    effectiveStairW, slabT,
-    slabMat
-  );
-
-  // ───── Flight 2 — Landing এর near edge থেকে front দিকে ─────
+  // ── Flight 2 core ──
   const f2_cx = innerHalfW - effectiveStairW / 2;
-  const f2StartZ = landNearZ;
+  const f2_startZ = landNearZ;
 
+  const f2Shape = new THREE.Shape();
+  f2Shape.moveTo(0, 0);
   for (let i = 0; i < flight2Steps; i++) {
-    _addStep(
-      grp, f2_cx,
-      landingY + i * risePerStep,
-      f2StartZ + i * runM,
-      effectiveStairW, runM, risePerStep, treadT, riserT,
-      mats, mold, false
-    );
+    const yTop = (i + 1) * riseM - finish.tread.thickness;
+    f2Shape.lineTo(i * runM, yTop);
+    f2Shape.lineTo((i + 1) * runM, yTop);
   }
+  f2Shape.lineTo(flight2Steps * runM, flight2Steps * riseM - finish.tread.thickness - 0.10);
+  f2Shape.lineTo(0, 0);
+  f2Shape.closePath();
 
-  // Flight 2 — Underside slab
-  const f2TopY = landingY + flight2Steps * risePerStep;
-  const f2SlabStartZ = f2StartZ - runM / 2;
-  const f2SlabEndZ = f2StartZ + (flight2Steps - 0.5) * runM;
+  const f2Geo = new THREE.ExtrudeGeometry(f2Shape, { depth: effectiveStairW, bevelEnabled: false });
+  const f2Core = new THREE.Mesh(f2Geo, [mats.side, mats.bottom]);
+  f2Core.rotation.y = -Math.PI / 2;
+  f2Core.position.set(f2_cx + effectiveStairW / 2, landingY, f2_startZ);
+  f2Core.castShadow = true; f2Core.receiveShadow = true;
+  grp.add(f2Core);
 
-  _addUndersideSlab(
-    grp, f2_cx,
-    f2SlabStartZ, landingY - slabT,
-    f2SlabEndZ, f2TopY - treadT - totalMolding,
-    effectiveStairW, slabT,
-    slabMat
-  );
+  // F2 steps
+  for (let i = 0; i < flight2Steps; i++) {
+    _addStep(grp, f2_cx, landingY + i * riseM, f2_startZ + i * runM, effectiveStairW, runM, riseM, finish, mats, false);
+  }
 
   return grp;
 }
@@ -497,6 +624,75 @@ function makeMold(cfg) {
     m2:  (cfg.stair.molding2  || 5) * MM
   };
 }
+
+  // ─── CHAMBER SKIRTING ───
+  const skirtCfg = cfg.stair.finish?.skirting;
+  if (skirtCfg && skirtCfg.height > 0) {
+    const skirtGrp = new THREE.Group();
+    skirtGrp.name = 'chamber-skirting';
+
+    const skirtH = (skirtCfg.height || 100) * MM;
+    const skirtT = 0.012;
+    const boardH = (skirtCfg.boardHeight || 40) * MM;
+    const boardT = 0.018;
+    const skirtColor = skirtCfg.color || '#ffffff';
+    const boardColor = skirtCfg.boardColor || '#ffffff';
+
+    const skirtMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(skirtColor), roughness: 0.5, metalness: 0.05 });
+    const boardMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(boardColor), roughness: 0.4, metalness: 0.1 });
+
+    walls.forEach(w => {
+      const isAttach = (w.name === attachWall);
+      const doorOffsetM = (cfg.door.offsetFromCorner || 1500) * MM;
+      const doorWM = doorW;
+
+      // Build skirting segments (leave door gap)
+      const segs = isAttach && cfg.door.enabled
+        ? buildWallWithDoor(w.len, skirtH + boardH, doorWM, doorH, doorOffsetM)
+        : [{ offset: 0, w: w.len, h: skirtH + boardH, y: (skirtH + boardH) / 2 }];
+
+      segs.forEach(seg => {
+        // Skirting board (lower)
+        const sH = Math.min(seg.h, skirtH);
+        if (sH > 0.005) {
+          const sk = new THREE.Mesh(new THREE.BoxGeometry(seg.w, sH, skirtT), skirtMat);
+          sk.position.set(w.x, seg.y - (skirtH + boardH) / 2 + sH / 2, w.z);
+          sk.rotation.y = w.rY;
+          const along = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+          sk.position.x += along.x * seg.offset;
+          sk.position.z += along.z * seg.offset;
+          // Offset inward
+          const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+          const toCenter = new THREE.Vector3(offset.x - w.x, 0, offset.z - w.z).normalize();
+          const nDir = normal.dot(toCenter) > 0 ? normal : normal.clone().negate();
+          sk.position.x += nDir.x * (skirtT / 2 + 0.005);
+          sk.position.z += nDir.z * (skirtT / 2 + 0.005);
+          skirtGrp.add(sk);
+        }
+
+        // Board on top (upper)
+        if (skirtCfg.boardHeight > 0 && seg.y + seg.h / 2 > skirtH) {
+          const bH = Math.min(boardH, seg.h - skirtH);
+          if (bH > 0.005) {
+            const bd = new THREE.Mesh(new THREE.BoxGeometry(seg.w, bH, boardT), boardMat);
+            bd.position.set(w.x, seg.y - (skirtH + boardH) / 2 + skirtH + bH / 2, w.z);
+            bd.rotation.y = w.rY;
+            const along = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+            bd.position.x += along.x * seg.offset;
+            bd.position.z += along.z * seg.offset;
+            const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+            const toCenter = new THREE.Vector3(offset.x - w.x, 0, offset.z - w.z).normalize();
+            const nDir = normal.dot(toCenter) > 0 ? normal : normal.clone().negate();
+            bd.position.x += nDir.x * (boardT / 2 + 0.005);
+            bd.position.z += nDir.z * (boardT / 2 + 0.005);
+            skirtGrp.add(bd);
+          }
+        }
+      });
+    });
+
+    group.add(skirtGrp);
+  }
 
 // ============================================================
 // RAILING (straight only)
