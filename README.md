@@ -22,6 +22,7 @@ A complete business management platform built with **Vanilla JavaScript**, **Fir
 | 2026-10-06 | 18:00 | Session 12 | `stock-beta.html` | ✅ Synced |
 | 2026-10-05 | 15:00 | Session 11 | `stock-beta.html` | ⚠️ Partial |
 | 2026-10-04 | 20:00 | Session 10 | `stock-beta.html` | ✅ Synced |
+| 2026-10-09 | 15:30 | Session 16 | interior-design.html, README.md | ✅ Synced |
 
 **Legend:**
 - ✅ **Synced:** README এবং Code সম্পূর্ণ মিলে আছে
@@ -289,6 +290,31 @@ Each admin can manage their own business with separate coupons, stock, team, and
 > **⚠️ গুরুত্বপূর্ণ:** এই সেকশনটি প্রতিটি ফাইলের গুরুত্বপূর্ণ Class, ID এবং Local Storage Key-এর রেফারেন্স। নতুন কোড যোগ করার আগে এখানে খুঁজে নিন, যাতে ডুপ্লিকেট না হয়।
 
 ---
+### Interior Design System (interior-design.html)
+#### Form Elements
+| Element | Class / ID | Purpose |
+|---|---|---|
+| App Container | #id-app | মূল অ্যাপ কন্টেইনার |
+| Design Form | #id-designForm | ডিজাইন এন্ট্রি ফর্ম |
+| Customer Name | #id-customerName | গ্রাহকের নাম |
+| Customer Phone | #id-customerPhone | গ্রাহকের ফোন |
+| Address | #id-address | ঠিকানা |
+| Budget | #id-budget | বাজেট |
+| Category Select | #id-categorySelect | ডিজাইন ক্যাটাগরি |
+| Design Name | #id-designName | ডিজাইনের নাম |
+| Image Upload | #id-imageUpload | ছবি আপলোড সেকশন |
+| Image Preview | #id-imagePreview | ছবি প্রিভিউ |
+| Save Button | #id-saveBtn | সেভ বাটন |
+| Clear Button | #id-clearBtn | ক্লিয়ার বাটন |
+| List Container | #id-listContainer | লিস্ট কন্টেইনার |
+| Design Card | .id-card | ডিজাইন কার্ড |
+| Card Actions | .id-card-actions | কার্ড অ্যাকশন |
+
+#### Local Storage
+| Key | Purpose |
+|---|---|
+| id_draft_{adminId} | অসম্পূর্ণ ডিজাইন এন্ট্রির ড্রাফট |
+
 
 ### 📦 Stock System (`stock-beta.html`)
 
@@ -818,6 +844,8 @@ This project is deployed via GitHub Pages:
 | 2026-10-02 | 14:00 | `README.md` | Master Context রিস্ট্রাকচার |
 | 2026-10-02 | 12:00 | `stock-beta.html` | Role Rates, Allowance, Cash Hide/Show |
 | 2026-10-01 | 18:00 | `stock-beta.html` | Marble/Granite Transport & Weight Share Fix |
+| 2026-10-09 | 15:30 | interior-design.html | নতুন ইন্টেরিয়র ডিজাইন ম্যানেজমেন্ট ফিচার |
+| 2026-10-09 | 15:30 | README.md | Interior Design System Registry যোগ |
 
 
 ## 🤝 Contributions
