@@ -519,11 +519,15 @@ function buildStraight(cfg, stats, W, L, H) {
 
   const innerHalfL = L / 2 - 0.04;
   const startZ = innerHalfL - 0.10;
-  const cx = 0;
+
+  // ★ দেওয়াল ঘেঁষে — বাঁ দেওয়ালে
+  const wallT = 0.08;
+  const innerHalfW = W / 2 - wallT / 2;
+  const cx = -innerHalfW + stairW / 2;
 
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
-  // ★ F1-এর মতো: dir=-1, rotation=-π/2
+  // Shape — F1-এর মতো
   const shape = _makeStairShape(-1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
   const geo = new THREE.ExtrudeGeometry(shape, {
     depth: stairW,
@@ -536,7 +540,7 @@ function buildStraight(cfg, stats, W, L, H) {
   core.receiveShadow = true;
   grp.add(core);
 
-  // ── Treads + Risers + Moldings ──
+  // Treads + Risers + Moldings
   for (let i = 0; i < steps; i++) {
     _addStep(
       grp, cx,
