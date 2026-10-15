@@ -365,6 +365,152 @@
             </div>
           </div>
 
+                   <!-- STAIR FINISH -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">🎨 সিঁড়ির ফিনিশ</div>
+
+            <!-- TREAD -->
+            <div class="id-sc-finish-title">① Tread (উপরে)</div>
+            <div class="id-row">
+              <label>Source</label>
+              <select id="id-scTreadSrc" style="flex:1">
+                <option value="solid" selected>কাস্টম রঙ</option>
+                <option value="floor">🟫 ফ্লোর টাইল</option>
+                <option value="wall">🧱 ওয়াল টাইল</option>
+                <option value="custom">🖼️ কাস্টম ছবি</option>
+              </select>
+              <input type="color" id="id-scTreadClr" value="#1a1a1a">
+            </div>
+            <div class="id-row" id="id-scTreadImgRow" hidden>
+              <label>Image URL</label>
+              <input type="text" id="id-scTreadImg" placeholder="https://..." style="flex:1">
+            </div>
+            <div class="id-row">
+              <label>Thickness</label>
+              <input type="range" id="id-scTreadT2" min="10" max="30" value="20" step="1">
+              <span id="id-scTreadT2Val">20mm</span>
+            </div>
+            <div class="id-row">
+              <label>Nosing (Overhang)</label>
+              <input type="range" id="id-scTreadOH" min="0" max="30" value="10" step="1">
+              <span id="id-scTreadOHVal">10mm</span>
+            </div>
+
+            <!-- RISER -->
+            <div class="id-sc-finish-title">② Riser (সামনে)</div>
+            <div class="id-row">
+              <label>Source</label>
+              <select id="id-scRiserSrc" style="flex:1">
+                <option value="solid" selected>কাস্টম রঙ</option>
+                <option value="floor">🟫 ফ্লোর টাইল</option>
+                <option value="wall">🧱 ওয়াল টাইল</option>
+                <option value="custom">🖼️ কাস্টম ছবি</option>
+              </select>
+              <input type="color" id="id-scRiserClr" value="#222222">
+            </div>
+            <div class="id-row" id="id-scRiserImgRow" hidden>
+              <label>Image URL</label>
+              <input type="text" id="id-scRiserImg" placeholder="https://..." style="flex:1">
+            </div>
+            <div class="id-row">
+              <label>Thickness</label>
+              <input type="range" id="id-scRiserT2" min="10" max="25" value="18" step="1">
+              <span id="id-scRiserT2Val">18mm</span>
+            </div>
+
+            <!-- MOLDING -->
+            <div class="id-sc-finish-title">③ Molding (এজ)</div>
+            <div class="id-row">
+              <label>Pattern</label>
+              <select id="id-scMoldPat" style="flex:1">
+                <option value="none">নেই</option>
+                <option value="simple" selected>একটি লাইন (Simple)</option>
+                <option value="double">দুই লাইন (Double)</option>
+                <option value="bevel">বেভেল (Bevel)</option>
+              </select>
+            </div>
+            <div class="id-row">
+              <label>Line 1</label>
+              <input type="color" id="id-scMoldClr1" value="#ffffff">
+              <label>Line 2</label>
+              <input type="color" id="id-scMoldClr2" value="#1a1a1a">
+            </div>
+            <div class="id-row">
+              <label>Thickness</label>
+              <input type="range" id="id-scMoldT" min="2" max="15" value="5" step="1">
+              <span id="id-scMoldTVal">5mm</span>
+            </div>
+            <div class="id-row" id="id-scMoldGapRow" hidden>
+              <label>Gap (two lines)</label>
+              <input type="range" id="id-scMoldGap" min="2" max="20" value="8" step="1">
+              <span id="id-scMoldGapVal">8mm</span>
+            </div>
+
+            <!-- SIDE SLOPE -->
+            <div class="id-sc-finish-title">④ Side Slope (নিচের ঢালু)</div>
+            <div class="id-row">
+              <label>Source</label>
+              <select id="id-scSideSrc" style="flex:1">
+                <option value="wall" selected>ওয়াল কালার</option>
+                <option value="solid">কাস্টম রঙ</option>
+                <option value="custom">🖼️ কাস্টম ছবি</option>
+              </select>
+              <input type="color" id="id-scSideClr" value="#d0d0d0">
+            </div>
+            <div class="id-row" id="id-scSideImgRow" hidden>
+              <label>Image URL</label>
+              <input type="text" id="id-scSideImg" placeholder="https://..." style="flex:1">
+            </div>
+            <div class="id-row" id="id-scSideTileRow" hidden>
+              <label>Tile W</label>
+              <input type="number" id="id-scSideTileW" value="200" min="50" max="600">
+              <label>H</label>
+              <input type="number" id="id-scSideTileH" value="100" min="50" max="600">
+            </div>
+
+            <!-- BOTTOM FACE -->
+            <div class="id-sc-finish-title">⑤ Bottom Face (নিচে)</div>
+            <div class="id-row">
+              <label>Color</label>
+              <input type="color" id="id-scBottomClr" value="#d0d0d0" style="flex:1">
+              <span class="id-hint-inline">ওয়ালের মতো থাকবে</span>
+            </div>
+          </div>
+
+          <!-- SIDE WALL SKIRTING -->
+          <div class="id-sc-block">
+            <div class="id-sc-block-title">📐 সিঁড়ির পাশের স্কার্টিং</div>
+
+            <div class="id-row">
+              <label>Type</label>
+              <select id="id-scSkirtType" style="flex:1">
+                <option value="plain" selected>Plain (সোজা)</option>
+                <option value="steps">Steps (সিঁড়ির মতো)</option>
+              </select>
+            </div>
+            <div class="id-row">
+              <label>Color</label>
+              <input type="color" id="id-scSkirtClr" value="#ffffff">
+              <label>Height</label>
+              <input type="range" id="id-scSkirtH" min="50" max="200" value="100">
+              <span id="id-scSkirtHVal">100mm</span>
+            </div>
+            <div class="id-row">
+              <label>Board</label>
+              <input type="color" id="id-scSkirtBoardClr" value="#ffffff">
+              <input type="range" id="id-scSkirtBoardH" min="10" max="80" value="40">
+              <span id="id-scSkirtBoardHVal">40mm</span>
+            </div>
+            <label class="id-sc-check">
+              <input type="checkbox" id="id-scSkirtWallTile">
+              <span>ওপরে ওয়াল টাইল লাগান</span>
+            </label>
+            <div class="id-row" id="id-scSkirtWallImgRow" hidden>
+              <label>Tile URL</label>
+              <input type="text" id="id-scSkirtWallImg" placeholder="https://..." style="flex:1">
+            </div>
+          </div>
+          
           <!-- Railing -->
           <div class="id-sc-block">
             <div class="id-sc-block-title">🔗 রেলিং</div>
