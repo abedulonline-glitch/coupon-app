@@ -523,14 +523,14 @@ function buildStraight(cfg, stats, W, L, H) {
 
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
-  // ── Concrete core (শুধু একটাই shape) ──
-  const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
+  // ★ F1-এর মতো: dir=-1, rotation=-π/2
+  const shape = _makeStairShape(-1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
   const geo = new THREE.ExtrudeGeometry(shape, {
     depth: stairW,
     bevelEnabled: false
   });
   const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
-  core.rotation.y = Math.PI / 2;
+  core.rotation.y = -Math.PI / 2;
   core.position.set(cx + stairW / 2, 0, startZ);
   core.castShadow = true;
   core.receiveShadow = true;
