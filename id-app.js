@@ -109,6 +109,8 @@ const STATE = {
           imageUrl: null
         }
       },      
+
+    stairSlabStyle: 'stepped',      // 'stepped' | 'straight'
              
       bottomFace: {
         color: '#d0d0d0'
@@ -2565,8 +2567,11 @@ document.querySelectorAll('.id-tab').forEach(t => {
     SC.stair.finish.sideSlope.imageUrl = $id('id-scSideImg')?.value?.trim() || null;
     SC.stair.finish.sideSlope.tileW    = Math.max(50, Math.min(600, parseFloat($id('id-scSideTileW')?.value) || 200));
     SC.stair.finish.sideSlope.tileH    = Math.max(50, Math.min(600, parseFloat($id('id-scSideTileH')?.value) || 100));
+       // Slab Style
+    SC.stair.finish.stairSlabStyle = $id('id-scSlabStyle')?.value || 'stepped';
 
-    // Bottom Face
+    
+     // Bottom Face
     if (!SC.stair.finish.bottomFace) SC.stair.finish.bottomFace = {};
     SC.stair.finish.bottomFace.color = $id('id-scBottomClr')?.value || '#d0d0d0';
 
