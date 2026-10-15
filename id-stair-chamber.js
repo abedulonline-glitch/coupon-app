@@ -523,8 +523,8 @@ function buildStraight(cfg, stats, W, L, H) {
 
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
-  // ── Concrete core ──
- const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
+  // ── Concrete core (শুধু একটাই shape) ──
+  const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
   const geo = new THREE.ExtrudeGeometry(shape, {
     depth: stairW,
     bevelEnabled: false
