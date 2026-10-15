@@ -2567,12 +2567,13 @@ document.querySelectorAll('.id-tab').forEach(t => {
     SC.stair.finish.sideSlope.imageUrl = $id('id-scSideImg')?.value?.trim() || null;
     SC.stair.finish.sideSlope.tileW    = Math.max(50, Math.min(600, parseFloat($id('id-scSideTileW')?.value) || 200));
     SC.stair.finish.sideSlope.tileH    = Math.max(50, Math.min(600, parseFloat($id('id-scSideTileH')?.value) || 100));
-       // Slab Style
-    SC.stair.finish.stairSlabStyle = $id('id-scSlabStyle')?.value || 'stepped';
+  
 
     
      // Bottom Face
-    if (!SC.stair.finish.bottomFace) SC.stair.finish.bottomFace = {};
+        // Slab Style
+    SC.stair.finish.stairSlabStyle = $id('id-scSlabStyle')?.value || 'stepped';
+     if (!SC.stair.finish.bottomFace) SC.stair.finish.bottomFace = {};
     SC.stair.finish.bottomFace.color = $id('id-scBottomClr')?.value || '#d0d0d0';
 
     // Side Skirting (chamber)
@@ -2604,6 +2605,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
     'id-scTotalH', 'id-scSteps', 'id-scAutoSteps',
     'id-scTreadT', 'id-scRiserT', 'id-scRun',
     'id-scStairW', 'id-scDirection', 'id-scStairType',
+    'id-scSlabStyle',
 
     // FINISH — Tread
     'id-scTreadSrc', 'id-scTreadClr', 'id-scTreadImg',
