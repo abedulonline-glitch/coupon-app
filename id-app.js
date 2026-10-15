@@ -96,6 +96,20 @@ const STATE = {
         tileH: 100,
         grout: 2
       },
+
+             skirting: {
+        type: 'plain',
+        color: '#ffffff',
+        height: 100,
+        boardColor: '#ffffff',
+        boardHeight: 40,
+        wallTile: {
+          enabled: false,
+          source: 'wall',
+          imageUrl: null
+        }
+      },      
+             
       bottomFace: {
         color: '#d0d0d0'
       },
