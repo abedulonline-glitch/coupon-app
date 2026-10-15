@@ -625,75 +625,8 @@ function makeMold(cfg) {
   };
 }
 
-  // ─── CHAMBER SKIRTING ───
-  const skirtCfg = cfg.stair.finish?.skirting;
-  if (skirtCfg && skirtCfg.height > 0) {
-    const skirtGrp = new THREE.Group();
-    skirtGrp.name = 'chamber-skirting';
-
-    const skirtH = (skirtCfg.height || 100) * MM;
-    const skirtT = 0.012;
-    const boardH = (skirtCfg.boardHeight || 40) * MM;
-    const boardT = 0.018;
-    const skirtColor = skirtCfg.color || '#ffffff';
-    const boardColor = skirtCfg.boardColor || '#ffffff';
-
-    const skirtMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(skirtColor), roughness: 0.5, metalness: 0.05 });
-    const boardMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(boardColor), roughness: 0.4, metalness: 0.1 });
-
-    walls.forEach(w => {
-      const isAttach = (w.name === attachWall);
-      const doorOffsetM = (cfg.door.offsetFromCorner || 1500) * MM;
-      const doorWM = doorW;
-
-      // Build skirting segments (leave door gap)
-      const segs = isAttach && cfg.door.enabled
-        ? buildWallWithDoor(w.len, skirtH + boardH, doorWM, doorH, doorOffsetM)
-        : [{ offset: 0, w: w.len, h: skirtH + boardH, y: (skirtH + boardH) / 2 }];
-
-      segs.forEach(seg => {
-        // Skirting board (lower)
-        const sH = Math.min(seg.h, skirtH);
-        if (sH > 0.005) {
-          const sk = new THREE.Mesh(new THREE.BoxGeometry(seg.w, sH, skirtT), skirtMat);
-          sk.position.set(w.x, seg.y - (skirtH + boardH) / 2 + sH / 2, w.z);
-          sk.rotation.y = w.rY;
-          const along = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
-          sk.position.x += along.x * seg.offset;
-          sk.position.z += along.z * seg.offset;
-          // Offset inward
-          const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
-          const toCenter = new THREE.Vector3(offset.x - w.x, 0, offset.z - w.z).normalize();
-          const nDir = normal.dot(toCenter) > 0 ? normal : normal.clone().negate();
-          sk.position.x += nDir.x * (skirtT / 2 + 0.005);
-          sk.position.z += nDir.z * (skirtT / 2 + 0.005);
-          skirtGrp.add(sk);
-        }
-
-        // Board on top (upper)
-        if (skirtCfg.boardHeight > 0 && seg.y + seg.h / 2 > skirtH) {
-          const bH = Math.min(boardH, seg.h - skirtH);
-          if (bH > 0.005) {
-            const bd = new THREE.Mesh(new THREE.BoxGeometry(seg.w, bH, boardT), boardMat);
-            bd.position.set(w.x, seg.y - (skirtH + boardH) / 2 + skirtH + bH / 2, w.z);
-            bd.rotation.y = w.rY;
-            const along = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
-            bd.position.x += along.x * seg.offset;
-            bd.position.z += along.z * seg.offset;
-            const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
-            const toCenter = new THREE.Vector3(offset.x - w.x, 0, offset.z - w.z).normalize();
-            const nDir = normal.dot(toCenter) > 0 ? normal : normal.clone().negate();
-            bd.position.x += nDir.x * (boardT / 2 + 0.005);
-            bd.position.z += nDir.z * (boardT / 2 + 0.005);
-            skirtGrp.add(bd);
-          }
-        }
-      });
-    });
-
-    group.add(skirtGrp);
-  }
-
+   // ─── CHAMBER SKIRTING ───
+  _buildChamberSkirting(cfg, walls, attachWall, doorW, doorH, offset, group);
 // ============================================================
 // RAILING (straight only)
 // ============================================================
@@ -751,6 +684,82 @@ function buildRailing(cfg, stats) {
   });
 
   return grp;
+}
+
+// ============================================================
+// CHAMBER SKIRTING — দেওয়ালের নিচের অংশ
+// ============================================================
+function _buildChamberSkirting(cfg, walls, attachWall, doorW, doorH, offset, group) {
+  const skirtCfg = cfg.stair.finish?.skirting;
+  if (!skirtCfg || !skirtCfg.height || skirtCfg.height <= 0) return;
+
+  const skirtGrp = new THREE.Group();
+  skirtGrp.name = 'chamber-skirting';
+
+  const skirtH    = (skirtCfg.height || 100) * MM;
+  const skirtT    = 0.012;
+  const boardH    = (skirtCfg.boardHeight || 40) * MM;
+  const boardT    = 0.018;
+  const skirtColor = skirtCfg.color || '#ffffff';
+  const boardColor = skirtCfg.boardColor || '#ffffff';
+  const doorOffsetM = (cfg.door.offsetFromCorner || 1500) * MM;
+
+  const skirtMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(skirtColor), roughness: 0.5, metalness: 0.05
+  });
+  const boardMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(boardColor), roughness: 0.4, metalness: 0.1
+  });
+
+  walls.forEach(w => {
+    const isAttach = (w.name === attachWall);
+
+    const segs = (isAttach && cfg.door.enabled)
+      ? buildWallWithDoor(w.len, skirtH + boardH, doorW, doorH, doorOffsetM)
+      : [{ offset: 0, w: w.len, h: skirtH + boardH, y: (skirtH + boardH) / 2 }];
+
+    segs.forEach(seg => {
+      // ── Skirting board (lower) ──
+      const sH = Math.min(seg.h, skirtH);
+      if (sH > 0.005) {
+        const sk = new THREE.Mesh(new THREE.BoxGeometry(seg.w, sH, skirtT), skirtMat);
+        sk.position.set(w.x, seg.y - (skirtH + boardH) / 2 + sH / 2, w.z);
+        sk.rotation.y = w.rY;
+        const along = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+        sk.position.x += along.x * seg.offset;
+        sk.position.z += along.z * seg.offset;
+        const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+        const toCenter = new THREE.Vector3(offset.x - w.x, 0, offset.z - w.z).normalize();
+        const nDir = normal.dot(toCenter) > 0 ? normal : normal.clone().negate();
+        sk.position.x += nDir.x * (skirtT / 2 + 0.005);
+        sk.position.z += nDir.z * (skirtT / 2 + 0.005);
+        sk.castShadow = true;
+        skirtGrp.add(sk);
+      }
+
+      // ── Board on top (upper) ──
+      if (skirtCfg.boardHeight > 0 && seg.y + seg.h / 2 > skirtH) {
+        const bH = Math.min(boardH, seg.h - skirtH);
+        if (bH > 0.005) {
+          const bd = new THREE.Mesh(new THREE.BoxGeometry(seg.w, bH, boardT), boardMat);
+          bd.position.set(w.x, seg.y - (skirtH + boardH) / 2 + skirtH + bH / 2, w.z);
+          bd.rotation.y = w.rY;
+          const along = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+          bd.position.x += along.x * seg.offset;
+          bd.position.z += along.z * seg.offset;
+          const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), w.rY);
+          const toCenter = new THREE.Vector3(offset.x - w.x, 0, offset.z - w.z).normalize();
+          const nDir = normal.dot(toCenter) > 0 ? normal : normal.clone().negate();
+          bd.position.x += nDir.x * (boardT / 2 + 0.005);
+          bd.position.z += nDir.z * (boardT / 2 + 0.005);
+          bd.castShadow = true;
+          skirtGrp.add(bd);
+        }
+      }
+    });
+  });
+
+  group.add(skirtGrp);
 }
 
 // ============================================================
