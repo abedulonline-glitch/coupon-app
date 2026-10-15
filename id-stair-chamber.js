@@ -340,7 +340,7 @@ function _getFinish(cfg) {
       tileW:    (f.sideSlope?.tileW || 200) * MM,
       tileH:    (f.sideSlope?.tileH || 100) * MM
     },
-        bottomFace: {
+    bottomFace: {
       color: f.bottomFace?.color || '#d0d0d0'
     },
     stairSlabStyle: f.stairSlabStyle || 'stepped'
@@ -467,6 +467,8 @@ function makeSlabMaterial() {
 // STAIR SHAPE BUILDER — stepped/straight bottom
 // ============================================================
 function _makeStairShape(dir, steps, riseM, runM, treadT, slabT, bottomStyle, isF1) {
+  console.log('🎯 Slab Style:', bottomStyle, '| dir:', dir, '| isF1:', isF1);
+
   const shape = new THREE.Shape();
   shape.moveTo(0, 0);
 
@@ -479,28 +481,19 @@ function _makeStairShape(dir, steps, riseM, runM, treadT, slabT, bottomStyle, is
 
   const endZ = dir * steps * runM;
   const endY = steps * riseM - treadT;
+  const frontBottomY = isF1 ? 0 : -(treadT + slabT);
 
   if (bottomStyle === 'straight') {
-    // Straight sloped bottom
     shape.lineTo(endZ, endY - slabT);
-    if (isF1) {
-      shape.lineTo(0, 0);                          // F1 front at floor level
-    } else {
-      shape.lineTo(0, -(treadT + slabT));          // F2 front at landing bottom
-    }
+    shape.lineTo(0, frontBottomY);
   } else {
-    // Stepped bottom
     shape.lineTo(endZ, endY - slabT);
     for (let i = steps - 1; i >= 0; i--) {
       const yBot = (i + 1) * riseM - treadT - slabT;
       shape.lineTo(dir * (i + 1) * runM, yBot);
       shape.lineTo(dir * i * runM, yBot);
     }
-    if (isF1) {
-      shape.lineTo(0, 0);
-    } else {
-      shape.lineTo(0, -(treadT + slabT));
-    }
+    shape.lineTo(0, frontBottomY);
   }
   shape.closePath();
   return shape;
@@ -530,7 +523,7 @@ function buildStraight(cfg, stats, W, L, H) {
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
   // ── Concrete core ──
-  const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
+ const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
   const geo = new THREE.ExtrudeGeometry(shape, {
     depth: stairW,
     bevelEnabled: false
