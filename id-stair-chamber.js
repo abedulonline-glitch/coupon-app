@@ -19,31 +19,36 @@ export function computeMinChamberSize(cfg) {
     ? Math.max(3, Math.round(totalH / 180))
     : cfg.stair.totalSteps;
 
-  const middleGap_m = 0.05;
   const wallT_m     = 0.08;
-  const clearance_m = 0.20;
+  const wallGap_m   = 0.05;   // given door/wall থেকে দূরত্ব
 
-  let w_m, l_m;
   const stairType = cfg.stair.type || 'straight';
+  let w_m, l_m;
 
   if (stairType === 'triple-fold') {
-    // 3 flights + 2 landings (landing = stairW + runM, square)
+    // ★ Exact size required for perfect fit
     const F1_steps = Math.ceil(totalSteps / 3);
     const F2_steps = Math.floor((totalSteps - F1_steps) / 2);
     const F1_len = F1_steps * runM_m;
     const F2_len = F2_steps * runM_m;
-    const landingSize_m = stairW_m + runM_m;
 
-    l_m = F1_len + landingSize_m + 2 * clearance_m + 2 * wallT_m;
-    w_m = 2 * landingSize_m + F2_len + 2 * clearance_m + 2 * wallT_m;
+    const landingSize = stairW_m + runM_m;   // ★ Landing = stairW + 1 step
+
+    // Length = F1 + Landing + door-side clearance
+    l_m = F1_len + landingSize + 2 * wallGap_m + wallT_m;
+
+    // Width = Landing + F2 + Landing
+    w_m = 2 * landingSize + F2_len + 2 * wallGap_m + wallT_m;
+
   } else if (stairType === 'double-fold') {
     const stepsPerFlight = Math.ceil(totalSteps / 2);
     const landingDepth_m = stairW_m;
+    const middleGap_m = 0.05;
     w_m = 2 * stairW_m + middleGap_m + 2 * wallT_m + 0.05;
-    l_m = stepsPerFlight * runM_m + landingDepth_m + 2 * clearance_m + 2 * wallT_m;
+    l_m = stepsPerFlight * runM_m + landingDepth_m + 2 * 0.20 + 2 * wallT_m;
   } else {
     w_m = stairW_m + 2 * wallT_m + 0.10;
-    l_m = totalSteps * runM_m + 2 * clearance_m + 2 * wallT_m;
+    l_m = totalSteps * runM_m + 2 * 0.20 + 2 * wallT_m;
   }
 
   return {
@@ -577,6 +582,14 @@ function buildStraight(cfg, stats, W, L, H) {
 // ============================================================
 // TRIPLE FOLD — 3 flights + 2 small landings (wall-flush)
 // ============================================================
+// ============================================================
+// TRIPLE FOLD — 3 flights + 2 small landings (perfectly connected)
+// F1: South → North (West wall)
+// L1: NW corner, flush to West + North walls
+// F2: West → East (North wall)
+// L2: NE corner, flush to East + North walls
+// F3: North → South (East wall)
+// ============================================================
 function buildTripleFold(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-triple-fold';
@@ -585,11 +598,11 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const totalSteps = stats.steps;
 
   const wallT = 0.08;
-  const innerHalfW = W / 2 - wallT / 2;   // inner face X
-  const innerHalfL = L / 2 - wallT / 2;   // inner face Z
-  const wallGap = 0.02;                    // দেওয়াল থেকে 2cm (skirting-এর জন্য)
+  const wallGap = 0.05;
+  const innerHalfW = W / 2 - wallT / 2;
+  const innerHalfL = L / 2 - wallT / 2;
 
-  // ── Step distribution: 6 / 5 / 6 for 17 ──
+  // Step distribution: 6 / 5 / 6 for 17 steps
   const F1_steps = Math.ceil(totalSteps / 3);
   const F2_steps = Math.floor((totalSteps - F1_steps) / 2);
   const F3_steps = totalSteps - F1_steps - F2_steps;
@@ -602,78 +615,103 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const slabT  = 0.10;
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
-  // ── Landing size = stair width (square, one step larger as requested) ──
   const stairW = Math.min(cfg.stair.width * MM, innerHalfW * 2 - 0.1);
-  const landingSize = stairW + runM;   // ★ one step larger
+  const landingSize = stairW + runM;
 
-  // ── Flight lengths (each must reach its landing) ──
   const F1_len = F1_steps * runM;
   const F2_len = F2_steps * runM;
   const F3_len = F3_steps * runM;
 
-  // ── Landing heights ──
   const landingY1 = F1_steps * riseM;
   const landingY2 = (F1_steps + F2_steps) * riseM;
 
-  // ══════════════════════════════════════════════════
-  // POSITIONS — Landing দেওয়াল ঘেঁষে কোণায়
-  // ══════════════════════════════════════════════════
+  // ══════════════════════════════════════════════
+  // ANCHOR POINTS (deewal ঘেঁষে)
+  // ══════════════════════════════════════════════
+  const innerW = innerHalfW * 2;
+  const innerL = innerHalfL * 2;
 
-  // L1 (NW corner) — touches West + North walls
+  // L1 — NW corner
   const L1_xMin = -innerHalfW + wallGap;
   const L1_xMax = L1_xMin + landingSize;
-  const L1_zMin = -innerHalfL + wallGap;   // north side (back)
+  const L1_zMin = -innerHalfL + wallGap;
   const L1_zMax = L1_zMin + landingSize;
 
-  // L2 (NE corner) — touches East + North walls
+  // L2 — NE corner
   const L2_xMax = innerHalfW - wallGap;
   const L2_xMin = L2_xMax - landingSize;
-  const L2_zMin = L1_zMin;                  // same Z as L1 (north side)
-  const L2_zMax = L1_zMax;
+  const L2_zMin = L1_zMin;
+  const L2_zMax = L2_zMin + landingSize;
 
-  // F1 (West wall) — starts south, ends at L1's south edge
-  const F1_xCenter = L1_xMin + stairW / 2;
-  const F1_startZ = innerHalfL - wallGap;   // south wall inner face
-  const F1_endZ   = L1_zMax;                // at L1 south edge
+  // F1: West wall, ends at L1 south edge
+  const F1_cx = L1_xMin + stairW / 2;
+  const F1_startZ = L1_zMax + F1_len;   // starts from here, goes back (-Z) to L1_zMax
 
-  // F2 (North wall) — starts at L1's east edge, ends at L2's west edge
-  const F2_zCenter = L1_zMin + stairW / 2;  // against north wall
-  const F2_startX = L1_xMax;
-  const F2_endX   = L2_xMin;
+  // F2: North wall, starts at L1 east edge, ends at L2 west edge
+  const F2_cx_startX = L1_xMax;
+  const F2_cz = L1_zMin + stairW / 2;   // flush against North wall
 
-  // F3 (East wall) — starts at L2's south edge, ends at south wall
-  const F3_xCenter = L2_xMax - stairW / 2;
-  const F3_startZ = L2_zMax;                // at L2 south edge
-  const F3_endZ   = innerHalfL - wallGap;   // south wall inner face
+  // F3: East wall, starts at L2 south edge, goes South
+  const F3_cx = L2_xMax - stairW / 2;
+  const F3_startZ = L2_zMax;
 
-  // ══════════════════════════════════════════════════
-  // F1 — West wall, going North (rotation 0)
-  // ══════════════════════════════════════════════════
+  // ══════════════════════════════════════════════
+  // F1 — South → North (no rotation, extends -Z)
+  // ══════════════════════════════════════════════
   {
     const g = _buildFlightGroup(F1_steps, riseM, runM, treadT, slabT, bottomStyle, true, stairW, finish, mats);
-    g.position.set(F1_xCenter, 0, F1_startZ);
+    g.position.set(F1_cx, 0, F1_startZ);
     grp.add(g);
   }
 
-  // ══════════════════════════════════════════════════
-  // F2 — North wall, going East (rotation -π/2)
-  // ══════════════════════════════════════════════════
+  // ══════════════════════════════════════════════
+  // L1 — NW corner
+  // ══════════════════════════════════════════════
+  {
+    const l = _makeLanding(landingSize, landingSize, treadT, slabT, mats);
+    l.position.set(
+      L1_xMin + landingSize / 2,
+      landingY1,
+      L1_zMin + landingSize / 2
+    );
+    grp.add(l);
+  }
+
+  // ══════════════════════════════════════════════
+  // F2 — West → East (rotation -π/2, extends +X)
+  // ══════════════════════════════════════════════
   {
     const g = _buildFlightGroup(F2_steps, riseM, runM, treadT, slabT, bottomStyle, false, stairW, finish, mats);
     g.rotation.y = -Math.PI / 2;
-    g.position.set(F2_startX, landingY1, F2_zCenter);
+    g.position.set(F2_cx_startX, landingY1, F2_cz);
     grp.add(g);
   }
 
-  // ══════════════════════════════════════════════════
-  // F3 — East wall, going South (rotation π)
-  // ══════════════════════════════════════════════════
+  // ══════════════════════════════════════════════
+  // L2 — NE corner
+  // ══════════════════════════════════════════════
+  {
+    const l = _makeLanding(landingSize, landingSize, treadT, slabT, mats);
+    l.position.set(
+      L2_xMax - landingSize / 2,
+      landingY2,
+      L2_zMin + landingSize / 2
+    );
+    grp.add(l);
+  }
+
+  // ══════════════════════════════════════════════
+  // F3 — North → South (rotation π, extends +Z)
+  // ══════════════════════════════════════════════
   {
     const g = _buildFlightGroup(F3_steps, riseM, runM, treadT, slabT, bottomStyle, false, stairW, finish, mats);
     g.rotation.y = Math.PI;
-    g.position.set(F3_xCenter, landingY2, F3_startZ);
+    g.position.set(F3_cx, landingY2, F3_startZ);
     grp.add(g);
   }
+
+  return grp;
+}
 
   // ══════════════════════════════════════════════════
   // L1 (NW corner) — landing flush against W + N walls
