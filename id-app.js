@@ -67,6 +67,52 @@ const STATE = {
       molding2Color: '#ffffff'
     },
 
+          finish: {
+      tread: {
+        source: 'solid',           // 'solid'|'floor'|'wall'|'custom'
+        color: '#1a1a1a',
+        imageUrl: null,
+        thickness: 20,             // mm (15-30)
+        overhang: 10               // mm
+      },
+      riser: {
+        source: 'solid',
+        color: '#222222',
+        imageUrl: null,
+        thickness: 18              // mm
+      },
+      molding: {
+        pattern: 'simple',         // 'none'|'simple'|'double'|'bevel'
+        color1: '#ffffff',
+        color2: '#1a1a1a',
+        thickness: 5,              // mm
+        gap: 8                     // mm (double pattern এ)
+      },
+      sideSlope: {
+        source: 'wall',            // 'wall'|'solid'|'custom'
+        color: '#d0d0d0',
+        imageUrl: null,
+        tileW: 200,
+        tileH: 100,
+        grout: 2
+      },
+      bottomFace: {
+        color: '#d0d0d0'
+      },
+      skirting: {
+        type: 'plain',             // 'plain'|'steps'
+        color: '#ffffff',
+        height: 100,               // mm
+        boardColor: '#ffffff',
+        boardHeight: 40,           // mm
+        wallTile: {
+          enabled: false,
+          source: 'wall',
+          imageUrl: null
+        }
+      }
+    }, 
+
     railing: {
       enabled: false,
       type: 'metal',                        // 'metal'|'wood'|'glass'
