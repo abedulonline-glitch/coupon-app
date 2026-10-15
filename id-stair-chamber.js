@@ -378,10 +378,13 @@ function _buildConcreteCore(cfg, stats, W, L, H, cx) {
   const mats = _makeFinishMats(finish);
 
   const treadT = finish.tread.thickness;
+  const riserT = finish.riser.thickness;
   const runM   = stats.runMm * MM;
   const riseM  = (cfg.stair.totalHeight * MM) / stats.steps;
   const steps  = stats.steps;
   const stairW = Math.min(cfg.stair.width * MM, W - 0.3);
+
+  const slabT = 0.10;   // concrete slab under steps
 
   const shape = new THREE.Shape();
   shape.moveTo(0, 0);
@@ -395,11 +398,10 @@ function _buildConcreteCore(cfg, stats, W, L, H, cx) {
     shape.lineTo(zBack,  yTop);
   }
 
-  // ★ Bottom — top diagonal-এর সমান্তরাল (uniform thickness)
-  // Top diagonal goes through (0, riseM-treadT) → (-steps*runM, steps*riseM-treadT)
-  // Slope = -(steps-1)*riseM / (steps*runM)
-  // Bottom goes from (0,0) with same slope → at -steps*runM, y = (steps-1)*riseM
-  shape.lineTo(-steps * runM, (steps - 1) * riseM);
+  // Bottom sloped
+  const zEnd = -steps * runM;
+  const yEnd = steps * riseM - treadT;
+  shape.lineTo(zEnd, yEnd - slabT);
   shape.lineTo(0, 0);
   shape.closePath();
 
@@ -413,7 +415,7 @@ function _buildConcreteCore(cfg, stats, W, L, H, cx) {
   core.rotation.y = -Math.PI / 2;
   core.castShadow = true;
   core.receiveShadow = true;
-  return { core, stairW, finish, mats, treadT, runM, riseM, steps };
+  return { core, stairW, finish, mats, riserT, treadT, runM, riseM, steps };
 }
 
 // ============================================================
@@ -497,6 +499,9 @@ function buildStraight(cfg, stats, W, L, H) {
 // ============================================================
 // DOUBLE FOLD — Landing দেওয়াল ঘেঁষে, দুই flight landing থেকে
 // ============================================================
+// ============================================================
+// DOUBLE FOLD — Landing দেওয়াল ঘেঁষে, দুই flight landing থেকে
+// ============================================================
 function buildDoubleFold(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-double-fold';
@@ -522,26 +527,40 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const finish = _getFinish(cfg);
   const mats = _makeFinishMats(finish);
   const runM = stats.runMm * MM;
-  const treadT = finish.tread.thickness;
 
-  // ─── Landing ───
+  // ─────────────────────────────────────────
+  // STEP 1: Landing — back wall ঘেঁষে
+  // ─────────────────────────────────────────
   const landingDepth = effectiveStairW;
-  const landFarZ  = -innerHalfL + 0.02;
-  const landNearZ = landFarZ + landingDepth;
+  const landFarZ  = -innerHalfL + 0.02;            // back wall থেকে 2cm ফাঁক
+  const landNearZ = landFarZ + landingDepth;       // landing-এর front edge
 
   const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(2 * innerHalfW, treadT + 0.10, landingDepth),
+    new THREE.BoxGeometry(2 * innerHalfW, finish.tread.thickness + 0.10, landingDepth),
     mats.tread
   );
-  landing.position.set(0, landingY - (treadT + 0.10) / 2, (landFarZ + landNearZ) / 2);
+  landing.position.set(
+    0,
+    landingY - (finish.tread.thickness + 0.10) / 2,
+    (landFarZ + landNearZ) / 2
+  );
   landing.castShadow = true;
   landing.receiveShadow = true;
   grp.add(landing);
 
-  // ─── Flight 1 ───
+  // ─────────────────────────────────────────
+  // STEP 2: Flight 1 — top step Landing-এর near edge ঘেঁষে
+  // ─────────────────────────────────────────
   const f1_cx = -innerHalfW + effectiveStairW / 2;
+
+  // F1 top step back edge = landNearZ
+  // _addStep(reverse=true): top back edge at (f1_startZ - stepsPerFlight*runM)
+  // তাই: f1_startZ = landNearZ + stepsPerFlight * runM
   const f1_startZ = landNearZ + stepsPerFlight * runM;
 
+  // F1 Concrete Core
+  const slabT = 0.10;
+  const treadT = finish.tread.thickness;
   const f1Shape = new THREE.Shape();
   f1Shape.moveTo(0, 0);
   for (let i = 0; i < stepsPerFlight; i++) {
@@ -549,12 +568,14 @@ function buildDoubleFold(cfg, stats, W, L, H) {
     f1Shape.lineTo(-i * runM, yTop);
     f1Shape.lineTo(-(i + 1) * runM, yTop);
   }
-  // ★ Uniform-thickness bottom — top diagonal-এর সমান্তরাল
-  f1Shape.lineTo(-stepsPerFlight * runM, (stepsPerFlight - 1) * riseM);
+  f1Shape.lineTo(-stepsPerFlight * runM, stepsPerFlight * riseM - treadT - slabT);
   f1Shape.lineTo(0, 0);
   f1Shape.closePath();
 
-  const f1Geo = new THREE.ExtrudeGeometry(f1Shape, { depth: effectiveStairW, bevelEnabled: false });
+  const f1Geo = new THREE.ExtrudeGeometry(f1Shape, {
+    depth: effectiveStairW,
+    bevelEnabled: false
+  });
   const f1Core = new THREE.Mesh(f1Geo, [mats.side, mats.bottom]);
   f1Core.rotation.y = -Math.PI / 2;
   f1Core.position.set(f1_cx + effectiveStairW / 2, 0, f1_startZ);
@@ -562,27 +583,43 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   f1Core.receiveShadow = true;
   grp.add(f1Core);
 
+  // F1 Steps (Tread + Riser + Molding)
   for (let i = 0; i < stepsPerFlight; i++) {
-    _addStep(grp, f1_cx, i * riseM, f1_startZ - i * runM, effectiveStairW, runM, riseM, finish, mats, true);
+    _addStep(
+      grp, f1_cx,
+      i * riseM,
+      f1_startZ - i * runM,
+      effectiveStairW, runM, riseM,
+      finish, mats,
+      true
+    );
   }
 
-  // ─── Flight 2 ───
+  // ─────────────────────────────────────────
+  // STEP 3: Flight 2 — Landing-এর near edge থেকে
+  // ─────────────────────────────────────────
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2_startZ = landNearZ;
 
+  // F2 Concrete Core
+  // F2 Concrete Core — slab bottom aligned with F1's top slab
+  const slabT = 0.10;
+  const treadT = finish.tread.thickness;
   const f2Shape = new THREE.Shape();
-  f2Shape.moveTo(0, 0);
+  f2Shape.moveTo(0, -(treadT + slabT));
   for (let i = 0; i < flight2Steps; i++) {
     const yTop = (i + 1) * riseM - treadT;
     f2Shape.lineTo(i * runM, yTop);
     f2Shape.lineTo((i + 1) * runM, yTop);
   }
-  // ★ Uniform-thickness bottom
-  f2Shape.lineTo(flight2Steps * runM, (flight2Steps - 1) * riseM);
-  f2Shape.lineTo(0, 0);
+  f2Shape.lineTo(flight2Steps * runM, flight2Steps * riseM - treadT - slabT);
+  f2Shape.lineTo(0, -(treadT + slabT));
   f2Shape.closePath();
 
-  const f2Geo = new THREE.ExtrudeGeometry(f2Shape, { depth: effectiveStairW, bevelEnabled: false });
+  const f2Geo = new THREE.ExtrudeGeometry(f2Shape, {
+    depth: effectiveStairW,
+    bevelEnabled: false
+  });
   const f2Core = new THREE.Mesh(f2Geo, [mats.side, mats.bottom]);
   f2Core.rotation.y = -Math.PI / 2;
   f2Core.position.set(f2_cx + effectiveStairW / 2, landingY, f2_startZ);
@@ -590,8 +627,16 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   f2Core.receiveShadow = true;
   grp.add(f2Core);
 
+  // F2 Steps
   for (let i = 0; i < flight2Steps; i++) {
-    _addStep(grp, f2_cx, landingY + i * riseM, f2_startZ + i * runM, effectiveStairW, runM, riseM, finish, mats, false);
+    _addStep(
+      grp, f2_cx,
+      landingY + i * riseM,
+      f2_startZ + i * runM,
+      effectiveStairW, runM, riseM,
+      finish, mats,
+      false
+    );
   }
 
   return grp;
@@ -692,8 +737,13 @@ function buildRailing(cfg, stats) {
 // CHAMBER SKIRTING — দেওয়ালের নিচের অংশ
 // ============================================================
 function _buildChamberSkirting(cfg, walls, attachWall, doorW, doorH, offset, group) {
-  const skirtCfg = cfg.stair.finish?.skirting;
-  if (!skirtCfg || !skirtCfg.height || skirtCfg.height <= 0) return;
+   const skirtCfg = cfg.stair.finish?.skirting || {
+    height: 100,
+    color: '#ffffff',
+    boardHeight: 40,
+    boardColor: '#ffffff'
+  };
+  if (!skirtCfg.height || skirtCfg.height <= 0) return;
 
   const skirtGrp = new THREE.Group();
   skirtGrp.name = 'chamber-skirting';
