@@ -175,7 +175,10 @@ export function buildStairChamber(scene, cfg, mainRoomBounds, tiles) {
   group.add(stairGroup);
 
   // RAILING (straight only)
-  if (cfg.railing.enabled && (cfg.stair?.type || 'straight') === 'straight') {
+    // ─── CHAMBER SKIRTING ───
+  _buildChamberSkirting(cfg, walls, attachWall, doorW, doorH, offset, group);
+
+   if (cfg.railing.enabled && (cfg.stair?.type || 'straight') === 'straight') {
     const rails = buildRailing(cfg, stats);
     rails.position.copy(stairGroup.position);
     rails.rotation.copy(stairGroup.rotation);
@@ -625,8 +628,6 @@ function makeMold(cfg) {
   };
 }
 
-   // ─── CHAMBER SKIRTING ───
-  _buildChamberSkirting(cfg, walls, attachWall, doorW, doorH, offset, group);
 // ============================================================
 // RAILING (straight only)
 // ============================================================
