@@ -19,37 +19,26 @@ export function computeMinChamberSize(cfg) {
     ? Math.max(3, Math.round(totalH / 180))
     : cfg.stair.totalSteps;
 
-  const stepsPerFlight = Math.ceil(totalSteps / 2);
-  const landingDepth_m = stairW_m;
-
   const middleGap_m = 0.05;
   const wallT_m     = 0.08;
   const clearance_m = 0.20;
 
   let w_m, l_m;
-
-   const stairType = cfg.stair.type || 'straight';
+  const stairType = cfg.stair.type || 'straight';
 
   if (stairType === 'triple-fold') {
     // 3 flights + 2 landings (landing = stairW + runM, square)
     const F1_steps = Math.ceil(totalSteps / 3);
     const F2_steps = Math.floor((totalSteps - F1_steps) / 2);
-    const F3_steps = totalSteps - F1_steps - F2_steps;
     const F1_len = F1_steps * runM_m;
     const F2_len = F2_steps * runM_m;
-
     const landingSize_m = stairW_m + runM_m;
 
-    // Length: F1 + landing + clearances
     l_m = F1_len + landingSize_m + 2 * clearance_m + 2 * wallT_m;
-
-    // Width: 2×landingSize + F2_len + clearances (landing at both ends)
     w_m = 2 * landingSize_m + F2_len + 2 * clearance_m + 2 * wallT_m;
-  }
   } else if (stairType === 'double-fold') {
     const stepsPerFlight = Math.ceil(totalSteps / 2);
     const landingDepth_m = stairW_m;
-    const middleGap_m = 0.05;
     w_m = 2 * stairW_m + middleGap_m + 2 * wallT_m + 0.05;
     l_m = stepsPerFlight * runM_m + landingDepth_m + 2 * clearance_m + 2 * wallT_m;
   } else {
