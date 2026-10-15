@@ -340,9 +340,10 @@ function _getFinish(cfg) {
       tileW:    (f.sideSlope?.tileW || 200) * MM,
       tileH:    (f.sideSlope?.tileH || 100) * MM
     },
-    bottomFace: {
+        bottomFace: {
       color: f.bottomFace?.color || '#d0d0d0'
-    }
+    },
+    stairSlabStyle: f.stairSlabStyle || 'stepped'
   };
 }
 
@@ -463,23 +464,75 @@ function makeSlabMaterial() {
 }
 
 // ============================================================
+// STAIR SHAPE BUILDER — stepped/straight bottom
+// ============================================================
+function _makeStairShape(dir, steps, riseM, runM, treadT, slabT, bottomStyle) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+
+  // ── Stepped top ──
+  for (let i = 0; i < steps; i++) {
+    const yTop = (i + 1) * riseM - treadT;
+    shape.lineTo(dir * i * runM, yTop);
+    shape.lineTo(dir * (i + 1) * runM, yTop);
+  }
+
+  const endZ = dir * steps * runM;
+  const endY = steps * riseM - treadT;
+
+  if (bottomStyle === 'straight') {
+    // ── একটানা সোজা ঢালু নিচ ──
+    shape.lineTo(endZ, endY - slabT);
+    shape.lineTo(0, -slabT * 0.5);   // front visible thickness
+  } else {
+    // ── ধাপে ধাপে নিচ (stepped) ──
+    shape.lineTo(endZ, endY - slabT);
+    for (let i = steps - 1; i >= 0; i--) {
+      const yBot = (i + 1) * riseM - treadT - slabT;
+      shape.lineTo(dir * (i + 1) * runM, yBot);
+      shape.lineTo(dir * i * runM, yBot);
+    }
+  }
+
+  shape.closePath();
+  return shape;
+}
+
+// ============================================================
 // STRAIGHT
 // ============================================================
 function buildStraight(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-straight';
 
+  const finish = _getFinish(cfg);
+  const mats = _makeFinishMats(finish);
+
+  const treadT = finish.tread.thickness;
+  const slabT = 0.10;
+  const runM = stats.runMm * MM;
+  const riseM = (cfg.stair.totalHeight * MM) / stats.steps;
+  const steps = stats.steps;
+  const stairW = Math.min(cfg.stair.width * MM, W - 0.3);
+
   const innerHalfL = L / 2 - 0.04;
   const startZ = innerHalfL - 0.10;
-  const stairW = Math.min(cfg.stair.width * MM, W - 0.3);
   const cx = 0;
 
-  // ── Concrete core ──
-  const built = _buildConcreteCore(cfg, stats, W, L, H, cx);
-  built.core.position.set(cx + built.stairW / 2, 0, startZ);
-  grp.add(built.core);
+  const bottomStyle = finish.stairSlabStyle || 'stepped';
 
-  const { finish, mats, runM, riseM, steps } = built;
+  // ── Concrete core ──
+  const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: stairW,
+    bevelEnabled: false
+  });
+  const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
+  core.rotation.y = Math.PI / 2;
+  core.position.set(cx + stairW / 2, 0, startZ);
+  core.castShadow = true;
+  core.receiveShadow = true;
+  grp.add(core);
 
   // ── Treads + Risers + Moldings ──
   for (let i = 0; i < steps; i++) {
@@ -496,9 +549,6 @@ function buildStraight(cfg, stats, W, L, H) {
   return grp;
 }
 
-// ============================================================
-// DOUBLE FOLD — Landing দেওয়াল ঘেঁষে, দুই flight landing থেকে
-// ============================================================
 // ============================================================
 // DOUBLE FOLD — Landing দেওয়াল ঘেঁষে, দুই flight landing থেকে
 // ============================================================
@@ -559,23 +609,9 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const f1_startZ = landNearZ + stepsPerFlight * runM;
 
   // F1 Concrete Core — stepped bottom, uniform thickness
-  const f1Shape = new THREE.Shape();
-  f1Shape.moveTo(0, 0);
-
-  // Stepped top going up-back
-  for (let i = 0; i < stepsPerFlight; i++) {
-    const yTop = (i + 1) * riseM - treadT;
-    f1Shape.lineTo(-i * runM, yTop);
-    f1Shape.lineTo(-(i + 1) * runM, yTop);
-  }
-
-  // Stepped bottom returning down-front, exactly slabT below top
-  for (let i = stepsPerFlight - 1; i >= 0; i--) {
-    const yBot = (i + 1) * riseM - treadT - slabT;
-    f1Shape.lineTo(-(i + 1) * runM, yBot);
-    f1Shape.lineTo(-i * runM, yBot);
-  }
-  f1Shape.closePath();
+  // F1 Concrete Core
+  const bottomStyle = finish.stairSlabStyle || 'stepped';
+  const f1Shape = _makeStairShape(-1, stepsPerFlight, riseM, runM, treadT, slabT, bottomStyle);
 
   const f1Geo = new THREE.ExtrudeGeometry(f1Shape, {
     depth: effectiveStairW,
@@ -608,24 +644,8 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const f2_startZ = landNearZ;
 
   // F2 Concrete Core — stepped bottom, uniform thickness
-  const f2Shape = new THREE.Shape();
-  f2Shape.moveTo(0, 0);
-
-  // Stepped top going up-front
-  for (let i = 0; i < flight2Steps; i++) {
-    const yTop = (i + 1) * riseM - treadT;
-    f2Shape.lineTo(i * runM, yTop);
-    f2Shape.lineTo((i + 1) * runM, yTop);
-  }
-
-  // Stepped bottom returning back, exactly slabT below top
-  for (let i = flight2Steps - 1; i >= 0; i--) {
-    const yBot = (i + 1) * riseM - treadT - slabT;
-    f2Shape.lineTo((i + 1) * runM, yBot);
-    f2Shape.lineTo(i * runM, yBot);
-  }
-  f2Shape.closePath();
-
+  // F2 Concrete Core
+  const f2Shape = _makeStairShape(1, flight2Steps, riseM, runM, treadT, slabT, bottomStyle);
   const f2Geo = new THREE.ExtrudeGeometry(f2Shape, {
     depth: effectiveStairW,
     bevelEnabled: false
