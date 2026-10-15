@@ -558,16 +558,23 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const f1_cx = -innerHalfW + effectiveStairW / 2;
   const f1_startZ = landNearZ + stepsPerFlight * runM;
 
-  // F1 Concrete Core
+  // F1 Concrete Core — stepped bottom, uniform thickness
   const f1Shape = new THREE.Shape();
   f1Shape.moveTo(0, 0);
+
+  // Stepped top going up-back
   for (let i = 0; i < stepsPerFlight; i++) {
     const yTop = (i + 1) * riseM - treadT;
     f1Shape.lineTo(-i * runM, yTop);
     f1Shape.lineTo(-(i + 1) * runM, yTop);
   }
-  f1Shape.lineTo(-stepsPerFlight * runM, stepsPerFlight * riseM - treadT - slabT);
-  f1Shape.lineTo(0, 0);
+
+  // Stepped bottom returning down-front, exactly slabT below top
+  for (let i = stepsPerFlight - 1; i >= 0; i--) {
+    const yBot = (i + 1) * riseM - treadT - slabT;
+    f1Shape.lineTo(-(i + 1) * runM, yBot);
+    f1Shape.lineTo(-i * runM, yBot);
+  }
   f1Shape.closePath();
 
   const f1Geo = new THREE.ExtrudeGeometry(f1Shape, {
@@ -600,16 +607,23 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2_startZ = landNearZ;
 
-  // F2 Concrete Core — F1-এর মতো slab সমান
+  // F2 Concrete Core — stepped bottom, uniform thickness
   const f2Shape = new THREE.Shape();
-  f2Shape.moveTo(0, -(treadT + slabT));
+  f2Shape.moveTo(0, 0);
+
+  // Stepped top going up-front
   for (let i = 0; i < flight2Steps; i++) {
     const yTop = (i + 1) * riseM - treadT;
     f2Shape.lineTo(i * runM, yTop);
     f2Shape.lineTo((i + 1) * runM, yTop);
   }
-  f2Shape.lineTo(flight2Steps * runM, flight2Steps * riseM - treadT - slabT);
-  f2Shape.lineTo(0, -(treadT + slabT));
+
+  // Stepped bottom returning back, exactly slabT below top
+  for (let i = flight2Steps - 1; i >= 0; i--) {
+    const yBot = (i + 1) * riseM - treadT - slabT;
+    f2Shape.lineTo((i + 1) * runM, yBot);
+    f2Shape.lineTo(i * runM, yBot);
+  }
   f2Shape.closePath();
 
   const f2Geo = new THREE.ExtrudeGeometry(f2Shape, {
