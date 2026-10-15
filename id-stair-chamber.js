@@ -735,34 +735,6 @@ function _buildFlightGroup(steps, riseM, runM, treadT, slabT, bottomStyle, isF1,
 }
 
 // ============================================================
-// FLIGHT SUB-GROUP — one flight (core + steps) in local space
-// Local: flight center X = 0, extends -Z from origin
-// ============================================================
-function _buildFlightGroup(stairW, steps, riseM, runM, treadT, slabT, bottomStyle, isF1, _startY, finish, mats) {
-  const grp = new THREE.Group();
-
-  // Concrete core
-  const shape = _makeStairShape(-1, steps, riseM, runM, treadT, slabT, bottomStyle, isF1);
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: stairW,
-    bevelEnabled: false
-  });
-  const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
-  core.rotation.y = -Math.PI / 2;
-  core.position.set(stairW / 2, 0, 0);
-  core.castShadow = true;
-  core.receiveShadow = true;
-  grp.add(core);
-
-  // Steps (yBase relative to sub-group origin)
-  for (let i = 0; i < steps; i++) {
-    _addStep(grp, 0, i * riseM, -i * runM, stairW, runM, riseM, finish, mats, true);
-  }
-
-  return grp;
-}
-
-// ============================================================
 // LANDING — small square with concrete base + tread top
 // Origin at top surface level
 // ============================================================
