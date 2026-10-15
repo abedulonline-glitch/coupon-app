@@ -54,8 +54,8 @@ export function computeMinChamberSize(cfg) {
   }
 
   return {
-    w_ft: Math.ceil((w_m / FT) * 2) / 2,
-    l_ft: Math.ceil((l_m / FT) * 2) / 2,
+    w_ft: Math.ceil((w_m / FT) * 100) / 100,   // 3mm precision
+    l_ft: Math.ceil((l_m / FT) * 100) / 100,
     w_m, l_m
   };
 }
@@ -616,8 +616,8 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const L1_zMax = L1_zMin + landingSize;
 
   // L2 — NE corner
-  const L2_xMax = innerHalfW - wallGap;
-  const L2_xMin = L2_xMax - landingSize;
+  const L2_xMin = L1_xMax + F2_len;
+  const L2_xMax = L2_xMin + landingSize;
   const L2_zMin = L1_zMin;
   const L2_zMax = L1_zMin + landingSize;
 
