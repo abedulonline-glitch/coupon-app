@@ -2391,7 +2391,63 @@ document.querySelectorAll('.id-tab').forEach(t => {
     if (lenEl)   lenEl.textContent   = Math.round(stats.stairLength) + ' mm';
   }
 
-  function autoFitChamber() {
+  // ═══════════════════════════════════════════════
+  // DYNAMIC UI VISIBILITY
+  // ═══════════════════════════════════════════════
+  function updateFinishUI() {
+    const F = SC.stair?.finish || {};
+
+    // Tread image URL row
+    const treadSrc = $id('id-scTreadSrc')?.value;
+    const treadImgRow = $id('id-scTreadImgRow');
+    if (treadImgRow) treadImgRow.hidden = (treadSrc !== 'custom');
+
+    // Riser image URL row
+    const riserSrc = $id('id-scRiserSrc')?.value;
+    const riserImgRow = $id('id-scRiserImgRow');
+    if (riserImgRow) riserImgRow.hidden = (riserSrc !== 'custom');
+
+    // Molding gap row (only for double pattern)
+    const moldPat = $id('id-scMoldPat')?.value;
+    const moldGapRow = $id('id-scMoldGapRow');
+    if (moldGapRow) moldGapRow.hidden = (moldPat !== 'double');
+    // Mold2 color only for double
+    const moldClr2 = $id('id-scMoldClr2');
+    if (moldClr2) {
+      const p2 = moldClr2.closest('.id-row');
+      if (p2) p2.style.display = (moldPat === 'none') ? 'none' : '';
+    }
+
+    // Side slope image row
+    const sideSrc = $id('id-scSideSrc')?.value;
+    const sideImgRow = $id('id-scSideImgRow');
+    if (sideImgRow) sideImgRow.hidden = (sideSrc !== 'custom');
+    const sideTileRow = $id('id-scSideTileRow');
+    if (sideTileRow) sideTileRow.hidden = (sideSrc !== 'custom');
+
+    // Skirting wall tile URL row
+    const wallTileChk = $id('id-scSkirtWallTile')?.checked;
+    const wallImgRow = $id('id-scSkirtWallImgRow');
+    if (wallImgRow) wallImgRow.hidden = !wallTileChk;
+
+    // Label updates
+    const treadTVal = $id('id-scTreadT2Val');
+    if (treadTVal) treadTVal.textContent = ($id('id-scTreadT2')?.value || 20) + 'mm';
+    const treadOHVal = $id('id-scTreadOHVal');
+    if (treadOHVal) treadOHVal.textContent = ($id('id-scTreadOH')?.value || 10) + 'mm';
+    const riserTVal = $id('id-scRiserT2Val');
+    if (riserTVal) riserTVal.textContent = ($id('id-scRiserT2')?.value || 18) + 'mm';
+    const moldTVal = $id('id-scMoldTVal');
+    if (moldTVal) moldTVal.textContent = ($id('id-scMoldT')?.value || 5) + 'mm';
+    const moldGapVal = $id('id-scMoldGapVal');
+    if (moldGapVal) moldGapVal.textContent = ($id('id-scMoldGap')?.value || 8) + 'mm';
+    const skirtHVal = $id('id-scSkirtHVal');
+    if (skirtHVal) skirtHVal.textContent = ($id('id-scSkirtH')?.value || 100) + 'mm';
+    const skirtBoardHVal = $id('id-scSkirtBoardHVal');
+    if (skirtBoardHVal) skirtBoardHVal.textContent = ($id('id-scSkirtBoardH')?.value || 40) + 'mm';
+  }
+   
+   function autoFitChamber() {
     if (!window.__id_stairChamber?.computeMinChamberSize) return;
     const min = window.__id_stairChamber.computeMinChamberSize(SC);
     const wEl = $id('id-scW');
@@ -2460,9 +2516,61 @@ document.querySelectorAll('.id-tab').forEach(t => {
     SC.railing.height = Math.max(600, Math.min(1200, parseFloat($id('id-scRailH')?.value) || 900));
     SC.railing.side = $id('id-scRailSide')?.value || 'right';
 
-    SC.skirtingStyle = $id('id-scSkirtStyle')?.value || 'plain';
+       SC.skirtingStyle = $id('id-scSkirtStyle')?.value || 'plain';
 
-    autoFitChamber();
+    // ───── STAIR FINISH ─────
+    if (!SC.stair.finish) SC.stair.finish = {};
+
+    // Tread
+    if (!SC.stair.finish.tread) SC.stair.finish.tread = {};
+    SC.stair.finish.tread.source    = $id('id-scTreadSrc')?.value || 'solid';
+    SC.stair.finish.tread.color     = $id('id-scTreadClr')?.value || '#1a1a1a';
+    SC.stair.finish.tread.imageUrl  = $id('id-scTreadImg')?.value?.trim() || null;
+    SC.stair.finish.tread.thickness = Math.max(10, Math.min(30, parseFloat($id('id-scTreadT2')?.value) || 20));
+    SC.stair.finish.tread.overhang  = Math.max(0,  Math.min(30, parseFloat($id('id-scTreadOH')?.value) || 10));
+
+    // Riser
+    if (!SC.stair.finish.riser) SC.stair.finish.riser = {};
+    SC.stair.finish.riser.source    = $id('id-scRiserSrc')?.value || 'solid';
+    SC.stair.finish.riser.color     = $id('id-scRiserClr')?.value || '#222222';
+    SC.stair.finish.riser.imageUrl  = $id('id-scRiserImg')?.value?.trim() || null;
+    SC.stair.finish.riser.thickness = Math.max(10, Math.min(25, parseFloat($id('id-scRiserT2')?.value) || 18));
+
+    // Molding
+    if (!SC.stair.finish.molding) SC.stair.finish.molding = {};
+    SC.stair.finish.molding.pattern   = $id('id-scMoldPat')?.value || 'simple';
+    SC.stair.finish.molding.color1    = $id('id-scMoldClr1')?.value || '#ffffff';
+    SC.stair.finish.molding.color2    = $id('id-scMoldClr2')?.value || '#1a1a1a';
+    SC.stair.finish.molding.thickness = Math.max(2, Math.min(15, parseFloat($id('id-scMoldT')?.value) || 5));
+    SC.stair.finish.molding.gap       = Math.max(2, Math.min(20, parseFloat($id('id-scMoldGap')?.value) || 8));
+
+    // Side Slope
+    if (!SC.stair.finish.sideSlope) SC.stair.finish.sideSlope = {};
+    SC.stair.finish.sideSlope.source   = $id('id-scSideSrc')?.value || 'wall';
+    SC.stair.finish.sideSlope.color    = $id('id-scSideClr')?.value || '#d0d0d0';
+    SC.stair.finish.sideSlope.imageUrl = $id('id-scSideImg')?.value?.trim() || null;
+    SC.stair.finish.sideSlope.tileW    = Math.max(50, Math.min(600, parseFloat($id('id-scSideTileW')?.value) || 200));
+    SC.stair.finish.sideSlope.tileH    = Math.max(50, Math.min(600, parseFloat($id('id-scSideTileH')?.value) || 100));
+
+    // Bottom Face
+    if (!SC.stair.finish.bottomFace) SC.stair.finish.bottomFace = {};
+    SC.stair.finish.bottomFace.color = $id('id-scBottomClr')?.value || '#d0d0d0';
+
+    // Side Skirting (chamber)
+    if (!SC.stair.finish.skirting) SC.stair.finish.skirting = {};
+    SC.stair.finish.skirting.type       = $id('id-scSkirtType')?.value || 'plain';
+    SC.stair.finish.skirting.color      = $id('id-scSkirtClr')?.value || '#ffffff';
+    SC.stair.finish.skirting.height     = Math.max(50,  Math.min(200, parseFloat($id('id-scSkirtH')?.value) || 100));
+    SC.stair.finish.skirting.boardColor = $id('id-scSkirtBoardClr')?.value || '#ffffff';
+    SC.stair.finish.skirting.boardHeight= Math.max(10,  Math.min(80,  parseFloat($id('id-scSkirtBoardH')?.value) || 40));
+    if (!SC.stair.finish.skirting.wallTile) SC.stair.finish.skirting.wallTile = {};
+    SC.stair.finish.skirting.wallTile.enabled  = !!$id('id-scSkirtWallTile')?.checked;
+    SC.stair.finish.skirting.wallTile.imageUrl = $id('id-scSkirtWallImg')?.value?.trim() || null;
+
+    // ───── UI visibility toggles ─────
+    updateFinishUI();
+
+    autoFitChamber();;
     updateStairStats();
 
     if (STATE.step === 7 && typeof refreshRender === 'function') {
@@ -2471,15 +2579,38 @@ document.querySelectorAll('.id-tab').forEach(t => {
   }
 
   const inputs = [
+    // Main chamber
     'id-scToggle', 'id-scPosition', 'id-scW', 'id-scL',
     'id-scDoorEnabled', 'id-scDoorW', 'id-scDoorH',
     'id-scTotalH', 'id-scSteps', 'id-scAutoSteps',
     'id-scTreadT', 'id-scRiserT', 'id-scRun',
     'id-scStairW', 'id-scDirection', 'id-scStairType',
-    'id-scMold1', 'id-scMoldGap', 'id-scMold2',
-    'id-scTreadMat', 'id-scTreadColor', 'id-scRiserMat', 'id-scRiserColor',
-    'id-scMold1Color', 'id-scMoldGapColor', 'id-scMold2Color',
-    'id-scWallColor',
+
+    // FINISH — Tread
+    'id-scTreadSrc', 'id-scTreadClr', 'id-scTreadImg',
+    'id-scTreadT2', 'id-scTreadOH',
+
+    // FINISH — Riser
+    'id-scRiserSrc', 'id-scRiserClr', 'id-scRiserImg',
+    'id-scRiserT2',
+
+    // FINISH — Molding
+    'id-scMoldPat', 'id-scMoldClr1', 'id-scMoldClr2',
+    'id-scMoldT', 'id-scMoldGap',
+
+    // FINISH — Side Slope
+    'id-scSideSrc', 'id-scSideClr', 'id-scSideImg',
+    'id-scSideTileW', 'id-scSideTileH',
+
+    // FINISH — Bottom Face
+    'id-scBottomClr',
+
+    // SIDE SKIRTING
+    'id-scSkirtType', 'id-scSkirtClr', 'id-scSkirtH',
+    'id-scSkirtBoardClr', 'id-scSkirtBoardH',
+    'id-scSkirtWallTile', 'id-scSkirtWallImg',
+
+    // Railing
     'id-scRailEnabled', 'id-scRailType', 'id-scRailH', 'id-scRailSide',
     'id-scSkirtStyle'
   ];
@@ -2530,7 +2661,47 @@ document.querySelectorAll('.id-tab').forEach(t => {
   };
 
   autoFitChamber();
-  updateStairStats();
+ 
+      // Sync finish UI
+    const F = SC.stair?.finish || {};
+
+    if ($id('id-scTreadSrc')) $id('id-scTreadSrc').value = F.tread?.source || 'solid';
+    if ($id('id-scTreadClr')) $id('id-scTreadClr').value = F.tread?.color || '#1a1a1a';
+    if ($id('id-scTreadImg')) $id('id-scTreadImg').value = F.tread?.imageUrl || '';
+    if ($id('id-scTreadT2')) $id('id-scTreadT2').value = F.tread?.thickness || 20;
+    if ($id('id-scTreadOH')) $id('id-scTreadOH').value = F.tread?.overhang || 10;
+
+    if ($id('id-scRiserSrc')) $id('id-scRiserSrc').value = F.riser?.source || 'solid';
+    if ($id('id-scRiserClr')) $id('id-scRiserClr').value = F.riser?.color || '#222222';
+    if ($id('id-scRiserImg')) $id('id-scRiserImg').value = F.riser?.imageUrl || '';
+    if ($id('id-scRiserT2')) $id('id-scRiserT2').value = F.riser?.thickness || 18;
+
+    if ($id('id-scMoldPat')) $id('id-scMoldPat').value = F.molding?.pattern || 'simple';
+    if ($id('id-scMoldClr1')) $id('id-scMoldClr1').value = F.molding?.color1 || '#ffffff';
+    if ($id('id-scMoldClr2')) $id('id-scMoldClr2').value = F.molding?.color2 || '#1a1a1a';
+    if ($id('id-scMoldT')) $id('id-scMoldT').value = F.molding?.thickness || 5;
+    if ($id('id-scMoldGap')) $id('id-scMoldGap').value = F.molding?.gap || 8;
+
+    if ($id('id-scSideSrc')) $id('id-scSideSrc').value = F.sideSlope?.source || 'wall';
+    if ($id('id-scSideClr')) $id('id-scSideClr').value = F.sideSlope?.color || '#d0d0d0';
+    if ($id('id-scSideImg')) $id('id-scSideImg').value = F.sideSlope?.imageUrl || '';
+    if ($id('id-scSideTileW')) $id('id-scSideTileW').value = F.sideSlope?.tileW || 200;
+    if ($id('id-scSideTileH')) $id('id-scSideTileH').value = F.sideSlope?.tileH || 100;
+
+    if ($id('id-scBottomClr')) $id('id-scBottomClr').value = F.bottomFace?.color || '#d0d0d0';
+
+    if ($id('id-scSkirtType')) $id('id-scSkirtType').value = F.skirting?.type || 'plain';
+    if ($id('id-scSkirtClr')) $id('id-scSkirtClr').value = F.skirting?.color || '#ffffff';
+    if ($id('id-scSkirtH')) $id('id-scSkirtH').value = F.skirting?.height || 100;
+    if ($id('id-scSkirtBoardClr')) $id('id-scSkirtBoardClr').value = F.skirting?.boardColor || '#ffffff';
+    if ($id('id-scSkirtBoardH')) $id('id-scSkirtBoardH').value = F.skirting?.boardHeight || 40;
+    if ($id('id-scSkirtWallTile')) $id('id-scSkirtWallTile').checked = !!F.skirting?.wallTile?.enabled;
+    if ($id('id-scSkirtWallImg')) $id('id-scSkirtWallImg').value = F.skirting?.wallTile?.imageUrl || '';
+
+    updateFinishUI();
+
+    updateStairStats(); 
+   updateStairStats();
   const scPanelInit = $id('id-scPanel');
   if (scPanelInit) scPanelInit.hidden = !SC.enabled;
 })();
