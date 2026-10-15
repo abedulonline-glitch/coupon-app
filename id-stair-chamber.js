@@ -481,7 +481,7 @@ function _makeStairShape(dir, steps, riseM, runM, treadT, slabT, bottomStyle, is
 
   const endZ = dir * steps * runM;
   const endY = steps * riseM - treadT;
-  const frontBottomY = isF1 ? 0 : -(treadT + slabT);
+ const frontBottomY = -slabT;
 
   if (bottomStyle === 'straight') {
     shape.lineTo(endZ, endY - slabT);
