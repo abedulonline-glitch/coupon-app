@@ -466,11 +466,11 @@ function makeSlabMaterial() {
 // ============================================================
 // STAIR SHAPE BUILDER — stepped/straight bottom
 // ============================================================
-function _makeStairShape(dir, steps, riseM, runM, treadT, slabT, bottomStyle) {
+function _makeStairShape(dir, steps, riseM, runM, treadT, slabT, bottomStyle, isF1) {
   const shape = new THREE.Shape();
   shape.moveTo(0, 0);
 
-  // ── Stepped top ──
+  // Stepped top
   for (let i = 0; i < steps; i++) {
     const yTop = (i + 1) * riseM - treadT;
     shape.lineTo(dir * i * runM, yTop);
@@ -481,19 +481,27 @@ function _makeStairShape(dir, steps, riseM, runM, treadT, slabT, bottomStyle) {
   const endY = steps * riseM - treadT;
 
   if (bottomStyle === 'straight') {
-    // ── একটানা সোজা ঢালু নিচ ──
+    // Straight sloped bottom
     shape.lineTo(endZ, endY - slabT);
-    shape.lineTo(0, -slabT * 0.5);   // front visible thickness
+    if (isF1) {
+      shape.lineTo(0, 0);                          // F1 front at floor level
+    } else {
+      shape.lineTo(0, -(treadT + slabT));          // F2 front at landing bottom
+    }
   } else {
-    // ── ধাপে ধাপে নিচ (stepped) ──
+    // Stepped bottom
     shape.lineTo(endZ, endY - slabT);
     for (let i = steps - 1; i >= 0; i--) {
       const yBot = (i + 1) * riseM - treadT - slabT;
       shape.lineTo(dir * (i + 1) * runM, yBot);
       shape.lineTo(dir * i * runM, yBot);
     }
+    if (isF1) {
+      shape.lineTo(0, 0);
+    } else {
+      shape.lineTo(0, -(treadT + slabT));
+    }
   }
-
   shape.closePath();
   return shape;
 }
@@ -522,7 +530,7 @@ function buildStraight(cfg, stats, W, L, H) {
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
   // ── Concrete core ──
-  const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle);
+  const shape = _makeStairShape(1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
   const geo = new THREE.ExtrudeGeometry(shape, {
     depth: stairW,
     bevelEnabled: false
@@ -589,18 +597,28 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const landFarZ  = -innerHalfL + 0.02;
   const landNearZ = landFarZ + landingDepth;
 
-  const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(2 * innerHalfW, treadT + slabT, landingDepth),
+  // Landing — Concrete base (gray) + Tread top layer
+  const landCenterZ = (landFarZ + landNearZ) / 2;
+
+  // Concrete base — gray on all sides
+  const landBase = new THREE.Mesh(
+    new THREE.BoxGeometry(2 * innerHalfW, slabT, landingDepth),
+    mats.side
+  );
+  landBase.position.set(0, landingY - treadT - slabT / 2, landCenterZ);
+  landBase.castShadow = true;
+  landBase.receiveShadow = true;
+  grp.add(landBase);
+
+  // Tread layer on top — tread material
+  const landTread = new THREE.Mesh(
+    new THREE.BoxGeometry(2 * innerHalfW, treadT, landingDepth),
     mats.tread
   );
-  landing.position.set(
-    0,
-    landingY - (treadT + slabT) / 2,
-    (landFarZ + landNearZ) / 2
-  );
-  landing.castShadow = true;
-  landing.receiveShadow = true;
-  grp.add(landing);
+  landTread.position.set(0, landingY - treadT / 2, landCenterZ);
+  landTread.castShadow = true;
+  landTread.receiveShadow = true;
+  grp.add(landTread);
 
   // ─────────────────────────────────────────
   // STEP 2: Flight 1 — top step Landing-এর near edge ঘেঁষে
@@ -611,7 +629,7 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   // F1 Concrete Core — stepped bottom, uniform thickness
   // F1 Concrete Core
   const bottomStyle = finish.stairSlabStyle || 'stepped';
-  const f1Shape = _makeStairShape(-1, stepsPerFlight, riseM, runM, treadT, slabT, bottomStyle);
+ const f1Shape = _makeStairShape(-1, stepsPerFlight, riseM, runM, treadT, slabT, bottomStyle, true);
 
   const f1Geo = new THREE.ExtrudeGeometry(f1Shape, {
     depth: effectiveStairW,
@@ -645,7 +663,7 @@ function buildDoubleFold(cfg, stats, W, L, H) {
 
   // F2 Concrete Core — stepped bottom, uniform thickness
   // F2 Concrete Core
-  const f2Shape = _makeStairShape(1, flight2Steps, riseM, runM, treadT, slabT, bottomStyle);
+ const f2Shape = _makeStairShape(1, flight2Steps, riseM, runM, treadT, slabT, bottomStyle, false);
   const f2Geo = new THREE.ExtrudeGeometry(f2Shape, {
     depth: effectiveStairW,
     bevelEnabled: false
