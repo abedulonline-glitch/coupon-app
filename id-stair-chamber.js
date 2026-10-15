@@ -528,20 +528,24 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const mats = _makeFinishMats(finish);
   const runM = stats.runMm * MM;
 
+  // ★ একবারই declare — সব জায়গায় ব্যবহার হবে
+  const slabT = 0.10;
+  const treadT = finish.tread.thickness;
+
   // ─────────────────────────────────────────
   // STEP 1: Landing — back wall ঘেঁষে
   // ─────────────────────────────────────────
   const landingDepth = effectiveStairW;
-  const landFarZ  = -innerHalfL + 0.02;            // back wall থেকে 2cm ফাঁক
-  const landNearZ = landFarZ + landingDepth;       // landing-এর front edge
+  const landFarZ  = -innerHalfL + 0.02;
+  const landNearZ = landFarZ + landingDepth;
 
   const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(2 * innerHalfW, finish.tread.thickness + 0.10, landingDepth),
+    new THREE.BoxGeometry(2 * innerHalfW, treadT + slabT, landingDepth),
     mats.tread
   );
   landing.position.set(
     0,
-    landingY - (finish.tread.thickness + 0.10) / 2,
+    landingY - (treadT + slabT) / 2,
     (landFarZ + landNearZ) / 2
   );
   landing.castShadow = true;
@@ -552,15 +556,9 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   // STEP 2: Flight 1 — top step Landing-এর near edge ঘেঁষে
   // ─────────────────────────────────────────
   const f1_cx = -innerHalfW + effectiveStairW / 2;
-
-  // F1 top step back edge = landNearZ
-  // _addStep(reverse=true): top back edge at (f1_startZ - stepsPerFlight*runM)
-  // তাই: f1_startZ = landNearZ + stepsPerFlight * runM
   const f1_startZ = landNearZ + stepsPerFlight * runM;
 
   // F1 Concrete Core
-  const slabT = 0.10;
-  const treadT = finish.tread.thickness;
   const f1Shape = new THREE.Shape();
   f1Shape.moveTo(0, 0);
   for (let i = 0; i < stepsPerFlight; i++) {
@@ -583,7 +581,7 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   f1Core.receiveShadow = true;
   grp.add(f1Core);
 
-  // F1 Steps (Tread + Riser + Molding)
+  // F1 Steps
   for (let i = 0; i < stepsPerFlight; i++) {
     _addStep(
       grp, f1_cx,
@@ -597,14 +595,12 @@ function buildDoubleFold(cfg, stats, W, L, H) {
 
   // ─────────────────────────────────────────
   // STEP 3: Flight 2 — Landing-এর near edge থেকে
+  // ★ Slab F1-এর মতোই নিচে (y = -(treadT + slabT) থেকে শুরু)
   // ─────────────────────────────────────────
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2_startZ = landNearZ;
 
-  // F2 Concrete Core
-  // F2 Concrete Core — slab bottom aligned with F1's top slab
-  const slabT = 0.10;
-  const treadT = finish.tread.thickness;
+  // F2 Concrete Core — F1-এর মতো slab সমান
   const f2Shape = new THREE.Shape();
   f2Shape.moveTo(0, -(treadT + slabT));
   for (let i = 0; i < flight2Steps; i++) {
