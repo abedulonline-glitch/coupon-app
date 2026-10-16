@@ -187,6 +187,24 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
   const moldT = finish.molding.thickness;
   const moldGap = finish.molding.gap;
   const stepGap = finish.stepGap || 0;
+  const isFloating = finish.stairSlabStyle === 'stepped' && stepGap > 0;
+
+  // ── CONCRETE BASE BLOCK (gray) — floating mode এ দেখাবে ──
+  const blockH = risePerStep - treadT - stepGap;
+  if (isFloating && blockH > 0.005) {
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(stairW, blockH, runM),
+      mats.side
+    );
+    block.position.set(
+      cx,
+      yBase + stepGap + blockH / 2,
+      z + dir * runM / 2
+    );
+    block.castShadow = true;
+    block.receiveShadow = true;
+    grp.add(block);
+  }
 
   // ── TREAD (top slab) ──
   const tread = new THREE.Mesh(
@@ -202,18 +220,18 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
   tread.receiveShadow = true;
   grp.add(tread);
 
-  // ── RISER (front face) — gap বাদ দিয়ে ──
-  const riserH = risePerStep - treadT - stepGap;
+  // ── RISER (front laminate) ──
+  const riserH = isFloating ? blockH : (risePerStep - treadT);
   if (riserH > 0.005) {
+    const riserY = isFloating
+      ? yBase + stepGap + riserH / 2
+      : yBase + riserH / 2;
+
     const riser = new THREE.Mesh(
       new THREE.BoxGeometry(stairW, riserH, riserT),
       mats.riser
     );
-    riser.position.set(
-      cx,
-      yBase + risePerStep - treadT - riserH / 2,
-      z - dir * riserT / 2
-    );
+    riser.position.set(cx, riserY, z - dir * riserT / 2);
     riser.castShadow = true;
     grp.add(riser);
   }
@@ -221,8 +239,9 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
   // ── MOLDING ──
   if (moldPat === 'none') return;
 
-  // Riser-এর নিচের edge = molding এর উপরের edge
-  const riserBottomY = yBase + risePerStep - treadT - riserH;
+  const riserBottomY = isFloating
+    ? yBase + stepGap
+    : yBase + risePerStep - treadT;
   const moldZ = z - dir * riserT / 2 - dir * 0.008;
 
   if (moldPat === 'simple') {
