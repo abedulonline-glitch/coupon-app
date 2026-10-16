@@ -206,8 +206,8 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
       new THREE.BoxGeometry(stairW, riserH, riserT),
       mats.riser
     );
-  //  riser.position.set(cx, yBase + riserH / 2, z - dir * riserT / 2);
-     riser.position.set(cx, yBase + stepGapM + riserH / 2, z - dir * riserT / 2);
+   riser.position.set(cx, yBase + riserH / 2, z - dir * riserT / 2);
+    
     riser.castShadow = true;
     grp.add(riser);
   }
