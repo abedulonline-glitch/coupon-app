@@ -598,7 +598,8 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const stairW = cfg.stair.width * MM;
 
   // ★★★ Landing = stairW × stairW (square)
-  const landingSize = stairW;
+   const landingSize = stairW;
+  const l2Size = landingSize - runM * 0.4;   // ★ L2 একটু ছোট
 
   const F1_len = F1_steps * runM;
   const F2_len = F2_steps * runM;
@@ -665,12 +666,14 @@ function buildTripleFold(cfg, stats, W, L, H) {
   // ══════════════════════════════════════════════
   // L2 — NE corner (stairW × stairW)
   // ══════════════════════════════════════════════
+   // L2 — F2-এর শেষে, একটু ছোট
+  // ══════════════════════════════════════════════
   {
-    const l = _makeLanding(landingSize, landingSize, treadT, slabT, mats);
+    const l = _makeLanding(l2Size, l2Size, treadT, slabT, mats);
     l.position.set(
-      L2_xMax - landingSize / 2,
+      L2_xMin + l2Size / 2,
       landingY2,
-      L2_zMin + landingSize / 2
+      L2_zMin + l2Size / 2
     );
     grp.add(l);
   }
@@ -680,7 +683,7 @@ function buildTripleFold(cfg, stats, W, L, H) {
   // Bottom of F3 at L2 south edge
   // ══════════════════════════════════════════════
   const F3_cx = L2_xMax - stairW / 2;
-  const F3_startZ = L2_zMax;
+   const F3_startZ = L2_zMin + l2Size;
 
   {
     const g = _buildFlightGroup(F3_steps, riseM, runM, treadT, slabT, bottomStyle, false, stairW, finish, mats);
