@@ -2626,7 +2626,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
     'id-scTreadT', 'id-scRiserT', 'id-scRun',
     'id-scStairW', 'id-scDirection', 'id-scStairType',
     'id-scSlabStyle',
-     id-scStepGap',
+     'id-scStepGap',
 
     // FINISH — Tread
     'id-scTreadSrc', 'id-scTreadClr', 'id-scTreadImg',
