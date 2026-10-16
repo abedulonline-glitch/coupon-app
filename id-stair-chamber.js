@@ -118,7 +118,7 @@ function _getFinish(cfg) {
       color: f.bottomFace?.color || '#d0d0d0'
     },
     stairSlabStyle: f.stairSlabStyle || 'stepped',
-stepGap: f.stepGap || 0
+stepGap: (f.stepGap || 0) * MM
     };
     }
 
