@@ -196,12 +196,11 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
   tread.castShadow = true; tread.receiveShadow = true;
   grp.add(tread);
 
-  
-   // RISER — stepped style এ gap থাকে (floating look)
-  const stepGap = (finish.stairSlabStyle === 'stepped') ? (finish.stepGap || 0) : 0;
-    // RISER — stepped style এ gap থাকে (floating look)
- 
-  const riserH = risePerStep - treadT - stepGap;
+  // RISER — stepped style এ gap থাকে (floating look)
+  // gap = concrete slab thickness (slabT) এর সমান
+  const slabT_m = 0.10;   // ★ concrete slab thickness = 100mm
+  const stepGapM = (finish.stairSlabStyle === 'stepped') ? slabT_m : 0;
+  const riserH = risePerStep - treadT - stepGapM;
   if (riserH > 0.005) {
     const riser = new THREE.Mesh(
       new THREE.BoxGeometry(stairW, riserH, riserT),
