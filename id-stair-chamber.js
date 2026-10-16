@@ -250,7 +250,7 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
     bevel.rotation.x = -0.25;
     grp.add(bevel);
   }
-}
+
 
   // ═══════════════════════════════════════════════════════════
   // NORMAL MODE — আগের মতোই (concrete core সহ)
