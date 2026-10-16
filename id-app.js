@@ -255,7 +255,18 @@ $$('#id-roomTypes .id-tile-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     $$('#id-roomTypes .id-tile-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    STATE.room.type = btn.dataset.room;
+   STATE.room.type = btn.dataset.room;
+
+// ★ সিঁড়ি ঘর সিলেক্ট করলে chamber auto-enable
+if (btn.dataset.room === 'stair') {
+  STATE.stairChamber.enabled = true;
+  const tog = document.getElementById('id-scToggle');
+  if (tog) {
+    tog.checked = true;
+    tog.dispatchEvent(new Event('change'));
+  }
+  toast('🪜 সিঁড়ি ঘর — Step 3 এ chamber সেট করুন', 'info', 2500);
+}
   });
 });
 $('#id-roomTypes .id-tile-btn')?.classList.add('active');
