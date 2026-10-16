@@ -561,18 +561,6 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   return grp;
 }
 
-// ============================================================
-// TRIPLE FOLD — 3 flights + 2 small landings (square = stairW)
-// F1: South → North (West wall)
-// L1: NW corner (stairW × stairW)
-// F2: West → East (North wall)
-// L2: NE corner (stairW × stairW)
-// F3: North → South (East wall)
-// ============================================================
-// ============================================================
-// TRIPLE FOLD — 3 flights + 2 equal landings
-// F1=6, F2=6, F3=5 (for 17 total)
-// ============================================================
 function buildTripleFold(cfg, stats, W, L, H) {
   const grp = new THREE.Group();
   grp.name = 'staircase-triple-fold';
@@ -585,11 +573,6 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const innerHalfW = W / 2 - wallT / 2;
   const innerHalfL = L / 2 - wallT / 2;
 
-  // ★ Step distribution: F1=6, F2=6, F3=5 for 17
-  const F1_steps = Math.ceil(totalSteps / 3);
-  const F2_steps = Math.ceil((totalSteps - F1_steps) / 2);
-  const F3_steps = totalSteps - F1_steps - F2_steps;
-
   const riseM = totalH / totalSteps;
   const runM  = stats.runMm * MM;
   const finish = _getFinish(cfg);
@@ -598,45 +581,74 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const slabT  = 0.10;
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
+  // ★ Landing = stairW (সমান)
   const stairW = Math.min(cfg.stair.width * MM, innerHalfW * 2 - 0.1);
-  const landingSize = stairW;   // ★ L1 = L2 = stairW
+  const landingSize = stairW;
+
+  // ★ Dynamic F2 steps based on chamber width
+  const innerW = W - wallT;
+  const F2_maxLen = innerW - 2 * wallGap - 2 * landingSize;
+  const F2_maxSteps = Math.max(2, Math.floor(F2_maxLen / runM));
+
+  // Desired: F1=6, F2=6, F3=5 (for 17)
+  let F2_steps = Math.ceil((totalSteps - Math.ceil(totalSteps / 3)) / 2);
+  F2_steps = Math.min(F2_steps, F2_maxSteps);
+
+  // Redistribute remaining to F1 and F3
+  const remainingSteps = totalSteps - F2_steps;
+  let F1_steps = Math.ceil(remainingSteps / 2);
+  let F3_steps = remainingSteps - F1_steps;
+
+  // ★ Check F1 fits within chamber length
+  const innerL = L - wallT;
+  const F1_maxLen = innerL - 2 * wallGap - landingSize;
+  const F1_maxSteps = Math.max(2, Math.floor(F1_maxLen / runM));
+
+  if (F1_steps > F1_maxSteps) {
+    F1_steps = F1_maxSteps;
+    F3_steps = remainingSteps - F1_steps;
+    if (F3_steps < 2) F3_steps = 2;
+  }
 
   const F1_len = F1_steps * runM;
   const F2_len = F2_steps * runM;
+  const F3_len = F3_steps * runM;
 
   const landingY1 = F1_steps * riseM;
   const landingY2 = (F1_steps + F2_steps) * riseM;
 
+  console.log('🎯 Triple Fold: F1=' + F1_steps + ', F2=' + F2_steps + ', F3=' + F3_steps + ' | W=' + W.toFixed(2) + 'm, L=' + L.toFixed(2) + 'm');
+
   // ══════════════════════════════════════════════
-  // ANCHORS — দেওয়াল ঘেঁষে
+  // ANCHORS
   // ══════════════════════════════════════════════
 
-  // L1 — NW corner (deewal ঘেঁষে)
+  // L1 — NW corner
   const L1_xMin = -innerHalfW + wallGap;
   const L1_xMax = L1_xMin + landingSize;
   const L1_zMin = -innerHalfL + wallGap;
   const L1_zMax = L1_zMin + landingSize;
 
-  // L2 — starts right after F2 ends
+  // L2 — F2-এর শেষে
   const L2_xMin = L1_xMax + F2_len;
   const L2_xMax = L2_xMin + landingSize;
   const L2_zMin = L1_zMin;
   const L2_zMax = L2_zMin + landingSize;
 
-  // F1: West wall, ends at L1 south edge
+  // F1 — West wall, ends at L1 south edge
   const F1_cx = L1_xMin + stairW / 2;
   const F1_startZ = L1_zMax + F1_len;
 
-  // F2: North wall, starts at L1 east edge
+  // F2 — North wall
   const F2_startX = L1_xMax;
   const F2_cz = L1_zMin + stairW / 2;
 
-  // F3: East wall, starts at L2 south edge
-  const F3_cx = L2_xMax - stairW / 2;
+  // F3 — East of L2 (F3 starts from L2's south edge, extends south)
+  const F3_cx = L2_xMin + stairW / 2;
   const F3_startZ = L2_zMax;
 
   // ══════════════════════════════════════════════
-  // F1 — West wall, going North
+  // F1 — West wall
   // ══════════════════════════════════════════════
   {
     const g = _buildFlightGroup(F1_steps, riseM, runM, treadT, slabT, bottomStyle, true, stairW, finish, mats);
@@ -644,9 +656,7 @@ function buildTripleFold(cfg, stats, W, L, H) {
     grp.add(g);
   }
 
-  // ══════════════════════════════════════════════
   // L1
-  // ══════════════════════════════════════════════
   {
     const l = _makeLanding(landingSize, landingSize, treadT, slabT, mats);
     l.position.set(
@@ -657,9 +667,7 @@ function buildTripleFold(cfg, stats, W, L, H) {
     grp.add(l);
   }
 
-  // ══════════════════════════════════════════════
-  // F2 — North wall, going East
-  // ══════════════════════════════════════════════
+  // F2 — North wall
   {
     const g = _buildFlightGroup(F2_steps, riseM, runM, treadT, slabT, bottomStyle, false, stairW, finish, mats);
     g.rotation.y = -Math.PI / 2;
@@ -667,9 +675,7 @@ function buildTripleFold(cfg, stats, W, L, H) {
     grp.add(g);
   }
 
-  // ══════════════════════════════════════════════
-  // L2 — right after F2's end
-  // ══════════════════════════════════════════════
+  // L2
   {
     const l = _makeLanding(landingSize, landingSize, treadT, slabT, mats);
     l.position.set(
@@ -680,9 +686,7 @@ function buildTripleFold(cfg, stats, W, L, H) {
     grp.add(l);
   }
 
-  // ══════════════════════════════════════════════
-  // F3 — East wall, going South
-  // ══════════════════════════════════════════════
+  // F3 — from L2 south edge, going south
   {
     const g = _buildFlightGroup(F3_steps, riseM, runM, treadT, slabT, bottomStyle, false, stairW, finish, mats);
     g.rotation.y = Math.PI;
