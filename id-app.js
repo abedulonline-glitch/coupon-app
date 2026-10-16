@@ -111,6 +111,7 @@ const STATE = {
       },      
 
     stairSlabStyle: 'stepped',      // 'stepped' | 'straight'
+    stepGap: 30,         // mm — floating look        
              
       bottomFace: {
         color: '#d0d0d0'
