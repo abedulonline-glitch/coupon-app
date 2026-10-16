@@ -187,27 +187,102 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
   const moldT = finish.molding.thickness;
   const moldGap = finish.molding.gap;
 
+  const stepGap = finish.stepGap || 0;
+  const isFloating = finish.stairSlabStyle === 'stepped' && stepGap > 0;
+
+  // ═══════════════════════════════════════════════════════════
+  // FLOATING MODE — এক ব্লক (tread + riser একসাথে)
+  // ═══════════════════════════════════════════════════════════
+  if (isFloating) {
+    const blockH = risePerStep - stepGap;
+
+    const blockGeo = new THREE.BoxGeometry(stairW, blockH, runM + treadOH);
+
+    // Materials: [+X, -X, +Y, -Y, +Z, -Z]
+    const blockMats = [
+      mats.riser,  // +X (side)
+      mats.riser,  // -X (side)
+      mats.tread,  // +Y (top)
+      mats.riser,  // -Y (bottom)
+      mats.riser,  // +Z (front — riser face)
+      mats.riser   // -Z (back)
+    ];
+
+    const block = new THREE.Mesh(blockGeo, blockMats);
+    block.position.set(
+      cx,
+      yBase + risePerStep - blockH / 2,
+      z + dir * (runM / 2 + treadOH / 2)
+    );
+    block.castShadow = true;
+    block.receiveShadow = true;
+    grp.add(block);
+
+    // ── Molding ── (uporer step-এর সাথে, riser থেকে 10mm বাইরে)
+    if (moldPat !== 'none') {
+      const moldFrontZ = z + dir * (runM + treadOH);
+      const moldY = yBase + risePerStep - blockH + moldT / 2;
+      const moldDepth = 0.04;        // 40mm total
+      const centerZ = moldFrontZ - dir * 0.01;
+
+      if (moldPat === 'simple') {
+        const m = new THREE.Mesh(
+          new THREE.BoxGeometry(stairW + 0.02, moldT, moldDepth),
+          mats.mold1
+        );
+        m.position.set(cx, moldY, centerZ);
+        m.castShadow = true;
+        grp.add(m);
+      } else if (moldPat === 'double') {
+        const m1 = new THREE.Mesh(
+          new THREE.BoxGeometry(stairW + 0.02, moldT, moldDepth),
+          mats.mold1
+        );
+        m1.position.set(cx, moldY - moldGap / 2, centerZ);
+        grp.add(m1);
+
+        const m2 = new THREE.Mesh(
+          new THREE.BoxGeometry(stairW + 0.02, moldT, moldDepth),
+          mats.mold2
+        );
+        m2.position.set(cx, moldY + moldGap / 2, centerZ);
+        grp.add(m2);
+      } else if (moldPat === 'bevel') {
+        const m = new THREE.Mesh(
+          new THREE.BoxGeometry(stairW + 0.02, moldT * 1.4, moldDepth),
+          mats.mold1
+        );
+        m.position.set(cx, moldY, centerZ);
+        m.rotation.x = -0.25 * dir;
+        grp.add(m);
+      }
+    }
+
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // NORMAL MODE — আগের মতোই (concrete core সহ)
+  // ═══════════════════════════════════════════════════════════
+
   // TREAD
   const tread = new THREE.Mesh(
     new THREE.BoxGeometry(stairW + treadOH * 2, treadT, runM + treadOH),
     mats.tread
   );
   tread.position.set(cx, yBase + risePerStep - treadT / 2, z + dir * (runM / 2 + treadOH / 2));
-  tread.castShadow = true; tread.receiveShadow = true;
+  tread.castShadow = true;
+  tread.receiveShadow = true;
   grp.add(tread);
 
-  // RISER — stepped style এ gap থাকে (floating look)
-  // gap = concrete slab thickness (slabT) এর সমান
-  const slabT_m = 0.10;   // ★ concrete slab thickness = 100mm
-  const stepGapM = (finish.stairSlabStyle === 'stepped') ? slabT_m : 0;
-  const riserH = risePerStep - treadT - stepGapM;
+  // RISER
+  const riserH = risePerStep - treadT;
   if (riserH > 0.005) {
     const riser = new THREE.Mesh(
       new THREE.BoxGeometry(stairW, riserH, riserT),
       mats.riser
     );
-   riser.position.set(cx, yBase + riserH / 2, z - dir * riserT / 2);
-    
+    riser.position.set(cx, yBase + riserH / 2, z - dir * riserT / 2);
     riser.castShadow = true;
     grp.add(riser);
   }
@@ -226,13 +301,16 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
     grp.add(m);
   } else if (moldPat === 'double') {
     const m1 = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016), mats.mold1);
-    m1.position.set(cx, moldY0 - moldT / 2, moldZ); grp.add(m1);
+    m1.position.set(cx, moldY0 - moldT / 2, moldZ);
+    grp.add(m1);
 
     const gap = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldGap, riserT + 0.016), mats.mold2);
-    gap.position.set(cx, moldY0 - moldT - moldGap / 2, moldZ); grp.add(gap);
+    gap.position.set(cx, moldY0 - moldT - moldGap / 2, moldZ);
+    grp.add(gap);
 
     const m2 = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016), mats.mold1);
-    m2.position.set(cx, moldY0 - moldT - moldGap - moldT / 2, moldZ); grp.add(m2);
+    m2.position.set(cx, moldY0 - moldT - moldGap - moldT / 2, moldZ);
+    grp.add(m2);
   } else if (moldPat === 'bevel') {
     const bevel = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldT * 1.4, riserT + 0.016), mats.mold1);
     bevel.position.set(cx, moldY0 - moldT * 0.7, moldZ);
@@ -436,30 +514,27 @@ function buildStraight(cfg, stats, W, L, H) {
   const innerHalfL = L / 2 - 0.04;
   const startZ = innerHalfL - 0.10;
 
-  // দেওয়াল ঘেঁষে — বাঁ দেওয়ালে
   const wallT = 0.08;
   const innerHalfW = W / 2 - wallT / 2;
   const cx = -innerHalfW + stairW / 2;
 
   const bottomStyle = finish.stairSlabStyle || 'stepped';
+  const stepGap = finish.stepGap || 0;
+  const isFloating = bottomStyle === 'stepped' && stepGap > 0;
 
-  // Shape — F1-এর মতো
-  const shape = _makeStairShape(-1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: stairW,
-    bevelEnabled: false
-  });
-  // ★ Floating mode: hide front face (side material)
-const useFloating = (finish.stairSlabStyle === 'stepped' && (finish.stepGap || 0) > 0);
-const coreMat = useFloating ? mats.bottom : mats.side;
-const core = new THREE.Mesh(geo, [coreMat, mats.bottom]);
-  core.rotation.y = -Math.PI / 2;
-  core.position.set(cx + stairW / 2, 0, startZ);
-  core.castShadow = true;
-  core.receiveShadow = true;
-  grp.add(core);
+  // ★ Concrete Core — শুধু non-floating এ
+  if (!isFloating) {
+    const shape = _makeStairShape(-1, steps, riseM, runM, treadT, slabT, bottomStyle, true);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: stairW, bevelEnabled: false });
+    const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
+    core.rotation.y = -Math.PI / 2;
+    core.position.set(cx + stairW / 2, 0, startZ);
+    core.castShadow = true;
+    core.receiveShadow = true;
+    grp.add(core);
+  }
 
-  // Treads + Risers + Moldings
+  // Steps
   for (let i = 0; i < steps; i++) {
     _addStep(
       grp, cx,
@@ -534,17 +609,21 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   grp.add(landTread);
 
   // ───── Flight 1 ─────
+  const stepGap = finish.stepGap || 0;
+  const isFloating = (finish.stairSlabStyle || 'stepped') === 'stepped' && stepGap > 0;
   const f1_cx = -innerHalfW + effectiveStairW / 2;
   const f1_startZ = landNearZ + stepsPerFlight * runM;
 
-  const f1Shape = _makeStairShape(-1, stepsPerFlight, riseM, runM, treadT, slabT, bottomStyle, true);
-  const f1Geo = new THREE.ExtrudeGeometry(f1Shape, { depth: effectiveStairW, bevelEnabled: false });
-  const f1Core = new THREE.Mesh(f1Geo, [mats.side, mats.bottom]);
-  f1Core.rotation.y = -Math.PI / 2;
-  f1Core.position.set(f1_cx + effectiveStairW / 2, 0, f1_startZ);
-  f1Core.castShadow = true;
-  f1Core.receiveShadow = true;
-  grp.add(f1Core);
+  if (!isFloating) {
+    const f1Shape = _makeStairShape(-1, stepsPerFlight, riseM, runM, treadT, slabT, bottomStyle, true);
+    const f1Geo = new THREE.ExtrudeGeometry(f1Shape, { depth: effectiveStairW, bevelEnabled: false });
+    const f1Core = new THREE.Mesh(f1Geo, [mats.side, mats.bottom]);
+    f1Core.rotation.y = -Math.PI / 2;
+    f1Core.position.set(f1_cx + effectiveStairW / 2, 0, f1_startZ);
+    f1Core.castShadow = true;
+    f1Core.receiveShadow = true;
+    grp.add(f1Core);
+  }
 
   for (let i = 0; i < stepsPerFlight; i++) {
     _addStep(grp, f1_cx, i * riseM, f1_startZ - i * runM, effectiveStairW, runM, riseM, finish, mats, true);
@@ -554,14 +633,16 @@ function buildDoubleFold(cfg, stats, W, L, H) {
   const f2_cx = innerHalfW - effectiveStairW / 2;
   const f2_startZ = landNearZ;
 
-  const f2Shape = _makeStairShape(1, flight2Steps, riseM, runM, treadT, slabT, bottomStyle, false);
-  const f2Geo = new THREE.ExtrudeGeometry(f2Shape, { depth: effectiveStairW, bevelEnabled: false });
-  const f2Core = new THREE.Mesh(f2Geo, [mats.side, mats.bottom]);
-  f2Core.rotation.y = -Math.PI / 2;
-  f2Core.position.set(f2_cx + effectiveStairW / 2, landingY, f2_startZ);
-  f2Core.castShadow = true;
-  f2Core.receiveShadow = true;
-  grp.add(f2Core);
+  if (!isFloating) {
+    const f2Shape = _makeStairShape(1, flight2Steps, riseM, runM, treadT, slabT, bottomStyle, false);
+    const f2Geo = new THREE.ExtrudeGeometry(f2Shape, { depth: effectiveStairW, bevelEnabled: false });
+    const f2Core = new THREE.Mesh(f2Geo, [mats.side, mats.bottom]);
+    f2Core.rotation.y = -Math.PI / 2;
+    f2Core.position.set(f2_cx + effectiveStairW / 2, landingY, f2_startZ);
+    f2Core.castShadow = true;
+    f2Core.receiveShadow = true;
+    grp.add(f2Core);
+  }
 
   for (let i = 0; i < flight2Steps; i++) {
     _addStep(grp, f2_cx, landingY + i * riseM, f2_startZ + i * runM, effectiveStairW, runM, riseM, finish, mats, false);
@@ -719,18 +800,20 @@ function buildTripleFold(cfg, stats, W, L, H) {
 function _buildFlightGroup(steps, riseM, runM, treadT, slabT, bottomStyle, isF1, stairW, finish, mats) {
   const grp = new THREE.Group();
 
-  // Concrete core
-  const shape = _makeStairShape(-1, steps, riseM, runM, treadT, slabT, bottomStyle, isF1);
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: stairW,
-    bevelEnabled: false
-  });
-  const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
-  core.rotation.y = -Math.PI / 2;
-  core.position.set(stairW / 2, 0, 0);
-  core.castShadow = true;
-  core.receiveShadow = true;
-  grp.add(core);
+  const stepGap = finish.stepGap || 0;
+  const isFloating = bottomStyle === 'stepped' && stepGap > 0;
+
+  // Concrete Core — শুধু non-floating এ
+  if (!isFloating) {
+    const shape = _makeStairShape(-1, steps, riseM, runM, treadT, slabT, bottomStyle, isF1);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: stairW, bevelEnabled: false });
+    const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
+    core.rotation.y = -Math.PI / 2;
+    core.position.set(stairW / 2, 0, 0);
+    core.castShadow = true;
+    core.receiveShadow = true;
+    grp.add(core);
+  }
 
   // Steps
   for (let i = 0; i < steps; i++) {
