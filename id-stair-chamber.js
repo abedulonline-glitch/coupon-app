@@ -205,12 +205,12 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
     // Face order: [+X, -X, +Y, -Y, +Z, -Z]
     //   side, side, top, bottom, front, back
     const boxMats = [
-      mats.riser,   // +X (right side)
-      mats.riser,   // -X (left side)
-      mats.tread,   // +Y (top face)
-      mats.riser,   // -Y (bottom face)
-      mats.riser,   // +Z (front — riser)
-      mats.riser    // -Z (back)
+      mats.side,    // +X (right side) — concrete
+      mats.side,    // -X (left side)  — concrete
+      mats.tread,   // +Y (top)        — tread granite
+      mats.side,    // -Y (bottom)     — concrete
+      mats.riser,   // +Z (front)      — riser color (white)
+      mats.side     // -Z (back)       — concrete
     ];
 
     const box = new THREE.Mesh(geo, boxMats);
