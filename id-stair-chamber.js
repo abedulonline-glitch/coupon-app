@@ -119,8 +119,9 @@ function _getFinish(cfg) {
     },
     stairSlabStyle: f.stairSlabStyle || 'stepped',
 stepGap: f.stepGap || 0'
+     }
   };
-}
+
 
 function _makeFinishMats(finish) {
   const makeMat = (color, opts = {}) => new THREE.MeshStandardMaterial({
@@ -195,7 +196,7 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
   tread.castShadow = true; tread.receiveShadow = true;
   grp.add(tread);
 
-  // RISER
+  
    // RISER — stepped style এ gap থাকে (floating look)
   const stepGap = (finish.stairSlabStyle === 'stepped') ? (finish.stepGap || 0) : 0;
   const riserH = risePerStep - treadT - stepGap;
