@@ -117,7 +117,8 @@ function _getFinish(cfg) {
     bottomFace: {
       color: f.bottomFace?.color || '#d0d0d0'
     },
-    stairSlabStyle: f.stairSlabStyle || 'stepped'
+    stairSlabStyle: f.stairSlabStyle || 'stepped',
+stepGap: f.stepGap || 0'
   };
 }
 
@@ -195,7 +196,9 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
   grp.add(tread);
 
   // RISER
-  const riserH = risePerStep - treadT;
+   // RISER — stepped style এ gap থাকে (floating look)
+  const stepGap = (finish.stairSlabStyle === 'stepped') ? (finish.stepGap || 0) : 0;
+  const riserH = risePerStep - treadT - stepGap;
   if (riserH > 0.005) {
     const riser = new THREE.Mesh(
       new THREE.BoxGeometry(stairW, riserH, riserT),
