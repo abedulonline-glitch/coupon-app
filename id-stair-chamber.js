@@ -592,12 +592,13 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const F2_maxSteps = Math.max(2, Math.floor(F2_maxLen / runM));
 
   // ★ F1 এবং F2 থেকে ১টি করে step কমাও (landing-এর সাথে লাগা step বাদ)
-  // ফলে 17 ধাপে: F1=5, F2=5, F3=7
-  let F2_steps = Math.ceil((totalSteps - Math.ceil(totalSteps / 3)) / 2) - 1;
+   // ★ F1=6, F2=6, F3=5 (17 steps total)
+  // L1, L2 clean squares — merge steps F1, F2 তে
+  let F2_steps = Math.ceil((totalSteps - Math.ceil(totalSteps / 3)) / 2);
   F2_steps = Math.max(2, Math.min(F2_steps, F2_maxSteps));
 
   const remainingSteps = totalSteps - F2_steps;
-  let F1_steps = Math.ceil(remainingSteps / 2) - 1;
+  let F1_steps = Math.ceil(remainingSteps / 2);
   let F3_steps = remainingSteps - F1_steps;
 
   // ★ Check F1 fits within chamber length
