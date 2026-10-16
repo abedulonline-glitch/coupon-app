@@ -204,7 +204,7 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
 
     // Face order: [+X, -X, +Y, -Y, +Z, -Z]
     //   side, side, top, bottom, front, back
-    const boxMats = [
+        const boxMats = [
       mats.side,    // +X (right side) — concrete
       mats.side,    // -X (left side)  — concrete
       mats.tread,   // +Y (top)        — tread granite
@@ -222,6 +222,52 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
     box.castShadow = true;
     box.receiveShadow = true;
     grp.add(box);
+
+    // ── MOLDING — block-এর নিচের front edge ──
+    if (moldPat === 'none') return;
+
+    const bottomY = yBase + stepGap;
+    const frontZ = z + dir * treadOH;
+
+    if (moldPat === 'simple') {
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(stairW + treadOH * 2 + 0.02, moldT, riserT + 0.02),
+        mats.mold1
+      );
+      m.position.set(cx, bottomY - moldT / 2, frontZ - dir * (riserT / 2 + 0.01));
+      grp.add(m);
+    } else if (moldPat === 'double') {
+      const m1 = new THREE.Mesh(
+        new THREE.BoxGeometry(stairW + treadOH * 2 + 0.02, moldT, riserT + 0.02),
+        mats.mold1
+      );
+      m1.position.set(cx, bottomY - moldT / 2, frontZ - dir * (riserT / 2 + 0.01));
+      grp.add(m1);
+
+      const gapM = new THREE.Mesh(
+        new THREE.BoxGeometry(stairW + treadOH * 2 + 0.02, moldGap, riserT + 0.02),
+        mats.mold2
+      );
+      gapM.position.set(cx, bottomY - moldT - moldGap / 2, frontZ - dir * (riserT / 2 + 0.01));
+      grp.add(gapM);
+
+      const m2 = new THREE.Mesh(
+        new THREE.BoxGeometry(stairW + treadOH * 2 + 0.02, moldT, riserT + 0.02),
+        mats.mold1
+      );
+      m2.position.set(cx, bottomY - moldT - moldGap - moldT / 2, frontZ - dir * (riserT / 2 + 0.01));
+      grp.add(m2);
+    } else if (moldPat === 'bevel') {
+      const bevel = new THREE.Mesh(
+        new THREE.BoxGeometry(stairW + treadOH * 2 + 0.02, moldT * 1.4, riserT + 0.02),
+        mats.mold1
+      );
+      bevel.position.set(cx, bottomY - moldT * 0.7, frontZ - dir * (riserT / 2 + 0.01));
+      bevel.rotation.x = -0.25;
+      grp.add(bevel);
+    }
+    return;
+  }
 
   // ══════════════════════════════════════════════════════
   // NORMAL MODE — Tread + Riser + Molding (কোর ছাড়া)
@@ -252,38 +298,8 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
     riser.castShadow = true;
     grp.add(riser);
   }
-
-  // MOLDING
-  if (moldPat === 'none') return;
-  const moldZ = z - dir * riserT / 2 - dir * 0.008;
-  const moldY0 = yBase + risePerStep - treadT;
-
-  if (moldPat === 'simple') {
-    const m = new THREE.Mesh(
-      new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016),
-      mats.mold1
-    );
-    m.position.set(cx, moldY0 - moldT / 2, moldZ);
-    grp.add(m);
-  } else if (moldPat === 'double') {
-    const m1 = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016), mats.mold1);
-    m1.position.set(cx, moldY0 - moldT / 2, moldZ);
-    grp.add(m1);
-
-    const gapM = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldGap, riserT + 0.016), mats.mold2);
-    gapM.position.set(cx, moldY0 - moldT - moldGap / 2, moldZ);
-    grp.add(gapM);
-
-    const m2 = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldT, riserT + 0.016), mats.mold1);
-    m2.position.set(cx, moldY0 - moldT - moldGap - moldT / 2, moldZ);
-    grp.add(m2);
-  } else if (moldPat === 'bevel') {
-    const bevel = new THREE.Mesh(new THREE.BoxGeometry(stairW + 0.02, moldT * 1.4, riserT + 0.016), mats.mold1);
-    bevel.position.set(cx, moldY0 - moldT * 0.7, moldZ);
-    bevel.rotation.x = -0.25;
-    grp.add(bevel);
+     return;
   }
-}
 
 // ============================================================
 // WALL WITH DOOR (returns segments)
