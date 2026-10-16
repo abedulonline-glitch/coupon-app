@@ -449,7 +449,10 @@ function buildStraight(cfg, stats, W, L, H) {
     depth: stairW,
     bevelEnabled: false
   });
-  const core = new THREE.Mesh(geo, [mats.side, mats.bottom]);
+  // ★ Floating mode: hide front face (side material)
+const useFloating = (finish.stairSlabStyle === 'stepped' && (finish.stepGap || 0) > 0);
+const coreMat = useFloating ? mats.bottom : mats.side;
+const core = new THREE.Mesh(geo, [coreMat, mats.bottom]);
   core.rotation.y = -Math.PI / 2;
   core.position.set(cx + stairW / 2, 0, startZ);
   core.castShadow = true;
