@@ -579,6 +579,7 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const mats = _makeFinishMats(finish);
   const treadT = finish.tread.thickness;
   const slabT  = 0.10;
+  const treadOH = finish.tread.overhang;   // ★ উপরে সরানো
   const bottomStyle = finish.stairSlabStyle || 'stepped';
 
   // ★ Landing = stairW (সমান)
@@ -638,9 +639,8 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const L2_xMax = L2_xMin + landingSize;
   const L2_zMin = L1_zMin;
   const L2_zMax = L2_zMin + landingSize;
-
-  // F1 — West wall, last step's edge touches L1 exactly (no merge)
-  const treadOH = finish.tread.overhang;   // ★ overhang
+   
+   // F1 — West wall, last step's edge touches L1 exactly (no merge)
   const F1_cx = L1_xMin + stairW / 2;
   const F1_startZ = L1_zMax + F1_len + treadOH;   // ★ + treadOH
 
