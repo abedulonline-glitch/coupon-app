@@ -633,15 +633,16 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const L1_zMin = -innerHalfL + wallGap;
   const L1_zMax = L1_zMin + landingSize;
 
-  // L2 — F2-এর শেষে
-  const L2_xMin = L1_xMax + F2_len;
+  // L2 — F2-এর last step ঠিক এখানে touches (no merge)
+  const L2_xMin = L1_xMax + F2_len + treadOH;   // ★ + treadOH
   const L2_xMax = L2_xMin + landingSize;
   const L2_zMin = L1_zMin;
   const L2_zMax = L2_zMin + landingSize;
 
-  // F1 — West wall, ends at L1 south edge
+  // F1 — West wall, last step's edge touches L1 exactly (no merge)
+  const treadOH = finish.tread.overhang;   // ★ overhang
   const F1_cx = L1_xMin + stairW / 2;
-  const F1_startZ = L1_zMax + F1_len;
+  const F1_startZ = L1_zMax + F1_len + treadOH;   // ★ + treadOH
 
   // F2 — North wall
   const F2_startX = L1_xMax;
