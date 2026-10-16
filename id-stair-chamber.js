@@ -590,13 +590,13 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const F2_maxLen = innerW - 2 * wallGap - 2 * landingSize;
   const F2_maxSteps = Math.max(2, Math.floor(F2_maxLen / runM));
 
-  // Desired: F1=6, F2=6, F3=5 (for 17)
-  let F2_steps = Math.ceil((totalSteps - Math.ceil(totalSteps / 3)) / 2);
-  F2_steps = Math.min(F2_steps, F2_maxSteps);
+  // ★ F1 এবং F2 থেকে ১টি করে step কমাও (landing-এর সাথে লাগা step বাদ)
+  // ফলে 17 ধাপে: F1=5, F2=5, F3=7
+  let F2_steps = Math.ceil((totalSteps - Math.ceil(totalSteps / 3)) / 2) - 1;
+  F2_steps = Math.max(2, Math.min(F2_steps, F2_maxSteps));
 
-  // Redistribute remaining to F1 and F3
   const remainingSteps = totalSteps - F2_steps;
-  let F1_steps = Math.ceil(remainingSteps / 2);
+  let F1_steps = Math.ceil(remainingSteps / 2) - 1;
   let F3_steps = remainingSteps - F1_steps;
 
   // ★ Check F1 fits within chamber length
@@ -605,10 +605,14 @@ function buildTripleFold(cfg, stats, W, L, H) {
   const F1_maxSteps = Math.max(2, Math.floor(F1_maxLen / runM));
 
   if (F1_steps > F1_maxSteps) {
+    const diff = F1_steps - F1_maxSteps;
     F1_steps = F1_maxSteps;
-    F3_steps = remainingSteps - F1_steps;
-    if (F3_steps < 2) F3_steps = 2;
+    F3_steps += diff;
   }
+
+  // Minimum steps check
+  if (F1_steps < 2) { F3_steps -= (2 - F1_steps); F1_steps = 2; }
+  if (F2_steps < 2) { F3_steps -= (2 - F2_steps); F2_steps = 2; }
 
   const F1_len = F1_steps * runM;
   const F2_len = F2_steps * runM;
