@@ -200,7 +200,7 @@ function _addStep(grp, cx, yBase, z, stairW, runM, risePerStep, finish, mats, re
    // RISER — stepped style এ gap থাকে (floating look)
   const stepGap = (finish.stairSlabStyle === 'stepped') ? (finish.stepGap || 0) : 0;
     // RISER — stepped style এ gap থাকে (floating look)
-  const stepGap = (finish.stairSlabStyle === 'stepped') ? (finish.stepGap || 0) : 0;
+ 
   const riserH = risePerStep - treadT - stepGap;
   if (riserH > 0.005) {
     const riser = new THREE.Mesh(
