@@ -2435,7 +2435,14 @@ document.querySelectorAll('.id-tab').forEach(t => {
     const riserImgRow = $id('id-scRiserImgRow');
     if (riserImgRow) riserImgRow.hidden = (riserSrc !== 'custom');
 
-    // Molding gap row (only for double pattern)
+       // ★ Step Gap slider — শুধু stepped style এ
+    const slabStyle = $id('id-scSlabStyle')?.value || 'stepped';
+    const stepGapRow = $id('id-scStepGapRow');
+    if (stepGapRow) stepGapRow.style.display = (slabStyle === 'stepped') ? '' : 'none';
+    const stepGapVal = $id('id-scStepGapVal');
+    if (stepGapVal) stepGapVal.textContent = ($id('id-scStepGap')?.value || 30) + 'mm';
+
+     // Molding gap row (only for double pattern)
     const moldPat = $id('id-scMoldPat')?.value;
     const moldGapRow = $id('id-scMoldGapRow');
     if (moldGapRow) moldGapRow.hidden = (moldPat !== 'double');
@@ -2585,6 +2592,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
      // Bottom Face
         // Slab Style
     SC.stair.finish.stairSlabStyle = $id('id-scSlabStyle')?.value || 'stepped';
+    SC.stair.finish.stepGap = Math.max(0, Math.min(80, parseFloat($id('id-scStepGap')?.value) || 30));
      if (!SC.stair.finish.bottomFace) SC.stair.finish.bottomFace = {};
     SC.stair.finish.bottomFace.color = $id('id-scBottomClr')?.value || '#d0d0d0';
 
@@ -2618,6 +2626,7 @@ document.querySelectorAll('.id-tab').forEach(t => {
     'id-scTreadT', 'id-scRiserT', 'id-scRun',
     'id-scStairW', 'id-scDirection', 'id-scStairType',
     'id-scSlabStyle',
+     id-scStepGap',
 
     // FINISH — Tread
     'id-scTreadSrc', 'id-scTreadClr', 'id-scTreadImg',
