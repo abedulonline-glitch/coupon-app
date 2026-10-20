@@ -171,7 +171,7 @@
           <div style="font-size: 13px; font-weight: 600;">আমার খাতা</div>
           <div style="font-size: 11px; color: var(--mp-danger);">বাকি: <span id="cst-khata-due">₹0.00</span></div>
         </div>
-        <div class="mp-card" style="margin-bottom: 0; text-align: center; cursor: pointer;" onclick="alert('Orders Coming Soon')">
+        <div class="mp-card" style="margin-bottom: 0; text-align: center; cursor: pointer;" onclick="openCustomerOrdersModal()">
           <div style="font-size: 24px; margin-bottom: 5px;">📦</div>
           <div style="font-size: 13px; font-weight: 600;">আমার অর্ডার</div>
           <div style="font-size: 11px; color: var(--mp-text-light);">সব অর্ডার দেখুন</div>
@@ -493,34 +493,110 @@
     });
   }
 
-    window.placeOrder = async function(prodId, name, price, shopId, shopName) {
-    if(!confirm(`আপনি কি ₹${price} টাকায় "${name}" অর্ডার করতে চান?`)) return;
+      // গ্লোবাল ভেরিয়েবল পেমেন্টের জন্য
+  let tempOrderData = null;
+
+  // ১. পেমেন্ট মডাল ওপেন করা
+  window.placeOrder = function(prodId, name, price, shopId, shopName) {
+    tempOrderData = { prodId, name, price, shopId, shopName };
+    document.getElementById('pay-modal-amount').innerText = `₹${price}`;
+    document.getElementById('dlv-payment-modal').classList.add('active');
+  };
+
+  // ২. পেমেন্ট প্রসেস করা
+  window.processOrderPayment = async function(method) {
+    if (!tempOrderData) return;
     
-    // ৪ ডিজিটের র‍্যান্ডম OTP তৈরি
+    // ৪ ডিজিটের OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    
+    let paymentStatus = "pending";
+
     try {
+      if (method === 'wallet') {
+        const userRef = doc(db, "admins", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        const balance = userSnap.data().walletBalance || 0;
+        
+        if (balance < tempOrderData.price) {
+          alert("দুঃখিত, আপনার ওয়ালেটে পর্যাপ্ত ব্যালেন্স নেই!");
+          return;
+        }
+        
+        // ওয়ালেট থেকে টাকা কাটা
+        await updateDoc(userRef, { walletBalance: balance - tempOrderData.price });
+        paymentStatus = "paid";
+        document.getElementById('cst-wallet-balance').innerText = `₹${(balance - tempOrderData.price).toFixed(2)}`;
+
+      } else if (method === 'credit') {
+        paymentStatus = "due"; // খাতায় বাকি
+      } else if (method === 'cod') {
+        paymentStatus = "cod_pending"; // ক্যাশ অন ডেলিভারি
+      }
+
+      // অর্ডার ডেটাবেসে সেভ
       await addDoc(collection(db, "orders"), {
         customerId: currentUser.uid,
         customerName: document.getElementById('dlv-topbar-title').innerText.replace('🛵 ', ''),
-        shopId: shopId,
-        shopName: shopName,
-        productId: prodId,
-        productName: name,
-        price: price,
-        otp: otp, // OTP সেভ করা হলো
-        status: "pending", // pending -> bidding -> assigned -> delivered
+        shopId: tempOrderData.shopId,
+        shopName: tempOrderData.shopName,
+        productId: tempOrderData.prodId,
+        productName: tempOrderData.name,
+        price: tempOrderData.price,
+        otp: otp,
+        paymentMethod: method,
+        paymentStatus: paymentStatus,
+        status: "pending", 
         createdAt: serverTimestamp()
       });
       
-      // কাস্টমারকে OTP দেখানো (বাস্তবে এটি WhatsApp এ যাবে বা কাস্টমার ড্যাশবোর্ডে থাকবে)
-      alert(`অর্ডার সফলভাবে প্লেস হয়েছে!\n\n⚠️ ডেলিভারি বয়কে দেওয়ার জন্য আপনার OTP: ${otp}\n\n(ডেলিভারি বয়ের অর্ডারটি ডেলিভারি দেওয়ার আগে এই OTP তাকে জানাবেন)`);
+      document.getElementById('dlv-payment-modal').classList.remove('active');
       
-    } catch(e) {
-      alert("অর্ডার করতে সমস্যা হয়েছে।");
+      if(method === 'credit') {
+         alert(`অর্ডার প্লেস হয়েছে! এটি আপনার খাতায় যোগ হলো।\n\n⚠️ OTP: ${otp}`);
+      } else {
+         alert(`অর্ডার প্লেস হয়েছে!\n\n⚠️ ডেলিভারির জন্য OTP: ${otp}`);
+      }
+
+    } catch (e) {
       console.error(e);
+      alert("অর্ডার প্রসেস করতে সমস্যা হয়েছে!");
     }
-  }
+  };
+
+  // ৩. কাস্টমারের অর্ডার হিস্ট্রি
+  window.openCustomerOrdersModal = function() {
+    document.getElementById('dlv-customer-orders-modal').classList.add('active');
+    const list = document.getElementById('customer-orders-list');
+    
+    const q = query(collection(db, "orders"), where("customerId", "==", currentUser.uid));
+    onSnapshot(q, (snap) => {
+      if(snap.empty) {
+        list.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px;">আপনি এখনো কোনো অর্ডার করেননি।</div>';
+        return;
+      }
+      
+      let html = '';
+      snap.forEach(doc => {
+        const o = doc.data();
+        let statusColor = o.status === 'delivered' ? '#0f9d58' : '#f9a825';
+        
+        html += `
+          <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
+              <span>${o.productName}</span>
+              <span>₹${o.price}</span>
+            </div>
+            <div style="font-size:12px; color:#666; margin-bottom:5px;">🏪 ${o.shopName}</div>
+            <div style="display:flex; justify-content:space-between; font-size:12px;">
+              <span>Status: <b style="color:${statusColor};">${o.status.toUpperCase()}</b></span>
+              <span>Pay: ${o.paymentMethod.toUpperCase()} (${o.paymentStatus})</span>
+            </div>
+          </div>
+        `;
+      });
+      list.innerHTML = html;
+    });
+  };
   // ==================== Shopkeeper Functions ====================
   function renderShopProducts() {
     const list = document.getElementById('shop-product-list');
@@ -938,6 +1014,30 @@
       <div style="font-size: 12px;">মোট বাকি</div>
       <div style="font-size: 24px; font-weight: bold;" id="khata-total-due">₹0.00</div>
     </div>
+
+    <!-- Customer Order History Modal -->
+<div id="dlv-customer-orders-modal" class="dlv-modal-overlay">
+  <div class="dlv-modal-content" style="max-height: 85vh; overflow-y: auto;">
+    <span class="dlv-modal-close" onclick="document.getElementById('dlv-customer-orders-modal').classList.remove('active')">&times;</span>
+    <h3 style="margin-bottom: 15px; color: var(--mp-primary);">📦 আমার অর্ডার সমূহ</h3>
+    <div id="customer-orders-list">
+      <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Method Modal -->
+<div id="dlv-payment-modal" class="dlv-modal-overlay">
+  <div class="dlv-modal-content">
+    <h3 style="margin-bottom: 15px; color: var(--mp-primary); text-align: center;">পেমেন্ট মেথড সিলেক্ট করুন</h3>
+    <p style="text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 15px;" id="pay-modal-amount">₹0</p>
+    
+    <button class="mp-btn mp-btn-primary" onclick="processOrderPayment('wallet')" style="background: #0f9d58;">💳 ওয়ালেট থেকে পে করুন</button>
+    <button class="mp-btn" onclick="processOrderPayment('cod')" style="background: #f0f2f5; color: #333;">💵 ক্যাশ অন ডেলিভারি</button>
+    <button class="mp-btn" onclick="processOrderPayment('credit')" style="background: #fef7e0; color: #b06000;">📒 বাকি (খাতায় লিখুন)</button>
+    <button class="mp-btn" onclick="document.getElementById('dlv-payment-modal').classList.remove('active')" style="background: transparent; color: #999; margin-top: 10px;">বাতিল করুন</button>
+  </div>
+</div>
 
     <!-- ডাইনামিক খাতা লিস্ট -->
     <div id="khata-shop-list" style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
