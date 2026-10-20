@@ -217,6 +217,17 @@
           বর্তমানে কোনো নতুন অর্ডার নেই।
         </div>
       </div>
+          <!-- Shopkeeper Khata Section -->
+      <div class="mp-card">
+        <h3 style="justify-content: space-between;">
+          📒 দোকানের খাতা (বাকি)
+          <button class="mp-btn" style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: var(--mp-primary); color: white;" onclick="openShopKhataModal()">খাতা দেখুন</button>
+        </h3>
+        <div style="font-size: 13px; color: var(--mp-text-light);">
+          মোট বাকি: <strong id="shop-total-due" style="color: var(--mp-danger); font-size: 16px;">₹0.00</strong>
+        </div>
+      </div>
+      
     </div>
 
     <!-- ROLE: DELIVERY BOY DASHBOARD -->
@@ -363,10 +374,13 @@ function setupUIForRole(role, userData) {
     }
 
     // রোল অনুযায়ী ডেটা লোড
+       // ৫. রোল অনুযায়ী ডেটা লোড
     if (role === 'shopkeeper') {
       if (typeof renderShopProducts === 'function') renderShopProducts();
+      if (typeof loadShopTotalDue === 'function') loadShopTotalDue(); // এই নতুন লাইনটি যোগ করা হয়েছে
     } else if (role === 'customer') {
       if (typeof renderCustomerProducts === 'function') renderCustomerProducts();
+    }
       
       // === নতুন যোগ করা ওয়ালেট আপডেটের কোড ===
       if (userData) {
@@ -532,6 +546,19 @@ function setupUIForRole(role, userData) {
     });
   }
 
+    // দোকানদারের মোট বাকি লোড করা
+  async function loadShopTotalDue() {
+    try {
+      const q = query(collection(db, "orders"), where("shopId", "==", currentUser.uid), where("paymentStatus", "==", "due"));
+      const snap = await getDocs(q);
+      let total = 0;
+      snap.forEach(d => { total += d.data().price || 0; });
+      
+      const el = document.getElementById('shop-total-due');
+      if (el) el.innerText = `₹${total.toFixed(2)}`;
+    } catch(e) { console.error(e); }
+  }
+
   window.handleImagePreview = function(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -566,6 +593,84 @@ function setupUIForRole(role, userData) {
     }
   }
 
+   // ১. খাতা মডাল ওপেন করা
+  window.openShopKhataModal = async function() {
+    document.getElementById('dlv-shop-khata-modal').classList.add('active');
+    const listContainer = document.getElementById('shop-khata-list');
+    listContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>';
+    
+    try {
+      // এই দোকানের যেসব অর্ডার 'due' (বাকি) আছে, সেগুলো খোঁজা
+      const q = query(collection(db, "orders"), where("shopId", "==", currentUser.uid), where("paymentStatus", "==", "due"));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        listContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px;">বর্তমানে কোনো বাকি নেই।</div>';
+        return;
+      }
+
+      // কাস্টমার অনুযায়ী গ্রুপ করা
+      const customerDues = {};
+      snap.forEach(docSnap => {
+        const order = docSnap.data();
+        if(!customerDues[order.customerId]) {
+          customerDues[order.customerId] = { name: order.customerName, total: 0, orders: [] };
+        }
+        customerDues[order.customerId].total += order.price;
+        customerDues[order.customerId].orders.push(docSnap.id);
+      });
+
+      let html = '';
+      for (const custId in customerDues) {
+        const c = customerDues[custId];
+        html += `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; padding: 10px 0;">
+            <div>
+              <div style="font-size: 14px; font-weight: 600;">${c.name}</div>
+              <div style="font-size: 11px; color: var(--mp-danger); font-weight: bold;">বাকি: ₹${c.total}</div>
+            </div>
+            <button class="mp-btn" style="width: auto; margin: 0; padding: 6px 10px; background: var(--mp-success); color: white;" onclick="receivePayment('${custId}', ${c.total}, ${JSON.stringify(c.orders).replace(/"/g, '&quot;')})">টাকা বুঝেছি</button>
+          </div>
+        `;
+      }
+      listContainer.innerHTML = html;
+      
+    } catch (e) {
+      console.error(e);
+      listContainer.innerHTML = '<div style="text-align: center; color: red; font-size: 13px;">লোড করতে সমস্যা হয়েছে।</div>';
+    }
+  };
+
+  // ২. খাতা মডাল ক্লোজ করা
+  window.closeShopKhataModal = function() {
+    document.getElementById('dlv-shop-khata-modal').classList.remove('active');
+  };
+
+  // ৩. পেমেন্ট রিসিভ করা (অর্ডারগুলো Paid মার্ক করা)
+  window.receivePayment = async function(customerId, amount, orderIds) {
+    if(!confirm(`আপনি কি ₹${amount} টাকা বুঝে পেয়েছেন?`)) return;
+
+    try {
+      // অর্ডারগুলোর স্ট্যাটাস 'due' থেকে 'paid' এ আপডেট করা
+      for (const orderId of orderIds) {
+        await updateDoc(doc(db, "orders", orderId), {
+          paymentStatus: "paid",
+          paymentReceivedAt: serverTimestamp()
+        });
+      }
+      
+      alert("সফলভাবে পেমেন্ট রিসিভ হয়েছে!");
+      closeShopKhataModal();
+      
+      // টোটাল বাকি লিস্ট রিফ্রেশ করা
+      openShopKhataModal(); 
+
+    } catch (e) {
+      console.error(e);
+      alert("পেমেন্ট আপডেটে সমস্যা হয়েছে।");
+    }
+  };
+  
   window.saveNewProduct = async function() {
     const name = document.getElementById('add-p-name').value.trim();
     const category = document.getElementById('add-p-category').value;
@@ -838,7 +943,20 @@ function setupUIForRole(role, userData) {
   </div>
 </div>
 
-<!-- Add Product Modal (Shopkeeper) -->
+<!-- Shopkeeper Khata Modal -->
+<div id="dlv-shop-khata-modal" class="dlv-modal-overlay">
+  <div class="dlv-modal-content" style="max-height: 80vh; overflow-y: auto;">
+    <span class="dlv-modal-close" onclick="closeShopKhataModal()">&times;</span>
+    <h3 style="margin-bottom: 15px; color: var(--mp-primary);">📒 দোকানের খাতা</h3>
+    
+    <div id="shop-khata-list" style="border: 1px solid #eee; border-radius: 8px; padding: 10px;">
+      <!-- Customer due list will load here -->
+      <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
+    </div>
+  </div>
+</div>
+  
+  <!-- Add Product Modal (Shopkeeper) -->
 <div id="dlv-add-product-modal" class="dlv-modal-overlay">
   <div class="dlv-modal-content" style="max-height: 90vh; overflow-y: auto;">
     <span class="dlv-modal-close" onclick="closeAddProductModal()">&times;</span>
