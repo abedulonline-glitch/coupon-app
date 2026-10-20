@@ -354,18 +354,22 @@
     }
   }
 
-function setupUIForRole(role, userData) {
+  function setupUIForRole(role, userData) {
+    // ১. লোডার লুকানো এবং অ্যাপ দেখানো
     document.getElementById('dlv-loader').classList.add('mp-hidden');
     document.getElementById('mp-app').classList.remove('mp-hidden');
 
+    // ২. টপবার আপডেট
     document.getElementById('dlv-user-role').innerText = role.toUpperCase();
     document.getElementById('dlv-topbar-title').innerText = `🛵 ${userData.name || 'Delivery System'}`;
 
+    // ৩. সব ভিউ লুকিয়ে ফেলা
     ['customer', 'shopkeeper', 'delivery', 'manager', 'admin'].forEach(r => {
       const view = document.getElementById(`dlv-view-${r}`);
       if (view) view.classList.add('mp-hidden');
     });
 
+    // ৪. রোল অনুযায়ী নির্দিষ্ট ভিউ দেখানো
     const activeView = document.getElementById(`dlv-view-${role}`);
     if (activeView) {
       activeView.classList.remove('mp-hidden');
@@ -373,27 +377,28 @@ function setupUIForRole(role, userData) {
       document.getElementById('dlv-view-customer').classList.remove('mp-hidden');
     }
 
-    // রোল অনুযায়ী ডেটা লোড
-       // ৫. রোল অনুযায়ী ডেটা লোড
+    // ৫. রোল অনুযায়ী ডেটা লোড
     if (role === 'shopkeeper') {
       if (typeof renderShopProducts === 'function') renderShopProducts();
-      if (typeof loadShopTotalDue === 'function') loadShopTotalDue(); // এই নতুন লাইনটি যোগ করা হয়েছে
+      if (typeof loadShopTotalDue === 'function') loadShopTotalDue(); 
     } else if (role === 'customer') {
       if (typeof renderCustomerProducts === 'function') renderCustomerProducts();
-    }
       
-      // === নতুন যোগ করা ওয়ালেট আপডেটের কোড ===
+      // ওয়ালেট ব্যালেন্স আপডেট (Step 7)
       if (userData) {
-        document.getElementById('cst-wallet-balance').innerText = `₹${(userData.walletBalance || 0).toFixed(2)}`;
-        document.getElementById('cst-khata-due').innerText = `₹${(userData.khataDue || 0).toFixed(2)}`;
+        const balanceEl = document.getElementById('cst-wallet-balance');
+        const khataEl = document.getElementById('cst-khata-due');
+        if (balanceEl) balanceEl.innerText = `₹${(userData.walletBalance || 0).toFixed(2)}`;
+        if (khataEl) khataEl.innerText = `₹${(userData.khataDue || 0).toFixed(2)}`;
       }
-      // =======================================
-      
     } else if (role === 'delivery') {
-      document.getElementById('dlv-offline-msg').style.display = 'block';
-      document.getElementById('dlv-live-orders-container').style.display = 'none';
+      // ডেলিভারি বয়ের অফলাইন স্ক্রিন (Step 4)
+      const offlineMsg = document.getElementById('dlv-offline-msg');
+      const ordersContainer = document.getElementById('dlv-live-orders-container');
+      if (offlineMsg) offlineMsg.style.display = 'block';
+      if (ordersContainer) ordersContainer.style.display = 'none';
     }
-}
+  }
 
   window.handleLogout = async function() {
     if (!confirm('লগআউট করবেন?')) return;
