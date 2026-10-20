@@ -58,6 +58,34 @@
 
   /* Dashboard Specific */
   .dlv-dashboard-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--mp-primary); }
+
+  /* ============================================================
+     STEP 2 ADDITIONS: MODALS & PRODUCT GRID
+     ============================================================ */
+  
+  /* Modals */
+  .dlv-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: none; justify-content: center; align-items: center; padding: 20px; }
+  .dlv-modal-overlay.active { display: flex; }
+  .dlv-modal-content { background: white; border-radius: 14px; width: 100%; max-width: 400px; padding: 20px; position: relative; animation: slideUp 0.3s ease-out; }
+  .dlv-modal-close { position: absolute; top: 15px; right: 15px; font-size: 24px; color: #666; cursor: pointer; }
+  
+  /* Product Grid */
+  .dlv-search-box { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; font-size: 14px; margin-bottom: 15px; }
+  .dlv-category-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; scrollbar-width: none; }
+  .dlv-category-chips::-webkit-scrollbar { display: none; }
+  .dlv-chip { padding: 8px 16px; background: #f1f3f4; border-radius: 20px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+  .dlv-chip.active { background: var(--mp-primary); color: white; }
+  
+  .dlv-product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dlv-product-card { background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; }
+  .dlv-product-img { width: 100%; height: 100px; background: #f0f2f5; border-radius: 8px; object-fit: cover; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; font-size: 30px; }
+  .dlv-product-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .dlv-product-price { font-size: 14px; font-weight: bold; color: var(--mp-primary); margin-bottom: 2px; }
+  .dlv-product-shop { font-size: 10px; color: var(--mp-text-light); margin-bottom: 8px; }
+  .dlv-add-btn { background: #e8f0fe; color: var(--mp-primary); border: none; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: auto; }
+  
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  
 </style>
 </head>
 <body>
@@ -84,24 +112,45 @@
     
     <!-- ROLE: CUSTOMER DASHBOARD -->
     <div id="dlv-view-customer" class="mp-hidden">
+      
+      <!-- Wallet -->
       <div class="dlv-wallet-header">
         <div>
           <div style="font-size: 12px; opacity: 0.9;">আমার ওয়ালেট ব্যালেন্স</div>
           <div class="dlv-wallet-balance" id="cst-wallet-balance">₹0.00</div>
         </div>
-        <button class="mp-btn" style="width: auto; margin: 0; background: white; color: var(--mp-primary);" onclick="alert('Recharge Modal Coming in Next Step')">+ Add Money</button>
+        <button class="mp-btn" style="width: auto; margin: 0; background: white; color: var(--mp-primary);" onclick="openRechargeModal()">+ Add Money</button>
       </div>
       
-      <div class="mp-card">
-        <h3>🛒 কুইক অর্ডার</h3>
-        <p style="font-size: 13px; color: var(--mp-text-light); margin-bottom: 15px;">আপনার নিকটবর্তী সেরা দোকান থেকে অর্ডার করুন।</p>
-        <button class="mp-btn mp-btn-primary" onclick="alert('Product List Coming Soon')">সব প্রোডাক্ট দেখুন</button>
+      <!-- Quick Actions -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+        <div class="mp-card" style="margin-bottom: 0; text-align: center; cursor: pointer;" onclick="openKhataModal()">
+          <div style="font-size: 24px; margin-bottom: 5px;">📒</div>
+          <div style="font-size: 13px; font-weight: 600;">আমার খাতা</div>
+          <div style="font-size: 11px; color: var(--mp-danger);">বাকি: <span id="cst-khata-due">₹0.00</span></div>
+        </div>
+        <div class="mp-card" style="margin-bottom: 0; text-align: center; cursor: pointer;" onclick="alert('Orders Coming Soon')">
+          <div style="font-size: 24px; margin-bottom: 5px;">📦</div>
+          <div style="font-size: 13px; font-weight: 600;">আমার অর্ডার</div>
+          <div style="font-size: 11px; color: var(--mp-text-light);">সব অর্ডার দেখুন</div>
+        </div>
       </div>
 
+      <!-- Product Browsing -->
       <div class="mp-card">
-        <h3>📒 আমার খাতা (Credit)</h3>
-        <p style="font-size: 13px; color: var(--mp-text-light); margin-bottom: 10px;">মোট বাকি: <strong id="cst-khata-due">₹0.00</strong></p>
-        <button class="mp-btn" style="background: #f0f2f5; color: #202124;" onclick="alert('Khata Details Coming Soon')">খাতার বিবরণ দেখুন</button>
+        <h3>🛒 প্রোডাক্ট এক্সপ্লোর করুন</h3>
+        <input type="text" class="dlv-search-box" placeholder="🔍 প্রোডাক্ট বা দোকান খুঁজুন...">
+        
+        <div class="dlv-category-chips">
+          <div class="dlv-chip active">সব</div>
+          <div class="dlv-chip">মুদি (Grocery)</div>
+          <div class="dlv-chip">টাইলস ও মার্বেল</div>
+          <div class="dlv-chip">ফার্নিচার</div>
+        </div>
+        
+        <div class="dlv-product-grid" id="cst-product-grid">
+          <!-- Product Cards will load here via JS -->
+        </div>
       </div>
     </div>
 
@@ -245,6 +294,57 @@
     }
   }
 
+  // ==================== CUSTOMER FUNCTIONS (STEP 2) ====================
+  
+  // ডামি প্রোডাক্ট ডেটা (পরবর্তীতে Firebase থেকে আসবে)
+  const dummyProducts = [
+    { id: 1, name: 'মিনিকেট চাল (৫ কেজি)', price: 350, shop: 'রহিম স্টোর', icon: '🍚' },
+    { id: 2, name: 'সয়াবিন তেল (১ লিটার)', price: 160, shop: 'করিম স্টোর', icon: '🛢️' },
+    { id: 3, name: 'ডাল (১ কেজি)', price: 120, shop: 'আলী স্টোর', icon: '🥣' },
+    { id: 4, name: 'চিনি (১ কেজি)', price: 55, shop: 'রহিম স্টোর', icon: '🍬' }
+  ];
+
+  function renderCustomerProducts() {
+    const grid = document.getElementById('cst-product-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    dummyProducts.forEach(prod => {
+      grid.innerHTML += `
+        <div class="dlv-product-card">
+          <div class="dlv-product-img">${prod.icon}</div>
+          <div class="dlv-product-name">${prod.name}</div>
+          <div class="dlv-product-shop">🏪 ${prod.shop}</div>
+          <div class="dlv-product-price">₹${prod.price}</div>
+          <button class="dlv-add-btn" onclick="addToCart(${prod.id})">+ Add</button>
+        </div>
+      `;
+    });
+  }
+
+  window.addToCart = function(id) {
+    // পরবর্তীতে কার্ট সিস্টেম এখানে যুক্ত হবে
+    alert('প্রোডাক্ট কার্টে যোগ করা হয়েছে! (কার্ট সিস্টেম ডেভেলপমেন্টের অধীনে)');
+  };
+
+  // ==================== MODALS ====================
+  
+  window.openRechargeModal = function() {
+    document.getElementById('dlv-recharge-modal').classList.add('active');
+  };
+
+  window.closeRechargeModal = function() {
+    document.getElementById('dlv-recharge-modal').classList.remove('active');
+  };
+
+  window.openKhataModal = function() {
+    document.getElementById('dlv-khata-modal').classList.add('active');
+  };
+
+  window.closeKhataModal = function() {
+    document.getElementById('dlv-khata-modal').classList.remove('active');
+  };
+  
   // ==================== LOGOUT ====================
   window.handleLogout = async function() {
     if (!confirm('লগআউট করবেন?')) return;
@@ -256,6 +356,52 @@
     }
   };
 </script>
+
+<!-- ==================== MODALS (STEP 2) ==================== -->
+
+<!-- Recharge Modal -->
+<div id="dlv-recharge-modal" class="dlv-modal-overlay">
+  <div class="dlv-modal-content">
+    <span class="dlv-modal-close" onclick="closeRechargeModal()">&times;</span>
+    <h3 style="margin-bottom: 15px; color: var(--mp-primary);">💰 ওয়ালেট রিচার্জ</h3>
+    
+    <label style="font-size: 12px; font-weight: 600; color: #555;">পরিমাণ (₹)</label>
+    <input type="number" placeholder="যেমন: 500" style="width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; margin: 5px 0 15px 0; font-size: 16px; font-weight: bold;">
+    
+    <div style="text-align: center; margin-bottom: 15px;">
+      <div style="width: 150px; height: 150px; background: #f0f2f5; margin: 0 auto; display: flex; justify-content: center; align-items: center; border: 2px dashed #ccc; border-radius: 10px;">
+        <span style="font-size: 40px;">QR</span>
+        <!-- এখানে UPI QR কোড বসবে -->
+      </div>
+      <p style="font-size: 12px; color: #666; margin-top: 8px;">UPI অ্যাপ দিয়ে স্ক্যান করুন</p>
+    </div>
+
+    <button class="mp-btn mp-btn-primary" onclick="alert('পেমেন্ট ভেরিফিকেশন সিস্টেম পরবর্তী স্টেপে যুক্ত হবে।'); closeRechargeModal();">পেমেন্ট সম্পন্ন হয়েছে</button>
+  </div>
+</div>
+
+<!-- Khata Modal -->
+<div id="dlv-khata-modal" class="dlv-modal-overlay">
+  <div class="dlv-modal-content">
+    <span class="dlv-modal-close" onclick="closeKhataModal()">&times;</span>
+    <h3 style="margin-bottom: 15px; color: var(--mp-primary);">📒 আমার খাতা (বাকি)</h3>
+    
+    <div style="background: #fce8e6; color: var(--mp-danger); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
+      <div style="font-size: 12px;">মোট বাকি</div>
+      <div style="font-size: 24px; font-weight: bold;">₹500.00</div>
+    </div>
+
+    <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span style="font-size: 14px; font-weight: 600;">রহিম স্টোর</span>
+        <span style="font-size: 14px; color: var(--mp-danger); font-weight: bold;">₹500</span>
+      </div>
+      <div style="font-size: 11px; color: #666;">শেষ বাকি: ১০ অক্টোবর, ২০২৬</div>
+    </div>
+
+    <button class="mp-btn mp-btn-success" onclick="alert('খাতা শোধ করার সিস্টেম পরবর্তী স্টেপে যুক্ত হবে।'); closeKhataModal();">টাকা পরিশোধ করুন</button>
+  </div>
+</div>
 
 </body>
 </html>
