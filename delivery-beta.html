@@ -307,7 +307,7 @@
   import { auth, db } from './firebase-config-beta.js';
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { 
-    doc, getDoc, collection, addDoc, onSnapshot, query, where, updateDoc, serverTimestamp 
+    doc, getDoc,getDocs, collection, addDoc, onSnapshot, query, where, updateDoc, serverTimestamp 
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { initLanguage, applyTranslations } from './i18n.js';
 
@@ -580,6 +580,11 @@
         const o = doc.data();
         let statusColor = o.status === 'delivered' ? '#0f9d58' : '#f9a825';
         
+        // পুরোনো ডেটার জন্য ডিফল্ট ভ্যালু সেট করা (Safe Check)
+        const orderStatus = o.status ? o.status.toUpperCase() : 'PENDING';
+        const payMethod = o.paymentMethod ? o.paymentMethod.toUpperCase() : 'COD';
+        const payStatus = o.paymentStatus || 'pending';
+        
         html += `
           <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
             <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
@@ -588,8 +593,8 @@
             </div>
             <div style="font-size:12px; color:#666; margin-bottom:5px;">🏪 ${o.shopName}</div>
             <div style="display:flex; justify-content:space-between; font-size:12px;">
-              <span>Status: <b style="color:${statusColor};">${o.status.toUpperCase()}</b></span>
-              <span>Pay: ${o.paymentMethod.toUpperCase()} (${o.paymentStatus})</span>
+              <span>Status: <b style="color:${statusColor};">${orderStatus}</b></span>
+              <span>Pay: ${payMethod} (${payStatus})</span>
             </div>
           </div>
         `;
