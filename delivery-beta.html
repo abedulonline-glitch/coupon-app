@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛵 Hyperlocal Delivery System</title>
+
+<!-- Imports -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<style>
+  /* ============================================================
+     MARKETPLACE & DELIVERY APP STYLES (Prefixed with mp-/dlv-)
+     ============================================================ */
+  :root {
+    --mp-primary: #1a73e8;
+    --mp-success: #0f9d58;
+    --mp-danger: #d93025;
+    --mp-warning: #f9a825;
+    --mp-bg: #f0f2f5;
+    --mp-card-bg: #ffffff;
+    --mp-text: #202124;
+    --mp-text-light: #5f6368;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--mp-bg); color: var(--mp-text); min-height: 100vh; padding-bottom: 80px; }
+  
+  /* Loader */
+  #dlv-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; justify-content: center; align-items: center; z-index: 9999; flex-direction: column; }
+  .dlv-spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--mp-primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* Topbar */
+  .mp-topbar { background: linear-gradient(135deg, var(--mp-primary), #4285f4); color: white; padding: 12px 14px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .mp-topbar h2 { font-size: 15px; font-weight: 600; }
+  
+  /* Layout */
+  .mp-container { padding: 14px; max-width: 750px; margin: 0 auto; }
+  
+  /* Cards */
+  .mp-card { background: var(--mp-card-bg); border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .mp-card h3 { font-size: 15px; color: var(--mp-text); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  
+  /* Wallet Header */
+  .dlv-wallet-header { background: linear-gradient(135deg, #1a73e8, #4285f4); color: white; padding: 20px; border-radius: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .dlv-wallet-balance { font-size: 24px; font-weight: bold; margin-top: 4px; }
+  
+  /* Buttons */
+  .mp-btn { border: none; padding: 11px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; width: 100%; margin-bottom: 10px; }
+  .mp-btn-primary { background: var(--mp-primary); color: white; }
+  .mp-btn-success { background: var(--mp-success); color: white; }
+  .mp-btn-danger { background: var(--mp-danger); color: white; }
+  
+  /* Hidden utility */
+  .mp-hidden { display: none !important; }
+
+  /* Dashboard Specific */
+  .dlv-dashboard-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: var(--mp-primary); }
+</style>
+</head>
+<body>
+
+<!-- Loader -->
+<div id="dlv-loader">
+  <div class="dlv-spinner"></div>
+  <div style="color: var(--mp-text-light); font-size: 14px;" data-t="loading">অপেক্ষা করুন...</div>
+</div>
+
+<!-- Main App Container -->
+<div id="mp-app" class="mp-hidden">
+
+  <!-- Topbar -->
+  <div class="mp-topbar">
+    <h2 id="dlv-topbar-title">🛵 Delivery System</h2>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span id="dlv-user-role" style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">Role</span>
+      <button onclick="handleLogout()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">Logout</button>
+    </div>
+  </div>
+
+  <div class="mp-container">
+    
+    <!-- ROLE: CUSTOMER DASHBOARD -->
+    <div id="dlv-view-customer" class="mp-hidden">
+      <div class="dlv-wallet-header">
+        <div>
+          <div style="font-size: 12px; opacity: 0.9;">আমার ওয়ালেট ব্যালেন্স</div>
+          <div class="dlv-wallet-balance" id="cst-wallet-balance">₹0.00</div>
+        </div>
+        <button class="mp-btn" style="width: auto; margin: 0; background: white; color: var(--mp-primary);" onclick="alert('Recharge Modal Coming in Next Step')">+ Add Money</button>
+      </div>
+      
+      <div class="mp-card">
+        <h3>🛒 কুইক অর্ডার</h3>
+        <p style="font-size: 13px; color: var(--mp-text-light); margin-bottom: 15px;">আপনার নিকটবর্তী সেরা দোকান থেকে অর্ডার করুন।</p>
+        <button class="mp-btn mp-btn-primary" onclick="alert('Product List Coming Soon')">সব প্রোডাক্ট দেখুন</button>
+      </div>
+
+      <div class="mp-card">
+        <h3>📒 আমার খাতা (Credit)</h3>
+        <p style="font-size: 13px; color: var(--mp-text-light); margin-bottom: 10px;">মোট বাকি: <strong id="cst-khata-due">₹0.00</strong></p>
+        <button class="mp-btn" style="background: #f0f2f5; color: #202124;" onclick="alert('Khata Details Coming Soon')">খাতার বিবরণ দেখুন</button>
+      </div>
+    </div>
+
+    <!-- ROLE: SHOPKEEPER DASHBOARD -->
+    <div id="dlv-view-shopkeeper" class="mp-hidden">
+      <div class="dlv-dashboard-title">দোকানদার ড্যাশবোর্ড</div>
+      
+      <div class="mp-card">
+        <h3>📦 নতুন অর্ডার</h3>
+        <div id="shop-new-orders" style="font-size: 13px; color: var(--mp-text-light); text-align: center; padding: 20px;">
+          বর্তমানে কোনো নতুন অর্ডার নেই।
+        </div>
+      </div>
+
+      <div class="mp-card">
+        <h3>💼 আমার ব্যবসা</h3>
+        <button class="mp-btn mp-btn-success" onclick="alert('Add Product Coming Soon')">➕ নতুন প্রোডাক্ট যোগ করুন</button>
+        <button class="mp-btn" style="background: #e8f0fe; color: var(--mp-primary);" onclick="alert('Bulk Upload Coming Soon')">📊 Excel/Bulk আপলোড</button>
+      </div>
+    </div>
+
+    <!-- ROLE: DELIVERY BOY DASHBOARD -->
+    <div id="dlv-view-delivery" class="mp-hidden">
+      <div class="dlv-dashboard-title">ডেলিভারি বয় ড্যাশবোর্ড</div>
+      
+      <div class="dlv-wallet-header" style="background: linear-gradient(135deg, #0f9d58, #14b866);">
+        <div>
+          <div style="font-size: 12px; opacity: 0.9;">আজকের আয়</div>
+          <div class="dlv-wallet-balance" id="dlv-today-earnings">₹0.00</div>
+        </div>
+      </div>
+
+      <div class="mp-card">
+        <h3>🔔 লাইভ অর্ডার (বিড করুন)</h3>
+        <div id="dlv-live-orders" style="text-align: center; padding: 20px; color: var(--mp-text-light); font-size: 13px;">
+          বর্তমানে কোনো অর্ডার নেই।
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLE: MANAGER DASHBOARD -->
+    <div id="dlv-view-manager" class="mp-hidden">
+      <div class="dlv-dashboard-title">ম্যানেজার প্যানেল</div>
+      <div class="mp-card">
+        <h3>📊 লাইভ স্ট্যাটাস</h3>
+        <p style="font-size: 13px; color: var(--mp-text-light);">ম্যানেজার প্যানেল ডেভেলপমেন্টের অধীনে আছে।</p>
+      </div>
+    </div>
+
+    <!-- ROLE: ADMIN DASHBOARD -->
+    <div id="dlv-view-admin" class="mp-hidden">
+      <div class="dlv-dashboard-title">অ্যাডমিন প্যানেল</div>
+      <div class="mp-card">
+        <h3>💰 সিস্টেম রেভিনিউ</h3>
+        <p style="font-size: 13px; color: var(--mp-text-light);">অ্যাডমিন কন্ট্রোল প্যানেল ডেভেলপমেন্টের অধীনে আছে।</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  // ============================================================
+  // DELIVERY APP - STEP 1: FOUNDATION & AUTH
+  // ============================================================
+  
+  // আপনার বর্তমান Firebase কনফিগ ইমপোর্ট
+  import { auth, db } from './firebase-config-beta.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { initLanguage, applyTranslations } from './i18n.js';
+
+  // State Variables
+  let currentUser = null;
+  let userRole = null;
+
+  // Init i18n
+  initLanguage();
+  applyTranslations();
+
+  // ==================== AUTHENTICATION ====================
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      currentUser = user;
+      console.log("Logged in as:", user.email);
+      await fetchUserRole(user.uid);
+    } else {
+      console.log("No user logged in. Redirecting...");
+      // beta.html-এ লগইন পেজে রিডাইরেক্ট করবে (আপনার প্রজেক্টের মূল লগইন)
+      window.location.href = 'beta.html';
+    }
+  });
+
+  async function fetchUserRole(uid) {
+    try {
+      // ডেটাবেসে admins কালেকশনে ইউজারের রোল চেক করা
+      const userRef = doc(db, "admins", uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        
+        // Role check (Admin, Manager, Shopkeeper, Delivery)
+        userRole = userData.role || 'customer'; // Fallback to customer
+        
+        // For testing if role is admin/customer
+        setupUIForRole(userRole, userData);
+      } else {
+        console.warn("User document not found, defaulting to Customer.");
+        userRole = 'customer';
+        setupUIForRole('customer', { name: 'Guest' });
+      }
+    } catch (error) {
+      console.error("Error fetching role:", error);
+      alert("সিস্টেমে সমস্যা হচ্ছে। দয়া করে আবার চেষ্টা করুন।");
+    }
+  }
+
+  function setupUIForRole(role, userData) {
+    // ১. লোডার লুকানো এবং অ্যাপ দেখানো
+    document.getElementById('dlv-loader').classList.add('mp-hidden');
+    document.getElementById('mp-app').classList.remove('mp-hidden');
+
+    // ২. টপবার আপডেট
+    document.getElementById('dlv-user-role').innerText = role.toUpperCase();
+    document.getElementById('dlv-topbar-title').innerText = `🛵 ${userData.name || 'Delivery System'}`;
+
+    // ৩. সব ভিউ লুকিয়ে ফেলা
+    ['customer', 'shopkeeper', 'delivery', 'manager', 'admin'].forEach(r => {
+      const view = document.getElementById(`dlv-view-${r}`);
+      if (view) view.classList.add('mp-hidden');
+    });
+
+    // ৪. রোল অনুযায়ী নির্দিষ্ট ভিউ দেখানো
+    const activeView = document.getElementById(`dlv-view-${role}`);
+    if (activeView) {
+      activeView.classList.remove('mp-hidden');
+    } else {
+      // যদি ডিফল্ট কোনো রোল না মেলে, তবে কাস্টমার ভিউ দেখাবে
+      document.getElementById('dlv-view-customer').classList.remove('mp-hidden');
+    }
+  }
+
+  // ==================== LOGOUT ====================
+  window.handleLogout = async function() {
+    if (!confirm('লগআউট করবেন?')) return;
+    try {
+      await signOut(auth);
+      window.location.href = 'beta.html';
+    } catch (e) {
+      alert('লগআউট করতে সমস্যা হচ্ছে: ' + e.message);
+    }
+  };
+</script>
+
+</body>
+</html>
