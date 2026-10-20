@@ -249,6 +249,14 @@
           <!-- Orders will load here -->
         </div>
       </div>
+
+            <!-- Active Delivery Section (Step 6) -->
+      <div class="mp-card" id="dlv-active-order-container" style="display: none; border: 2px solid var(--mp-success);">
+        <h3 style="color: var(--mp-success);">🚀 চলমান ডেলিভারি</h3>
+        <div id="dlv-active-order-details">
+          <!-- Active order details will load here -->
+        </div>
+      </div>
       
       <!-- Offline Message -->
       <div class="mp-card" id="dlv-offline-msg" style="text-align: center; padding: 30px;">
@@ -288,8 +296,7 @@
   import { auth, db } from './firebase-config-beta.js';
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { 
-    doc, getDoc, 
-    collection, addDoc, onSnapshot, query, where, updateDoc, serverTimestamp 
+    doc, getDoc, collection, addDoc, onSnapshot, query, where, updateDoc, serverTimestamp 
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { initLanguage, applyTranslations } from './i18n.js';
 
@@ -420,8 +427,11 @@
     });
   }
 
-  window.placeOrder = async function(prodId, name, price, shopId, shopName) {
+    window.placeOrder = async function(prodId, name, price, shopId, shopName) {
     if(!confirm(`আপনি কি ₹${price} টাকায় "${name}" অর্ডার করতে চান?`)) return;
+    
+    // ৪ ডিজিটের র‍্যান্ডম OTP তৈরি
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
     
     try {
       await addDoc(collection(db, "orders"), {
@@ -432,16 +442,19 @@
         productId: prodId,
         productName: name,
         price: price,
-        status: "pending", 
+        otp: otp, // OTP সেভ করা হলো
+        status: "pending", // pending -> bidding -> assigned -> delivered
         createdAt: serverTimestamp()
       });
-      alert("অর্ডার সফলভাবে প্লেস হয়েছে!");
+      
+      // কাস্টমারকে OTP দেখানো (বাস্তবে এটি WhatsApp এ যাবে বা কাস্টমার ড্যাশবোর্ডে থাকবে)
+      alert(`অর্ডার সফলভাবে প্লেস হয়েছে!\n\n⚠️ ডেলিভারি বয়কে দেওয়ার জন্য আপনার OTP: ${otp}\n\n(ডেলিভারি বয়ের অর্ডারটি ডেলিভারি দেওয়ার আগে এই OTP তাকে জানাবেন)`);
+      
     } catch(e) {
       alert("অর্ডার করতে সমস্যা হয়েছে।");
       console.error(e);
     }
   }
-
   // ==================== Shopkeeper Functions ====================
   function renderShopProducts() {
     const list = document.getElementById('shop-product-list');
@@ -549,11 +562,14 @@
   };
 
   // ==================== Delivery Boy Functions ====================
+  let unsubscribeOrders = null; 
+
   window.toggleDeliveryStatus = function(checkbox) {
     isOnline = checkbox.checked;
     const statusText = document.getElementById('dlv-online-status');
     const ordersContainer = document.getElementById('dlv-live-orders-container');
     const offlineMsg = document.getElementById('dlv-offline-msg');
+    const activeOrderContainer = document.getElementById('dlv-active-order-container'); // নতুন সেকশন
 
     if (isOnline) {
       statusText.innerHTML = '🟢 অনলাইন';
@@ -561,43 +577,84 @@
       ordersContainer.style.display = 'block';
       offlineMsg.style.display = 'none';
       
-      const q = query(collection(db, "orders"), where("status", "==", "pending"));
+      // ডেটাবেস থেকে pending, bidding এবং assigned অর্ডারগুলো লিসেন করা
+      const q = query(collection(db, "orders"), where("status", "in", ["pending", "bidding", "assigned"]));
+      
       unsubscribeOrders = onSnapshot(q, (snapshot) => {
         const ordersList = document.getElementById('dlv-live-orders');
-        ordersList.innerHTML = '';
-        if(snapshot.empty) {
-           ordersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">বর্তমানে কোনো নতুন অর্ডার নেই।</div>';
-           return;
-        }
+        const activeDetails = document.getElementById('dlv-active-order-details');
+        
+        let liveOrdersHtml = '';
+        let activeOrderHtml = '';
+        let hasActiveOrder = false;
+        
         snapshot.forEach(docSnap => {
           const order = docSnap.data();
-          ordersList.innerHTML += `
-            <div class="dlv-live-card" id="live-card-${docSnap.id}">
-              <h4>📦 ${order.productName}</h4>
-              <div class="dlv-live-info">
-                <span>🏪 পিকআপ: ${order.shopName}</span>
-              </div>
-              <div class="dlv-live-info">
-                <span>📍 ড্রপ: কাস্টমার লোকেশন</span>
-              </div>
-              <div class="dlv-bidding-area">
-                <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
-                  <span>প্রোডাক্ট দাম: ₹${order.price}</span>
+          const orderId = docSnap.id;
+
+          // ১. লাইভ অর্ডার (যেগুলো এখনো কেউ নেয়নি)
+          if (order.status === 'pending') {
+            liveOrdersHtml += `
+              <div class="dlv-live-card" id="live-card-${orderId}">
+                <h4>📦 ${order.productName}</h4>
+                <div class="dlv-live-info">
+                  <span>🏪 পিকআপ: ${order.shopName}</span>
                 </div>
-                <div class="dlv-bid-input-group">
-                  <input type="number" id="bid-input-${docSnap.id}" placeholder="ডেলিভারি চার্জ ₹" min="10">
-                  <button onclick="placeBid('${docSnap.id}')">বিড করুন</button>
+                <div class="dlv-live-info">
+                  <span>📍 ড্রপ: কাস্টমার লোকেশন</span>
+                </div>
+                <div class="dlv-bidding-area">
+                  <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
+                    <span>প্রোডাক্ট দাম: ₹${order.price}</span>
+                  </div>
+                  <div class="dlv-bid-input-group">
+                    <input type="number" id="bid-input-${orderId}" placeholder="ডেলিভারি চার্জ ₹" min="10">
+                    <button onclick="placeBid('${orderId}')">বিড করুন</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          `;
+            `;
+          }
+          
+          // ২. অ্যাক্টিভ অর্ডার (যেগুলো এই ডেলিভারি বয় নিজে বিড করেছে)
+          else if (order.status === 'bidding' && order.deliveryBoyId === currentUser.uid) {
+            hasActiveOrder = true;
+            activeOrderHtml += `
+              <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--mp-success);">
+                <h4>📦 ${order.productName} (${order.shopName})</h4>
+                <p style="font-size: 12px; margin: 5px 0;">কাস্টমার: ${order.customerName}</p>
+                <p style="font-size: 12px; color: var(--mp-danger); font-weight: bold;">ডেলিভারি চার্জ: ₹${order.deliveryCharge}</p>
+                
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                  <button class="mp-btn mp-btn-primary" style="flex:1; margin:0;" onclick="alert('Google maps location here')">📍 ম্যাপ</button>
+                  <button class="mp-btn mp-btn-success" style="flex:1; margin:0;" onclick="promptOTP('${orderId}')">✅ Delivered</button>
+                </div>
+              </div>
+            `;
+          }
         });
+        
+        // UI তে রেন্ডার করা
+        if(liveOrdersHtml === '') {
+           ordersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">বর্তমানে কোনো নতুন অর্ডার নেই।</div>';
+        } else {
+           ordersList.innerHTML = liveOrdersHtml;
+        }
+
+        if (hasActiveOrder) {
+          activeOrderContainer.style.display = 'block';
+          activeDetails.innerHTML = activeOrderHtml;
+        } else {
+          activeOrderContainer.style.display = 'none';
+        }
       });
+
     } else {
       statusText.innerHTML = '🔴 অফলাইন';
       statusText.style.color = 'var(--mp-danger)';
       ordersContainer.style.display = 'none';
       offlineMsg.style.display = 'block';
+      if (activeOrderContainer) activeOrderContainer.style.display = 'none';
       if (unsubscribeOrders) unsubscribeOrders();
     }
   };
@@ -621,21 +678,49 @@
         deliveryCharge: bidAmount,
         updatedAt: serverTimestamp()
       });
+      
+      // ওনার UI আপডেট হবে onSnapshot এর মাধ্যমে, তাই এখানে ম্যানুয়ালি DOM চেঞ্জ করার দরকার নেই।
 
-      const card = document.getElementById(`live-card-${orderId}`);
-      if(card) {
-        card.className = 'dlv-accepted-card';
-        card.innerHTML = `
-          <div style="font-size: 30px; margin-bottom: 5px;">✅</div>
-          <h4 style="color: var(--mp-success);">বিড অ্যাক্সেপ্টেড!</h4>
-          <p style="font-size: 13px; margin-top: 5px;">ডেলিভারি চার্জ: ₹${bidAmount}</p>
-        `;
-      }
     } catch (e) {
       alert("বিড করতে সমস্যা হয়েছে।");
       console.error(e);
     }
   };
+
+  window.promptOTP = async function(orderId) {
+    const enteredOtp = prompt("কাস্টমারের কাছ থেকে ৪ ডিজিটের OTP দিন:");
+    if (!enteredOtp) return;
+
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      const orderSnap = await getDoc(orderRef);
+      
+      if (orderSnap.exists()) {
+        const orderData = orderSnap.data();
+        
+        if (orderData.otp === enteredOtp) {
+          await updateDoc(orderRef, {
+            status: "delivered",
+            deliveredAt: serverTimestamp()
+          });
+          
+          alert("🎉 সফলভাবে ডেলিভারি সম্পন্ন হয়েছে!");
+          
+          // আয় আপডেট
+          let currentEarning = parseFloat(document.getElementById('dlv-today-earnings').innerText.replace('₹', '')) || 0;
+          currentEarning += (orderData.deliveryCharge || 0);
+          document.getElementById('dlv-today-earnings').innerText = `₹${currentEarning.toFixed(2)}`;
+          
+        } else {
+          alert("❌ ভুল OTP! কাস্টমারের কাছ থেকে আবার চেক করুন।");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      alert("ডেলিভারি কনফার্ম করতে সমস্যা হয়েছে।");
+    }
+  };
+  
 </script>
 
 <!-- ==================== MODALS (STEP 2) ==================== -->
