@@ -343,7 +343,7 @@
     }
   }
 
-  function setupUIForRole(role, userData) {
+function setupUIForRole(role, userData) {
     document.getElementById('dlv-loader').classList.add('mp-hidden');
     document.getElementById('mp-app').classList.remove('mp-hidden');
 
@@ -367,11 +367,19 @@
       if (typeof renderShopProducts === 'function') renderShopProducts();
     } else if (role === 'customer') {
       if (typeof renderCustomerProducts === 'function') renderCustomerProducts();
+      
+      // === নতুন যোগ করা ওয়ালেট আপডেটের কোড ===
+      if (userData) {
+        document.getElementById('cst-wallet-balance').innerText = `₹${(userData.walletBalance || 0).toFixed(2)}`;
+        document.getElementById('cst-khata-due').innerText = `₹${(userData.khataDue || 0).toFixed(2)}`;
+      }
+      // =======================================
+      
     } else if (role === 'delivery') {
       document.getElementById('dlv-offline-msg').style.display = 'block';
       document.getElementById('dlv-live-orders-container').style.display = 'none';
     }
-  }
+}
 
   window.handleLogout = async function() {
     if (!confirm('লগআউট করবেন?')) return;
@@ -386,7 +394,46 @@
   // ==================== Modals ====================
   window.openRechargeModal = function() { document.getElementById('dlv-recharge-modal').classList.add('active'); };
   window.closeRechargeModal = function() { document.getElementById('dlv-recharge-modal').classList.remove('active'); };
-  window.openKhataModal = function() { document.getElementById('dlv-khata-modal').classList.add('active'); };
+    window.openKhataModal = async function() {
+    document.getElementById('dlv-khata-modal').classList.add('active');
+    const listContainer = document.getElementById('khata-shop-list');
+    const totalEl = document.getElementById('khata-total-due');
+    
+    listContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>';
+    
+    try {
+      // ডেটাবেস থেকে কাস্টমারের বাকি থাকা অর্ডারগুলো খোঁজা (ধরা যাক paymentStatus: 'due')
+      const q = query(collection(db, "orders"), where("customerId", "==", currentUser.uid), where("paymentStatus", "==", "due"));
+      const snap = await getDocs(q);
+      
+      let totalDue = 0;
+      let html = '';
+      
+      if (snap.empty) {
+        listContainer.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px;">আপনার কোনো বাকি নেই।</div>';
+        totalEl.innerText = '₹0.00';
+        return;
+      }
+
+      snap.forEach(docSnap => {
+        const order = docSnap.data();
+        totalDue += order.price;
+        html += `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px;">
+            <span style="font-size: 13px; font-weight: 600;">${order.shopName}</span>
+            <span style="font-size: 13px; color: var(--mp-danger); font-weight: bold;">₹${order.price}</span>
+          </div>
+        `;
+      });
+
+      listContainer.innerHTML = html;
+      totalEl.innerText = `₹${totalDue.toFixed(2)}`;
+      
+    } catch (e) {
+      console.error(e);
+      listContainer.innerHTML = '<div style="text-align: center; color: red; font-size: 13px;">লোড করতে সমস্যা হয়েছে।</div>';
+    }
+  };
   window.closeKhataModal = function() { document.getElementById('dlv-khata-modal').classList.remove('active'); };
 
   window.openAddProductModal = function() { document.getElementById('dlv-add-product-modal').classList.add('active'); };
@@ -719,6 +766,32 @@
       alert("ডেলিভারি কনফার্ম করতে সমস্যা হয়েছে।");
     }
   };
+
+  window.processRecharge = async function() {
+    // আপাতত টেস্টের জন্য ৫০০ টাকা রিচার্জ ধরা হলো
+    const amount = 500; 
+    
+    try {
+      const userRef = doc(db, "admins", currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      const currentBal = userSnap.data().walletBalance || 0;
+      
+      // ফায়ারবেসে ওয়ালেট আপডেট
+      await updateDoc(userRef, {
+        walletBalance: currentBal + amount
+      });
+      
+      // UI আপডেট
+      document.getElementById('cst-wallet-balance').innerText = `₹${(currentBal + amount).toFixed(2)}`;
+      alert(`সফলভাবে ₹${amount} ওয়ালেটে যোগ হয়েছে!`);
+      closeRechargeModal();
+      
+    } catch (e) {
+      console.error(e);
+      alert("রিচার্জে সমস্যা হয়েছে।");
+    }
+  };
+
   
 </script>
 
@@ -741,7 +814,7 @@
       <p style="font-size: 12px; color: #666; margin-top: 8px;">UPI অ্যাপ দিয়ে স্ক্যান করুন</p>
     </div>
 
-    <button class="mp-btn mp-btn-primary" onclick="alert('পেমেন্ট ভেরিফিকেশন সিস্টেম পরবর্তী স্টেপে যুক্ত হবে।'); closeRechargeModal();">পেমেন্ট সম্পন্ন হয়েছে</button>
+    <button class="mp-btn mp-btn-primary" onclick="processRecharge()">পেমেন্ট সম্পন্ন হয়েছে</button>
   </div>
 </div>
 
@@ -753,18 +826,15 @@
     
     <div style="background: #fce8e6; color: var(--mp-danger); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
       <div style="font-size: 12px;">মোট বাকি</div>
-      <div style="font-size: 24px; font-weight: bold;">₹500.00</div>
+      <div style="font-size: 24px; font-weight: bold;" id="khata-total-due">₹0.00</div>
     </div>
 
-    <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 15px;">
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="font-size: 14px; font-weight: 600;">রহিম স্টোর</span>
-        <span style="font-size: 14px; color: var(--mp-danger); font-weight: bold;">₹500</span>
-      </div>
-      <div style="font-size: 11px; color: #666;">শেষ বাকি: ১০ অক্টোবর, ২০২৬</div>
+    <!-- ডাইনামিক খাতা লিস্ট -->
+    <div id="khata-shop-list" style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+      <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
     </div>
 
-    <button class="mp-btn mp-btn-success" onclick="alert('খাতা শোধ করার সিস্টেম পরবর্তী স্টেপে যুক্ত হবে।'); closeKhataModal();">টাকা পরিশোধ করুন</button>
+    <button class="mp-btn mp-btn-success" onclick="alert('খাতা শোধ করার সিস্টেম (Payment Gateway) পরবর্তী স্টেপে যুক্ত হবে।')">টাকা পরিশোধ করুন</button>
   </div>
 </div>
 
