@@ -107,6 +107,27 @@
   .dlv-img-upload-box:hover { border-color: var(--mp-primary); background: #e8f0fe; }
   .dlv-img-preview { width: 100%; height: 150px; object-fit: contain; margin-top: 10px; border-radius: 8px; display: none; }
 
+  /* ============================================================
+     STEP 4 ADDITIONS: DELIVERY BOY & BIDDING
+     ============================================================ */
+  .dlv-status-toggle { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .dlv-status-toggle span { font-size: 14px; font-weight: 600; }
+  .dlv-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+  .dlv-switch input { opacity: 0; width: 0; height: 0; }
+  .dlv-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+  .dlv-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+  input:checked + .dlv-slider { background-color: var(--mp-success); }
+  input:checked + .dlv-slider:before { transform: translateX(24px); }
+
+  .dlv-live-card { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+  .dlv-live-card h4 { font-size: 15px; color: var(--mp-primary); margin-bottom: 5px; }
+  .dlv-live-info { font-size: 12px; color: var(--mp-text-light); margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .dlv-bidding-area { background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; }
+  .dlv-bid-input-group { display: flex; gap: 8px; margin-top: 8px; }
+  .dlv-bid-input-group input { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-weight: bold; }
+  .dlv-bid-input-group button { flex: 1; padding: 8px; background: var(--mp-warning); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+  .dlv-accepted-card { background: #e6f4ea; border: 2px solid var(--mp-success); border-radius: 12px; padding: 15px; margin-bottom: 12px; text-align: center; }
+
 </style>
 </head>
 <body>
@@ -202,6 +223,18 @@
     <div id="dlv-view-delivery" class="mp-hidden">
       <div class="dlv-dashboard-title">ডেলিভারি বয় ড্যাশবোর্ড</div>
       
+      <!-- Online/Offline Toggle -->
+      <div class="dlv-status-toggle">
+        <div>
+          <span>আমার স্ট্যাটাস:</span>
+          <span id="dlv-online-status" style="color: var(--mp-danger);">🔴 অফলাইন</span>
+        </div>
+        <label class="dlv-switch">
+          <input type="checkbox" id="dlv-online-toggle" onchange="toggleDeliveryStatus(this)">
+          <span class="dlv-slider"></span>
+        </label>
+      </div>
+
       <div class="dlv-wallet-header" style="background: linear-gradient(135deg, #0f9d58, #14b866);">
         <div>
           <div style="font-size: 12px; opacity: 0.9;">আজকের আয়</div>
@@ -209,11 +242,19 @@
         </div>
       </div>
 
-      <div class="mp-card">
+      <!-- Live Orders Area -->
+      <div class="mp-card" id="dlv-live-orders-container" style="display: none;">
         <h3>🔔 লাইভ অর্ডার (বিড করুন)</h3>
-        <div id="dlv-live-orders" style="text-align: center; padding: 20px; color: var(--mp-text-light); font-size: 13px;">
-          বর্তমানে কোনো অর্ডার নেই।
+        <div id="dlv-live-orders">
+          <!-- Orders will load here -->
         </div>
+      </div>
+      
+      <!-- Offline Message -->
+      <div class="mp-card" id="dlv-offline-msg" style="text-align: center; padding: 30px;">
+        <div style="font-size: 40px; margin-bottom: 10px;">😴</div>
+        <h3 style="color: var(--mp-text-light);">আপনি বর্তমানে অফলাইনে আছেন</h3>
+        <p style="font-size: 13px; color: #999; margin-top: 5px;">অর্ডার পেতে উপরের সুইচটি অন করুন।</p>
       </div>
     </div>
 
@@ -329,9 +370,119 @@
       // Step 2: কাস্টমারের ড্যাশবোর্ডের জন্য ডামি প্রোডাক্ট লোড
       if (typeof renderCustomerProducts === 'function') {
         renderCustomerProducts();
-      }
+         if (role === 'delivery') {
+      // Step 4: ডেলিভারি বয়ের অফলাইন স্ক্রিন ডিফল্টভাবে দেখানো
+      document.getElementById('dlv-offline-msg').style.display = 'block';
+      document.getElementById('dlv-live-orders-container').style.display = 'none';
+        }
+       }
+     }
+   }
+
+    // ==================== DELIVERY BOY FUNCTIONS (STEP 4) ====================
+  
+  let isOnline = false;
+  let currentBidOrder = null;
+
+  // ডামি লাইভ অর্ডার (পরবর্তীতে Firebase onSnapshot দিয়ে আসবে)
+  const dummyLiveOrders = [
+    { id: 'ORD-101', shop: 'রহিম স্টোর', dropLocation: 'সেক্টর ৩, ২.৫ কিমি', baseFare: 25, timeAgo: '২ মিনিট আগে' },
+    { id: 'ORD-102', shop: 'করিম স্টোর', dropLocation: 'মেইন রোড, ৪ কিমি', baseFare: 35, timeAgo: '৫ মিনিট আগে' }
+  ];
+
+  // অনলাইন/অফলাইন টগল
+  window.toggleDeliveryStatus = function(checkbox) {
+    isOnline = checkbox.checked;
+    const statusText = document.getElementById('dlv-online-status');
+    const ordersContainer = document.getElementById('dlv-live-orders-container');
+    const offlineMsg = document.getElementById('dlv-offline-msg');
+
+    if (isOnline) {
+      statusText.innerHTML = '🟢 অনলাইন';
+      statusText.style.color = 'var(--mp-success)';
+      ordersContainer.style.display = 'block';
+      offlineMsg.style.display = 'none';
+      renderLiveOrders();
+    } else {
+      statusText.innerHTML = '🔴 অফলাইন';
+      statusText.style.color = 'var(--mp-danger)';
+      ordersContainer.style.display = 'none';
+      offlineMsg.style.display = 'block';
     }
+  };
+
+  // লাইভ অর্ডার রেন্ডার
+  function renderLiveOrders() {
+    const list = document.getElementById('dlv-live-orders');
+    if (!list) return;
+
+    if (dummyLiveOrders.length === 0) {
+      list.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">বর্তমানে কোনো অর্ডার নেই।</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    dummyLiveOrders.forEach(order => {
+      list.innerHTML += `
+        <div class="dlv-live-card" id="live-card-${order.id}">
+          <h4>📦 ${order.id}</h4>
+          <div class="dlv-live-info">
+            <span>🏪 পিকআপ: ${order.shop}</span>
+            <span style="color:var(--mp-danger); font-weight:bold;">${order.timeAgo}</span>
+          </div>
+          <div class="dlv-live-info">
+            <span>📍 ড্রপ: ${order.dropLocation}</span>
+          </div>
+          <div class="dlv-bidding-area">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
+              <span>বেস ফেয়ার: ₹${order.baseFare}</span>
+              <span style="color:var(--mp-success);">সবচেয়ে কম বিড: ₹${order.baseFare}</span>
+            </div>
+            <div class="dlv-bid-input-group">
+              <input type="number" id="bid-input-${order.id}" placeholder="₹" min="${order.baseFare - 10}" max="${order.baseFare}">
+              <button onclick="placeBid('${order.id}', ${order.baseFare})">বিড করুন</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
   }
+
+  // বিড করার ফাংশন
+  window.placeBid = function(orderId, baseFare) {
+    const bidInput = document.getElementById(`bid-input-${orderId}`);
+    const bidAmount = parseFloat(bidInput.value);
+
+    if (isNaN(bidAmount) || bidAmount <= 0) {
+      alert("সঠিক বিড পরিমাণ লিখুন।");
+      return;
+    }
+
+    // মিনিমাম ফ্লোর প্রাইস চেক (যেমন: বেস ফেয়ারের চেয়ে ১০ টাকার কম নেওয়া যাবে না)
+    if (bidAmount < (baseFare - 10)) {
+      alert(`দুঃখিত, আপনি বেস ফেয়ারের চেয়ে ১০ টাকার বেশি কম বিড করতে পারবেন না।`);
+      return;
+    }
+
+    // বিড সফল হলে অর্ডারটি অ্যাক্সেপ্ট হয়ে যাবে (সিমুলেশন)
+    const confirmAccept = confirm(`আপনি ₹${bidAmount} টাকায় বিড করেছেন। এটি কি ফাইনাল করবেন?`);
+    if (!confirmAccept) return;
+
+    // UI আপডেট - কার্ডটি গ্রিন হয়ে যাবে
+    const card = document.getElementById(`live-card-${orderId}`);
+    card.className = 'dlv-accepted-card';
+    card.innerHTML = `
+      <div style="font-size: 30px; margin-bottom: 5px;">✅</div>
+      <h4 style="color: var(--mp-success);">অর্ডার অ্যাক্সেপ্টেড!</h4>
+      <p style="font-size: 13px; margin-top: 5px;">আপনি ₹${bidAmount} টাকায় কাজটি নিয়েছেন।</p>
+      <button class="mp-btn mp-btn-primary" style="margin-top:10px;" onclick="alert('Google Maps Location will open here')">📍 লোকেশন দেখুন</button>
+    `;
+
+    // অন্য অর্ডারগুলো রিমুভ করে দেওয়া (কারণ ডেলিভারি বয় এখন একটি কাজ পেয়েছে)
+    setTimeout(() => {
+      alert("অর্ডারের تفاصيل (কাস্টমারের নম্বর ও লোকেশন) পরের স্টেপে যোগ হবে।");
+    }, 1000);
+  };
 
   // ==================== SHOPKEEPER FUNCTIONS & IMGBB (STEP 3) ====================
   
