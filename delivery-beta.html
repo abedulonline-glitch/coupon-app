@@ -289,6 +289,14 @@
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { initLanguage, applyTranslations } from './i18n.js';
+  import { auth, db } from './firebase-config-beta.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { 
+    doc, getDoc, 
+    collection, addDoc, onSnapshot, query, where, updateDoc, serverTimestamp 
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { initLanguage, applyTranslations } from './i18n.js';
+  
 
   // State Variables
   let currentUser = null;
@@ -412,71 +420,99 @@
   };
 
   // লাইভ অর্ডার রেন্ডার
-  function renderLiveOrders() {
-    const list = document.getElementById('dlv-live-orders');
-    if (!list) return;
+  let unsubscribeOrders = null; // লিসেনার বন্ধ করার জন্য
 
-    if (dummyLiveOrders.length === 0) {
-      list.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">বর্তমানে কোনো অর্ডার নেই।</div>';
-      return;
+  window.toggleDeliveryStatus = function(checkbox) {
+    isOnline = checkbox.checked;
+    const statusText = document.getElementById('dlv-online-status');
+    const ordersContainer = document.getElementById('dlv-live-orders-container');
+    const offlineMsg = document.getElementById('dlv-offline-msg');
+
+    if (isOnline) {
+      statusText.innerHTML = '🟢 অনলাইন';
+      statusText.style.color = 'var(--mp-success)';
+      ordersContainer.style.display = 'block';
+      offlineMsg.style.display = 'none';
+      
+      // ডেটাবেস থেকে pending অর্ডার লিসেন করা
+      const q = query(collection(db, "orders"), where("status", "==", "pending"));
+      unsubscribeOrders = onSnapshot(q, (snapshot) => {
+        const ordersList = document.getElementById('dlv-live-orders');
+        ordersList.innerHTML = '';
+        if(snapshot.empty) {
+           ordersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">বর্তমানে কোনো নতুন অর্ডার নেই।</div>';
+           return;
+        }
+        snapshot.forEach(docSnap => {
+          const order = docSnap.data();
+          ordersList.innerHTML += `
+            <div class="dlv-live-card" id="live-card-${docSnap.id}">
+              <h4>📦 ${order.productName}</h4>
+              <div class="dlv-live-info">
+                <span>🏪 পিকআপ: ${order.shopName}</span>
+              </div>
+              <div class="dlv-live-info">
+                <span>📍 ড্রপ: কাস্টমার লোকেশন (পরবর্তী আপডেট)</span>
+              </div>
+              <div class="dlv-bidding-area">
+                <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
+                  <span>প্রোডাক্ট দাম: ₹${order.price}</span>
+                </div>
+                <div class="dlv-bid-input-group">
+                  <input type="number" id="bid-input-${docSnap.id}" placeholder="ডেলিভারি চার্জ ₹" min="10">
+                  <button onclick="placeBid('${docSnap.id}')">বিড করুন</button>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      });
+    } else {
+      statusText.innerHTML = '🔴 অফলাইন';
+      statusText.style.color = 'var(--mp-danger)';
+      ordersContainer.style.display = 'none';
+      offlineMsg.style.display = 'block';
+      if (unsubscribeOrders) unsubscribeOrders(); // অফলাইন হলে লিসেনার বন্ধ
     }
+  };
 
-    list.innerHTML = '';
-    dummyLiveOrders.forEach(order => {
-      list.innerHTML += `
-        <div class="dlv-live-card" id="live-card-${order.id}">
-          <h4>📦 ${order.id}</h4>
-          <div class="dlv-live-info">
-            <span>🏪 পিকআপ: ${order.shop}</span>
-            <span style="color:var(--mp-danger); font-weight:bold;">${order.timeAgo}</span>
-          </div>
-          <div class="dlv-live-info">
-            <span>📍 ড্রপ: ${order.dropLocation}</span>
-          </div>
-          <div class="dlv-bidding-area">
-            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold;">
-              <span>বেস ফেয়ার: ₹${order.baseFare}</span>
-              <span style="color:var(--mp-success);">সবচেয়ে কম বিড: ₹${order.baseFare}</span>
-            </div>
-            <div class="dlv-bid-input-group">
-              <input type="number" id="bid-input-${order.id}" placeholder="₹" min="${order.baseFare - 10}" max="${order.baseFare}">
-              <button onclick="placeBid('${order.id}', ${order.baseFare})">বিড করুন</button>
-            </div>
-          </div>
-        </div>
-      `;
-    });
-  }
-
-  // বিড করার ফাংশন
-  window.placeBid = function(orderId, baseFare) {
+  // বিড করার ফাংশন (ডেটাবেস আপডেট)
+  window.placeBid = async function(orderId) {
     const bidInput = document.getElementById(`bid-input-${orderId}`);
     const bidAmount = parseFloat(bidInput.value);
 
     if (isNaN(bidAmount) || bidAmount <= 0) {
-      alert("সঠিক বিড পরিমাণ লিখুন।");
+      alert("সঠিক ডেলিভারি চার্জ লিখুন।");
       return;
     }
 
-    // মিনিমাম ফ্লোর প্রাইস চেক (যেমন: বেস ফেয়ারের চেয়ে ১০ টাকার কম নেওয়া যাবে না)
-    if (bidAmount < (baseFare - 10)) {
-      alert(`দুঃখিত, আপনি বেস ফেয়ারের চেয়ে ১০ টাকার বেশি কম বিড করতে পারবেন না।`);
-      return;
+    if (!confirm(`আপনি ₹${bidAmount} ডেলিভারি চার্জে বিড করতে যাচ্ছেন। নিশ্চিত?`)) return;
+
+    try {
+      // অর্ডারটি বর্তমানে bidding স্টেটাসে নিয়ে ডেলিভারি বয়ের আইডি সেভ করা
+      await updateDoc(doc(db, "orders", orderId), {
+        status: "bidding",
+        deliveryBoyId: currentUser.uid,
+        deliveryBoyName: document.getElementById('dlv-topbar-title').innerText.replace('🛵 ', ''),
+        deliveryCharge: bidAmount,
+        updatedAt: serverTimestamp()
+      });
+
+      // UI আপডেট
+      const card = document.getElementById(`live-card-${orderId}`);
+      card.className = 'dlv-accepted-card';
+      card.innerHTML = `
+        <div style="font-size: 30px; margin-bottom: 5px;">✅</div>
+        <h4 style="color: var(--mp-success);">বিড অ্যাক্সেপ্টেড!</h4>
+        <p style="font-size: 13px; margin-top: 5px;">ডেলিভারি চার্জ: ₹${bidAmount}</p>
+        <button class="mp-btn mp-btn-primary" style="margin-top:10px;" onclick="alert('লোকেশন ও কাস্টমার নম্বর পরবর্তী স্টেপে আসবে')">📍 ডিটেইলস দেখুন</button>
+      `;
+
+    } catch (e) {
+      alert("বিড করতে সমস্যা হয়েছে।");
+      console.error(e);
     }
-
-    // বিড সফল হলে অর্ডারটি অ্যাক্সেপ্ট হয়ে যাবে (সিমুলেশন)
-    const confirmAccept = confirm(`আপনি ₹${bidAmount} টাকায় বিড করেছেন। এটি কি ফাইনাল করবেন?`);
-    if (!confirmAccept) return;
-
-    // UI আপডেট - কার্ডটি গ্রিন হয়ে যাবে
-    const card = document.getElementById(`live-card-${orderId}`);
-    card.className = 'dlv-accepted-card';
-    card.innerHTML = `
-      <div style="font-size: 30px; margin-bottom: 5px;">✅</div>
-      <h4 style="color: var(--mp-success);">অর্ডার অ্যাক্সেপ্টেড!</h4>
-      <p style="font-size: 13px; margin-top: 5px;">আপনি ₹${bidAmount} টাকায় কাজটি নিয়েছেন।</p>
-      <button class="mp-btn mp-btn-primary" style="margin-top:10px;" onclick="alert('Google Maps Location will open here')">📍 লোকেশন দেখুন</button>
-    `;
+  };
 
     // অন্য অর্ডারগুলো রিমুভ করে দেওয়া (কারণ ডেলিভারি বয় এখন একটি কাজ পেয়েছে)
     setTimeout(() => {
@@ -497,25 +533,31 @@
     const list = document.getElementById('shop-product-list');
     if (!list) return;
 
-    if (shopProducts.length === 0) {
-      list.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px; padding: 20px;">কোনো প্রোডাক্ট নেই। নতুন যোগ করুন।</div>';
-      return;
-    }
+    // রিয়েল-টাইম লিসেনার
+    const q = query(collection(db, "products"), where("shopId", "==", currentUser.uid));
+    
+    onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        list.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px; padding: 20px;">কোনো প্রোডাক্ট নেই। নতুন যোগ করুন।</div>';
+        return;
+      }
 
-    list.innerHTML = '';
-    shopProducts.forEach(prod => {
-      list.innerHTML += `
-        <div class="shop-prod-item">
-          <div class="prod-img-thumb">
-            ${prod.image ? `<img src="${prod.image}" style="width:100%; height:100%; border-radius:8px; object-fit:cover;">` : '📦'}
+      list.innerHTML = '';
+      snapshot.forEach((docSnap) => {
+        const prod = docSnap.data();
+        list.innerHTML += `
+          <div class="shop-prod-item">
+            <div class="prod-img-thumb">
+              ${prod.image ? `<img src="${prod.image}" style="width:100%; height:100%; border-radius:8px; object-fit:cover;">` : '📦'}
+            </div>
+            <div class="prod-details">
+              <div class="prod-title">${prod.name}</div>
+              <div class="prod-price">₹${prod.price}</div>
+              <div class="prod-stock">স্টক: ${prod.stock} টি</div>
+            </div>
           </div>
-          <div class="prod-details">
-            <div class="prod-title">${prod.name}</div>
-            <div class="prod-price">₹${prod.price}</div>
-            <div class="prod-stock">স্টক: ${prod.stock} টি</div>
-          </div>
-        </div>
-      `;
+        `;
+      });
     });
   }
 
@@ -596,30 +638,34 @@
     btn.disabled = true;
 
     let imageUrl = null;
-
-    // যদি ইউজার ছবি সিলেক্ট করে থাকে, তবে ImgBB তে আপলোড করব
     if (currentImageBase64) {
       imageUrl = await uploadToImgBB(currentImageBase64);
     }
 
-    // লোকাল অ্যারেতে প্রোডাক্ট যোগ করা (পরবর্তীতে Firebase এ সেভ হবে)
-    shopProducts.push({
-      id: Date.now(),
-      name: name,
-      category: category,
-      price: price,
-      stock: stock,
-      image: imageUrl
-    });
-
-    // UI আপডেট
-    renderShopProducts();
-    
-    btn.innerText = "💾 সেভ করুন";
-    btn.disabled = false;
-    closeAddProductModal();
-    
-    alert("প্রোডাক্ট সফলভাবে যুক্ত হয়েছে!");
+    try {
+      // Firebase-এ প্রোডাক্ট সেভ করা
+      await addDoc(collection(db, "products"), {
+        shopId: currentUser.uid,
+        shopName: document.getElementById('dlv-topbar-title').innerText.replace('🛵 ', ''),
+        name: name,
+        category: category,
+        price: price,
+        stock: stock,
+        image: imageUrl,
+        createdAt: serverTimestamp()
+      });
+      
+      alert("প্রোডাক্ট সফলভাবে ডেটাবেসে যুক্ত হয়েছে!");
+      closeAddProductModal();
+      renderShopProducts(); // লিস্ট রিফ্রেশ
+      
+    } catch (error) {
+      console.error("Error saving product:", error);
+      alert("প্রোডাক্ট সেভ করতে সমস্যা হয়েছে!");
+    } finally {
+      btn.innerText = "💾 সেভ করুন";
+      btn.disabled = false;
+    }
   };
   
   // ==================== CUSTOMER FUNCTIONS (STEP 2) ====================
@@ -632,28 +678,56 @@
     { id: 4, name: 'চিনি (১ কেজি)', price: 55, shop: 'রহিম স্টোর', icon: '🍬' }
   ];
 
+  // কাস্টমারের জন্য ডেটাবেস থেকে প্রোডাক্ট লোড
   function renderCustomerProducts() {
     const grid = document.getElementById('cst-product-grid');
     if (!grid) return;
 
-    grid.innerHTML = '';
-    dummyProducts.forEach(prod => {
-      grid.innerHTML += `
-        <div class="dlv-product-card">
-          <div class="dlv-product-img">${prod.icon}</div>
-          <div class="dlv-product-name">${prod.name}</div>
-          <div class="dlv-product-shop">🏪 ${prod.shop}</div>
-          <div class="dlv-product-price">₹${prod.price}</div>
-          <button class="dlv-add-btn" onclick="addToCart(${prod.id})">+ Add</button>
-        </div>
-      `;
+    onSnapshot(collection(db, "products"), (snapshot) => {
+      grid.innerHTML = '';
+      if(snapshot.empty) {
+         grid.innerHTML = '<div style="font-size:12px; color:#999; grid-column:1/-1; text-align:center;">কোনো প্রোডাক্ট নেই।</div>';
+         return;
+      }
+      snapshot.forEach(docSnap => {
+        const prod = docSnap.data();
+        grid.innerHTML += `
+          <div class="dlv-product-card">
+            <div class="dlv-product-img">
+              ${prod.image ? `<img src="${prod.image}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">` : '📦'}
+            </div>
+            <div class="dlv-product-name">${prod.name}</div>
+            <div class="dlv-product-shop">🏪 ${prod.shopName}</div>
+            <div class="dlv-product-price">₹${prod.price}</div>
+            <button class="dlv-add-btn" onclick="placeOrder('${docSnap.id}', '${prod.name}', ${prod.price}, '${prod.shopId}', '${prod.shopName}')">+ Order Now</button>
+          </div>
+        `;
+      });
     });
   }
 
-  window.addToCart = function(id) {
-    // পরবর্তীতে কার্ট সিস্টেম এখানে যুক্ত হবে
-    alert('প্রোডাক্ট কার্টে যোগ করা হয়েছে! (কার্ট সিস্টেম ডেভেলপমেন্টের অধীনে)');
-  };
+  // কাস্টমার অর্ডার প্লেস করলে ডেটাবেসে যাবে
+  window.placeOrder = async function(prodId, name, price, shopId, shopName) {
+    if(!confirm(`আপনি কি ₹${price} টাকায় "${name}" অর্ডার করতে চান?`)) return;
+    
+    try {
+      await addDoc(collection(db, "orders"), {
+        customerId: currentUser.uid,
+        customerName: document.getElementById('dlv-topbar-title').innerText.replace('🛵 ', ''),
+        shopId: shopId,
+        shopName: shopName,
+        productId: prodId,
+        productName: name,
+        price: price,
+        status: "pending", // pending -> bidding -> assigned -> delivered
+        createdAt: serverTimestamp()
+      });
+      alert("অর্ডার সফলভাবে প্লেস হয়েছে! ডেলিভারি বয় বিড করলে আপনি আপডেট পাবেন।");
+    } catch(e) {
+      alert("অর্ডার করতে সমস্যা হয়েছে।");
+      console.error(e);
+    }
+  }
 
   // ==================== MODALS ====================
   
