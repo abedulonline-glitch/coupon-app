@@ -1368,18 +1368,13 @@
             status: "delivered",
             deliveredAt: serverTimestamp()
           });
-
-                    alert("🎉 সফলভাবে ডেলিভারি সম্পন্ন হয়েছে!");
           
-          // UI তে আয় আপডেট (লোকাল স্টোরেজ বা সেশন থেকে)
-          let currentEarning = parseFloat(document.getElementById('dlv-today-earnings').innerText.replace('₹', '')) || 0;
-          currentEarning += (orderData.deliveryCharge || 0);
-          document.getElementById('dlv-today-earnings').innerText = `₹${currentEarning.toFixed(2)}`;
+          alert("🎉 সফলভাবে ডেলিভারি সম্পন্ন হয়েছে!");
           
-          // আয় আপডেট
-          let currentEarning = parseFloat(document.getElementById('dlv-today-earnings').innerText.replace('₹', '')) || 0;
-          currentEarning += (orderData.deliveryCharge || 0);
-          document.getElementById('dlv-today-earnings').innerText = `₹${currentEarning.toFixed(2)}`;
+          // UI তে আয় আপডেট (নতুন ভেরিয়েবল ডিক্লেয়ার না করে সরাসরি আপডেট)
+          let earnEl = document.getElementById('dlv-today-earnings');
+          let earnAmt = parseFloat(earnEl.innerText.replace('₹', '')) || 0;
+          earnEl.innerText = `₹${(earnAmt + (orderData.deliveryCharge || 0)).toFixed(2)}`;
           
         } else {
           alert("❌ ভুল OTP! কাস্টমারের কাছ থেকে আবার চেক করুন।");
