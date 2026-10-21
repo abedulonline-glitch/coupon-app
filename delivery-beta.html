@@ -502,14 +502,27 @@
     });
   }
 
-      // গ্লোবাল ভেরিয়েবল পেমেন্টের জন্য
+  // গ্লোবাল ভেরিয়েবল পেমেন্টের জন্য
   let tempOrderData = null;
 
   // ১. পেমেন্ট মডাল ওপেন করা
   window.placeOrder = function(prodId, name, price, shopId, shopName) {
+    // চেক করার জন্য কনসোল লগ (প্রয়োজনে F12 এ গিয়ে দেখতে পারবেন)
+    console.log("Order Now clicked:", name); 
+    
     tempOrderData = { prodId, name, price, shopId, shopName };
-    document.getElementById('pay-modal-amount').innerText = `₹${price}`;
-    document.getElementById('dlv-payment-modal').classList.add('active');
+    
+    // HTML এ আইডি দুটি ঠিক আছে কিনা চেক করা
+    const amountEl = document.getElementById('pay-modal-amount');
+    const modalEl = document.getElementById('dlv-payment-modal');
+    
+    if(amountEl && modalEl) {
+      amountEl.innerText = `₹${price}`;
+      modalEl.classList.add('active');
+    } else {
+      alert("পেমেন্ট মডালটি HTML-এ খুঁজে পাওয়া যায়নি! Step 9 চেক করুন।");
+      console.error("Missing IDs: pay-modal-amount or dlv-payment-modal");
+    }
   };
 
   // ২. পেমেন্ট প্রসেস করা
