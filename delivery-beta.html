@@ -143,6 +143,21 @@
 <!-- Main App Container -->
 <div id="mp-app" class="mp-hidden">
 
+    <!-- Role Selection & Share (Show before login or for sharing) -->
+  <div id="dlv-role-share-section" class="mp-card" style="display: none; margin: 15px; border: 2px dashed var(--mp-primary);">
+    <h3 style="text-align: center; color: var(--mp-primary);">🔗 অ্যাপটি শেয়ার করুন</h3>
+    <p style="font-size: 12px; text-align: center; margin-bottom: 10px;">আপনার পরিচিত দোকানদার বা ডেলিভারি বয়কে এই লিংকটি পাঠান</p>
+    
+    <div style="display: flex; gap: 10px;">
+      <button class="mp-btn" style="margin: 0; background: #0f9d58; color: white; font-size: 12px; padding: 8px;" onclick="shareRole('shopkeeper')">
+        🏪 দোকানদারকে পাঠান
+      </button>
+      <button class="mp-btn" style="margin: 0; background: #f9a825; color: #000; font-size: 12px; padding: 8px;" onclick="shareRole('delivery')">
+        🛵 ডেলিভারি বয়কে পাঠান
+      </button>
+    </div>
+  </div>
+ 
   <!-- Topbar -->
   <div class="mp-topbar">
     <h2 id="dlv-topbar-title">🛵 Delivery System</h2>
@@ -344,12 +359,15 @@
   initLanguage();
   applyTranslations();
 
-  // ==================== Auth & Role Setup ====================
+   // ==================== Auth & Role Setup ====================
+  let globalUserData = null; // ইউজারের সম্পূর্ণ ডেটা গ্লোবালি রাখার জন্য
+
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser = user;
       await fetchUserRole(user.uid);
     } else {
+      // লগইন না থাকলে মূল অ্যাপে পাঠিয়ে দেবে
       window.location.href = 'beta.html';
     }
   });
@@ -361,11 +379,14 @@
 
       if (userSnap.exists()) {
         const userData = userSnap.data();
+        globalUserData = userData; // গ্লোবালি সেভ করা হলো
         userRole = userData.role || 'customer';
         setupUIForRole(userRole, userData);
       } else {
+        // ইউজার ডকুমেন্ট না থাকলে ডিফল্ট কাস্টমার
         userRole = 'customer';
-        setupUIForRole('customer', { name: 'Guest' });
+        globalUserData = { name: 'Guest', phone: '' };
+        setupUIForRole('customer', globalUserData);
       }
     } catch (error) {
       console.error("Error fetching role:", error);
@@ -400,11 +421,11 @@
     if (role === 'shopkeeper') {
       if (typeof renderShopProducts === 'function') renderShopProducts();
       if (typeof loadShopTotalDue === 'function') loadShopTotalDue(); 
+      if (typeof loadShopNewOrders === 'function') loadShopNewOrders(); // ঠিক করা হয়েছে
     } else if (role === 'customer') {
-      if (typeof loadShopNewOrders === 'function') loadShopNewOrders();
       if (typeof renderCustomerProducts === 'function') renderCustomerProducts();
       
-      // ওয়ালেট ব্যালেন্স আপডেট (Step 7)
+      // ওয়ালেট ব্যালেন্স এবং খাতা আপডেট
       if (userData) {
         const balanceEl = document.getElementById('cst-wallet-balance');
         const khataEl = document.getElementById('cst-khata-due');
@@ -412,14 +433,67 @@
         if (khataEl) khataEl.innerText = `₹${(userData.khataDue || 0).toFixed(2)}`;
       }
     } else if (role === 'delivery') {
-      // ডেলিভারি বয়ের অফলাইন স্ক্রিন (Step 4)
+      // ডেলিভারি বয়ের অফলাইন স্ক্রিন
       const offlineMsg = document.getElementById('dlv-offline-msg');
       const ordersContainer = document.getElementById('dlv-live-orders-container');
       if (offlineMsg) offlineMsg.style.display = 'block';
       if (ordersContainer) ordersContainer.style.display = 'none';
     }
+
+    // ৬. URL থেকে রোল চেক (WhatsApp Share লিংকের জন্য)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRole = urlParams.get('role');
+    
+    if (urlRole && !userData.role) {
+      console.log("User needs to register as:", urlRole);
+    }
+
+    // ৭. শেয়ার সেকশনটি শুধু অ্যাডমিন বা ম্যানেজার দেখবে
+    const shareSection = document.getElementById('dlv-role-share-section');
+    if (shareSection && (role === 'admin' || role === 'manager')) {
+      shareSection.style.display = 'block';
+    }
+
+        // URL থেকে রোল চেক করা (যদি কেউ লিংকে ক্লিক করে আসে)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRole = urlParams.get('role');
+    
+    if (urlRole && !userData.role) {
+      // ভবিষ্যতে ডেটাবেসে রোল সেভ করার লজিক এখানে আসবে
+      console.log("User needs to register as:", urlRole);
+      alert(`আপনি ${urlRole} হিসেবে রেজিস্ট্রেশন পেজে যাচ্ছেন...`);
+      // window.location.href = `beta.html?role=${urlRole}`; // মূল রেজিস্ট্রেশন পেজে পাঠানো
+    }
+
+    // শেয়ার সেকশনটি শুধু অ্যাডমিন বা ম্যানেজার দেখবে (ঐচ্ছিক)
+    const shareSection = document.getElementById('dlv-role-share-section');
+    if (shareSection && (role === 'admin' || role === 'manager')) {
+      shareSection.style.display = 'block';
+    }
+    
   }
 
+  // ভূমিকা (Role) অনুযায়ী WhatsApp-এ লিংক শেয়ার করার ফাংশন
+  window.shareRole = function(role) {
+    // আপনার অ্যাপের বেস URL (এখানে আপনার লাইভ লিংক বসাবেন)
+    const baseUrl = window.location.origin + window.location.pathname;
+    
+    // রোল অনুযায়ী মেসেজ তৈরি
+    let message = "";
+    if (role === 'shopkeeper') {
+      message = `আসসালামু আলাইকুম,\n\nআমাদের নতুন ডেলিভারি সিস্টেমে আপনার দোকান যুক্ত করুন এবং অনলাইনে সেল বাড়ান।\n\nদোকানদার হিসেবে রেজিস্ট্রেশন করতে নিচের লিংকে ক্লিক করুন:\n${baseUrl}?role=shopkeeper`;
+    } else if (role === 'delivery') {
+      message = `আসসালামু আলাইকুম,\n\nআপনি কি ডেলিভারি বয় হিসেবে কাজ করতে আগ্রহী? আমাদের অ্যাপে যুক্ত হয়ে আপনার অবসর সময়ে আয় করুন।\n\nরেজিস্ট্রেশন করতে নিচের লিংকে ক্লিক করুন:\n${baseUrl}?role=delivery`;
+    } else {
+      message = `আমাদের অ্যাপটি ব্যবহার করতে নিচের লিংকে ক্লিক করুন:\n${baseUrl}`;
+    }
+
+    // WhatsApp API লিংক
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+  
+  // ==================== Logout ====================
   window.handleLogout = async function() {
     if (!confirm('লগআউট করবেন?')) return;
     try {
@@ -429,7 +503,6 @@
       alert('লগআউট করতে সমস্যা: ' + e.message);
     }
   };
-
   // ==================== Modals ====================
   window.openRechargeModal = function() { document.getElementById('dlv-recharge-modal').classList.add('active'); };
   window.closeRechargeModal = function() { document.getElementById('dlv-recharge-modal').classList.remove('active'); };
@@ -576,6 +649,12 @@
         productId: tempOrderData.prodId,
         productName: tempOrderData.name,
         price: tempOrderData.price,
+                // অ্যাড্রেস ও লোকেশন ডেটাবেসে সেভ করা
+        deliveryAddress: tempOrderData.address ? tempOrderData.address.text : 'কোনো অ্যাড্রেস দেওয়া হয়নি',
+        landmark: tempOrderData.address ? tempOrderData.address.landmark : '',
+        lat: tempOrderData.address ? tempOrderData.address.lat : null,
+        lng: tempOrderData.address ? tempOrderData.address.lng : null,
+        customerPhone: userData.phone || 'নম্বর নেই', // (ইউজারের ফোন নম্বর ফায়ারবেসে থাকলে আসবে)
         otp: otp,
         paymentMethod: method,
         paymentStatus: paymentStatus,
@@ -1129,10 +1208,12 @@
               <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--mp-success);">
                 <h4>📦 ${order.productName} (${order.shopName})</h4>
                 <p style="font-size: 12px; margin: 5px 0;">কাস্টমার: ${order.customerName}</p>
+                <p style="font-size: 12px; font-weight: bold; color: var(--mp-primary);">📞 ফোন: ${order.customerPhone || 'নেই'}</p>
+                <p style="font-size: 12px;">📍 ঠিকানা: ${order.deliveryAddress || 'নেই'} ${order.landmark ? `(${order.landmark})` : ''}</p>
                 <p style="font-size: 12px; color: var(--mp-danger); font-weight: bold;">ডেলিভারি চার্জ: ₹${order.deliveryCharge}</p>
                 
                 <div style="display:flex; gap:10px; margin-top:10px;">
-                  <button class="mp-btn mp-btn-primary" style="flex:1; margin:0;" onclick="alert('Google maps location here')">📍 ম্যাপ</button>
+                  <button class="mp-btn mp-btn-primary" style="flex:1; margin:0;" onclick="openGoogleMap(${order.lat}, ${order.lng})">📍 ম্যাপ</button>
                   <button class="mp-btn mp-btn-success" style="flex:1; margin:0;" onclick="promptOTP('${orderId}')">✅ Delivered</button>
                 </div>
               </div>
@@ -1193,6 +1274,17 @@
     }
   };
 
+   // ডেলিভারি বয়ের জন্য গুগল ম্যাপে লোকেশন ওপেন
+  window.openGoogleMap = function(lat, lng) {
+    if (!lat || !lng) {
+      alert("দুঃখিত, এই অর্ডারের জন্য কোনো ম্যাপ লোকেশন পাওয়া যায়নি। কাস্টমারকে ফোন করুন।");
+      return;
+    }
+    // গুগল ম্যাপের লিংক ফরম্যাট
+    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    window.open(mapUrl, '_blank'); // নতুন ট্যাবে ম্যাপ ওপেন হবে
+  };
+  
   window.promptOTP = async function(orderId) {
     const enteredOtp = prompt("কাস্টমারের কাছ থেকে ৪ ডিজিটের OTP দিন:");
     if (!enteredOtp) return;
