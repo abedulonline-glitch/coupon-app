@@ -1454,7 +1454,6 @@
     listContainer.innerHTML = '<div style="font-size:12px; color:#666;">খোঁজা হচ্ছে...</div>';
     
     try {
-      // ডেমো হিসেবে সব ইউজার খোঁজা হচ্ছে (বাস্তবে আমরা পিনকোড ফিল্ড দিয়ে ফিল্টার করব)
       const q = query(collection(db, "admins")); 
       const snap = await getDocs(q);
       
@@ -1462,23 +1461,25 @@
       snap.forEach(docSnap => {
         const u = docSnap.data();
         
-        // শুধু দোকানদার বা ডেলিভারি বয়কে ম্যানেজার বানানো যাবে
+        // শুধু দোকানদার, ডেলিভারি বয় বা অ্যাডমিনকে ম্যানেজার বানানো যাবে
         if(u.role === 'shopkeeper' || u.role === 'delivery' || u.role === 'admin') {
            
-           // নতুন যোগ করা ট্যাগ লজিক
-           const isAlreadyManager = u.isManager ? "✅ ম্যানেজার" : "";
-           const delBoyCount = u.role === 'delivery' ? "(ডেলিভারি বয়)" : "";
+           let managerTag = "";
+           if (u.isManager) {
+             const pinsList = u.managerPins ? u.managerPins.join(', ') : '';
+             managerTag = `<div style="font-size:10px; color:var(--mp-success); margin-top:3px;">✅ ম্যানেজার (পিন: ${pinsList})</div>`;
+           }
            
+           const delBoyTag = u.role === 'delivery' ? "<span style='color:#666;'>(ডেলিভারি বয়)</span>" : "";
+
            html += `
-             <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+             <div style="display:flex; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
                <div>
                  <div style="font-size:13px; font-weight:600;">${u.name || 'Unknown'}</div>
-                 <div style="font-size:11px; color:#666;">
-                    ${u.role ? u.role.toUpperCase() : 'NO ROLE'} ${delBoyCount} 
-                    <span style="color:var(--mp-success)">${isAlreadyManager}</span>
-                 </div>
+                 <div style="font-size:11px; color:#666;">${u.role ? u.role.toUpperCase() : 'NO ROLE'} ${delBoyTag}</div>
+                 ${managerTag}
                </div>
-               <button class="mp-btn mp-btn-success" style="width:auto; margin:0; padding:6px 10px; font-size:11px;" onclick="assignPinManager('${docSnap.id}', '${u.name}', '${pin}')">ম্যানেজার করুন</button>
+               <button class="mp-btn mp-btn-success" style="width:auto; margin:0; padding:6px 10px; font-size:11px;" onclick="assignPinManager('${docSnap.id}', '${u.name}', '${pin}')">+ পিন যোগ করুন</button>
              </div>
            `;
         }
@@ -1492,19 +1493,39 @@
     }
   };
 
-  // পিনকোডে ম্যানেজার অ্যাসাইন করা
+  // পিনকোডে ম্যানেজার অ্যাসাইন করা (মাল্টিপল পিন সাপোর্ট সহ)
   window.assignPinManager = async function(uid, name, pin) {
-    if(!confirm(`${name}-কে পিনকোড ${pin}-এর ম্যানেজার হিসেবে অ্যাসাইন করবেন?`)) return;
-    
     try {
-      // ইউজারের ডেটাতে পিনকোড ও ম্যানেজার ফ্ল্যাগ সেভ করা
-      await updateDoc(doc(db, "admins", uid), {
-        managerPin: pin,
-        isManager: true
-      });
-      alert("সফলভাবে ম্যানেজার অ্যাসাইন হয়েছে!");
+      const userRef = doc(db, "admins", uid);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        
+        // ইউজারের আগের পিনগুলো আনি (যদি থাকে)
+        let currentPins = userData.managerPins || [];
+        
+        // যদি এই পিন আগেই না থাকে, তবে নতুন পিন যোগ করি
+        if (!currentPins.includes(pin)) {
+          currentPins.push(pin);
+          
+          if(!confirm(`${name}-কে পিনকোড ${pin}-এর ম্যানেজার হিসেবে যোগ করবেন?\n(সে মোট ${currentPins.length}টি পিনকোড ম্যানেজ করবেন)`)) return;
+          
+          // ফায়ারবেসে অ্যাপডেট করা
+          await updateDoc(userRef, {
+            managerPins: currentPins,
+            isManager: true
+          });
+          alert(`সফলভাবে ${pin} পিনকোডটি ${name}-এর আন্ডারে যুক্ত হয়েছে!`);
+          
+        } else {
+          alert(`${name} ইতিমধ্যে এই পিনকোডের ম্যানেজার আছেন!`);
+        }
+      }
+      
       document.getElementById('admin-pin-input').value = '';
       document.getElementById('admin-pin-user-list').innerHTML = '';
+      
     } catch(e) {
       console.error(e);
       alert("ম্যানেজার অ্যাসাইন করতে সমস্যা হয়েছে।");
