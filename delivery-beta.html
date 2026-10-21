@@ -7,6 +7,8 @@
 
 <!-- Imports -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>  
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 <style>
@@ -178,6 +180,15 @@
 </div>
       </div>
 
+           <!-- Customer Address Section -->
+      <div class="mp-card">
+        <h3>📍 ডেলিভারি অ্যাড্রেস</h3>
+        <div id="customer-saved-address" style="font-size: 13px; color: var(--mp-text-light); margin-bottom: 10px;">
+          কোন অ্যাড্রেস সেভ করা নেই।
+        </div>
+        <button class="mp-btn" style="background: #e8f0fe; color: var(--mp-primary); font-size: 12px; padding: 8px;" onclick="openAddressModal()">+ নতুন অ্যাড্রেস সেভ করুন</button>
+      </div>
+      
       <!-- Product Browsing -->
       <div class="mp-card">
         <h3>🛒 প্রোডাক্ট এক্সপ্লোর করুন</h3>
@@ -507,22 +518,23 @@
 
   // ১. পেমেন্ট মডাল ওপেন করা
   window.placeOrder = function(prodId, name, price, shopId, shopName) {
-    // চেক করার জন্য কনসোল লগ (প্রয়োজনে F12 এ গিয়ে দেখতে পারবেন)
-    console.log("Order Now clicked:", name); 
-    
+    // অ্যাড্রেস ভ্যালিডেশন
+    if (customerAddresses.length === 0) {
+      if(!confirm("আপনি এখনো কোনো ডেলিভারি অ্যাড্রেস সেভ করেননি! অ্যাড্রেস ছাড়া অর্ডার করতে চান?")) {
+        openAddressModal();
+        return;
+      }
+    }
+
     tempOrderData = { prodId, name, price, shopId, shopName };
     
-    // HTML এ আইডি দুটি ঠিক আছে কিনা চেক করা
-    const amountEl = document.getElementById('pay-modal-amount');
-    const modalEl = document.getElementById('dlv-payment-modal');
-    
-    if(amountEl && modalEl) {
-      amountEl.innerText = `₹${price}`;
-      modalEl.classList.add('active');
-    } else {
-      alert("পেমেন্ট মডালটি HTML-এ খুঁজে পাওয়া যায়নি! Step 9 চেক করুন।");
-      console.error("Missing IDs: pay-modal-amount or dlv-payment-modal");
+    // অ্যাড্রেস যদি থাকে তবে তাও ডেটাতে রাখা (পরবর্তী স্টেপে ডেটাবেসে সেভ হবে)
+    if (customerAddresses.length > 0) {
+      tempOrderData.address = customerAddresses[customerAddresses.length - 1];
     }
+
+    document.getElementById('pay-modal-amount').innerText = `₹${price}`;
+    document.getElementById('dlv-payment-modal').classList.add('active');
   };
 
   // ২. পেমেন্ট প্রসেস করা
@@ -585,6 +597,92 @@
     }
   };
 
+   // ==================== ADDRESS & MAP LOGIC (STEP 11) ====================
+  let pickerMap = null;
+  let pickerMarker = null;
+  let pickedLatLng = null;
+  let customerAddresses = []; // ডেমো অ্যাড্রেস অ্যারে (পরবর্তীতে প্রোফাইলে সেভ হবে)
+
+  // ১. অ্যাড্রেস মডাল ওপেন এবং ম্যাপ ইনিশিয়ালাইজ
+  window.openAddressModal = function() {
+    document.getElementById('dlv-address-modal').classList.add('active');
+    
+    // ম্যাপ যদি আগে থেকে লোড না হয়, তবে লোড করব
+    setTimeout(() => {
+      if (!pickerMap) {
+        // ডিফল্ট লোকেশন (যেমন: কলকাতা)
+        pickerMap = L.map('map-picker').setView([22.5726, 88.3639], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(pickerMap);
+
+        // ম্যাপে ক্লিক করলে পিন বসবে
+        pickerMap.on('click', function(e) {
+          if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+          
+          pickerMarker = L.marker(e.latlng).addTo(pickerMap);
+          pickedLatLng = e.latlng;
+          
+          document.getElementById('map-coords').innerText = `Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`;
+        });
+      }
+      // ম্যাপের সাইজ ঠিক করা (মডাল ওপেন হলে)
+      pickerMap.invalidateSize();
+    }, 300);
+  };
+
+  // ২. নতুন অ্যাড্রেস সেভ করা
+  window.saveNewAddress = function() {
+    const type = document.getElementById('new-addr-type').value;
+    const text = document.getElementById('new-addr-text').value.trim();
+    
+    if (!text) {
+      alert("দয়া করে সম্পূর্ণ ঠিকানা লিখুন।");
+      return;
+    }
+
+    const newAddr = {
+      type: type,
+      text: text,
+      lat: pickedLatLng ? pickedLatLng.lat : null,
+      lng: pickedLatLng ? pickedLatLng.lng : null
+    };
+
+    customerAddresses.push(newAddr);
+    
+    // UI তে দেখানো
+    renderCustomerAddress();
+    
+    // রিসেট
+    document.getElementById('new-addr-text').value = '';
+    pickedLatLng = null;
+    document.getElementById('map-coords').innerText = 'কোনো পিন সেট করা হয়নি';
+    document.getElementById('dlv-address-modal').classList.remove('active');
+    
+    alert("অ্যাড্রেস সফলভাবে সেভ হয়েছে!");
+  };
+
+  // ৩. কাস্টমারের সেভ করা অ্যাড্রেস রেন্ডার
+  function renderCustomerAddress() {
+    const el = document.getElementById('customer-saved-address');
+    if (!el) return;
+
+    if (customerAddresses.length === 0) {
+      el.innerHTML = "কোন অ্যাড্রেস সেভ করা নেই।";
+      return;
+    }
+
+    const latest = customerAddresses[customerAddresses.length - 1];
+    el.innerHTML = `
+      <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; border-left: 3px solid var(--mp-primary);">
+        <b>${latest.type === 'Home' ? '🏠 বাড়ি' : latest.type === 'Office' ? '🏢 অফিস' : '📍 অন্যান্য'}</b><br>
+        ${latest.text}
+        ${latest.lat ? `<br><span style="color:var(--mp-success); font-size:10px;">✅ ম্যাপ পিন করা হয়েছে</span>` : ''}
+      </div>
+    `;
+  }
+  
   // ৩. কাস্টমারের অর্ডার হিস্ট্রি
   window.openCustomerOrdersModal = function() {
     document.getElementById('dlv-customer-orders-modal').classList.add('active');
@@ -1102,7 +1200,37 @@
   </div>
 </div>
 
-<!-- Customer Order History Modal -->
+<!-- Address Selection Modal -->
+<div id="dlv-address-modal" class="dlv-modal-overlay">
+  <div class="dlv-modal-content" style="max-height: 90vh; overflow-y: auto;">
+    <span class="dlv-modal-close" onclick="document.getElementById('dlv-address-modal').classList.remove('active')">&times;</span>
+    <h3 style="margin-bottom: 15px; color: var(--mp-primary);">📍 নতুন অ্যাড্রেস দিন</h3>
+    
+    <div class="dlv-form-group">
+      <label>অ্যাড্রেসের ধরন</label>
+      <select id="new-addr-type" class="dlv-input">
+        <option value="Home">🏠 বাড়ি (Home)</option>
+        <option value="Office">🏢 অফিস (Office)</option>
+        <option value="Other">📍 অন্যান্য (Other)</option>
+      </select>
+    </div>
+
+    <div class="dlv-form-group">
+      <label>সম্পূর্ণ ঠিকানা (ল্যান্ডমার্ক সহ)</label>
+      <input type="text" id="new-addr-text" class="dlv-input" placeholder="যেমন: ১২ নং ওয়ার্ড, মসজিদের পাশে">
+    </div>
+
+    <div class="dlv-form-group">
+      <label>ম্যাপে লোকেশন পিন করুন (ঐচ্ছিক)</label>
+      <div id="map-picker" style="height: 200px; width: 100%; border-radius: 8px; border: 1px solid #ccc; z-index: 1;"></div>
+      <div style="font-size: 11px; color: var(--mp-text-light); margin-top: 5px;" id="map-coords">কোনো পিন সেট করা হয়নি</div>
+    </div>
+
+    <button class="mp-btn mp-btn-success" onclick="saveNewAddress()">💾 সেভ করুন</button>
+  </div>
+</div>
+  
+  <!-- Customer Order History Modal -->
 <div id="dlv-customer-orders-modal" class="dlv-modal-overlay">
   <div class="dlv-modal-content" style="max-height: 85vh; overflow-y: auto;">
     <span class="dlv-modal-close" onclick="document.getElementById('dlv-customer-orders-modal').classList.remove('active')">&times;</span>
