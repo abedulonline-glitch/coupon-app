@@ -332,16 +332,22 @@
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
-        <div class="mp-card" style="margin: 0; text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 5px;">🏪</div>
-          <div style="font-size: 13px; font-weight: 600;">মোট দোকানদার</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+        <div class="mp-card" style="margin: 0; text-align: center; padding: 10px;">
+          <div style="font-size: 20px; margin-bottom: 5px;">🏪</div>
+          <div style="font-size: 11px; font-weight: 600;">মোট দোকানদার</div>
           <div style="font-size: 16px; font-weight: bold; color: var(--mp-primary);" id="admin-total-shops">0</div>
         </div>
-        <div class="mp-card" style="margin: 0; text-align: center;">
-          <div style="font-size: 24px; margin-bottom: 5px;">🛵</div>
-          <div style="font-size: 13px; font-weight: 600;">মোট ডেলিভারি বয়</div>
+        <div class="mp-card" style="margin: 0; text-align: center; padding: 10px;">
+          <div style="font-size: 20px; margin-bottom: 5px;">🛵</div>
+          <div style="font-size: 11px; font-weight: 600;">মোট ডেলিভারি বয়</div>
           <div style="font-size: 16px; font-weight: bold; color: var(--mp-success);" id="admin-total-delivery">0</div>
+        </div>
+        <!-- নতুন ম্যানেজার কার্ড -->
+        <div class="mp-card" style="margin: 0; text-align: center; padding: 10px;">
+          <div style="font-size: 20px; margin-bottom: 5px;">👨‍💼</div>
+          <div style="font-size: 11px; font-weight: 600;">মোট ম্যানেজার</div>
+          <div style="font-size: 16px; font-weight: bold; color: var(--mp-warning);" id="admin-total-managers">0</div>
         </div>
       </div>
 
@@ -1383,12 +1389,13 @@
   
   // ==================== ADMIN FUNCTIONS (STEP 14) ====================
   
-  function loadAdminDashboard() {
-    // ১. ইউজার লিস্ট লোড করা (dummy logic for now, real data will come from admins collection)
-    const usersQ = query(collection(db, "admins")); // সব ইউজার
+   function loadAdminDashboard() {
+    const usersQ = query(collection(db, "admins"));
+    
     onSnapshot(usersQ, (snap) => {
       let shops = 0;
       let delivery = 0;
+      let managers = 0;
       let userHtml = '';
       
       snap.forEach(docSnap => {
@@ -1396,13 +1403,19 @@
         
         if (u.role === 'shopkeeper') shops++;
         if (u.role === 'delivery') delivery++;
+        if (u.isManager === true) managers++; // ম্যানেজার কাউন্ট
         
-        // রোল পরিবর্তনের ড্রপডাউন
+        // ডেলিভারি বয়ের লিস্টে যদি সে ম্যানেজারও হয়, তবে সেটা দেখাবে
+        let roleText = u.role ? u.role.toUpperCase() : 'NO ROLE';
+        if (u.isManager) {
+          roleText = `MANAGER (Pin: ${u.managerPin || 'N/A'}) & ${roleText}`;
+        }
+
         userHtml += `
           <div style="border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
             <div>
               <div style="font-size: 14px; font-weight: 600;">${u.name || 'Unknown'}</div>
-              <div style="font-size: 11px; color: #666;">${u.role ? u.role.toUpperCase() : 'NO ROLE'}</div>
+              <div style="font-size: 10px; color: ${u.isManager ? 'var(--mp-warning)' : '#666'}; font-weight: bold;">${roleText}</div>
             </div>
             <select onchange="changeUserRole('${docSnap.id}', this.value)" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;">
               <option value="" disabled selected>রোল দিন</option>
@@ -1416,19 +1429,15 @@
       
       document.getElementById('admin-total-shops').innerText = shops;
       document.getElementById('admin-total-delivery').innerText = delivery;
+      document.getElementById('admin-total-managers').innerText = managers;
       document.getElementById('admin-user-list').innerHTML = userHtml || '<div style="text-align:center; color:#999;">কোনো ইউজার নেই।</div>';
     });
 
-    // ২. রেভিনিউ লোড করা (ডামি ১% ক্যালকুলেশন)
-    // বাস্তবে এটি একটি আলাদা কালেকশন থেকে আসবে
+    // রেভিনিউ লোড
     const ordersQ = query(collection(db, "orders"), where("status", "==", "delivered"));
     onSnapshot(ordersQ, (snap) => {
       let revenue = 0;
-      snap.forEach(d => {
-        const order = d.data();
-        // ধরা যাক প্রতি অর্ডার থেকে ১% কমিশন
-        revenue += (order.price * 0.01); 
-      });
+      snap.forEach(d => { revenue += (d.data().price * 0.01); });
       document.getElementById('admin-total-revenue').innerText = `₹${revenue.toFixed(2)}`;
     });
   }
@@ -1452,13 +1461,22 @@
       let html = '';
       snap.forEach(docSnap => {
         const u = docSnap.data();
+        
         // শুধু দোকানদার বা ডেলিভারি বয়কে ম্যানেজার বানানো যাবে
         if(u.role === 'shopkeeper' || u.role === 'delivery' || u.role === 'admin') {
+           
+           // নতুন যোগ করা ট্যাগ লজিক
+           const isAlreadyManager = u.isManager ? "✅ ম্যানেজার" : "";
+           const delBoyCount = u.role === 'delivery' ? "(ডেলিভারি বয়)" : "";
+           
            html += `
              <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
                <div>
                  <div style="font-size:13px; font-weight:600;">${u.name || 'Unknown'}</div>
-                 <div style="font-size:11px; color:#666;">${u.role.toUpperCase()}</div>
+                 <div style="font-size:11px; color:#666;">
+                    ${u.role ? u.role.toUpperCase() : 'NO ROLE'} ${delBoyCount} 
+                    <span style="color:var(--mp-success)">${isAlreadyManager}</span>
+                 </div>
                </div>
                <button class="mp-btn mp-btn-success" style="width:auto; margin:0; padding:6px 10px; font-size:11px;" onclick="assignPinManager('${docSnap.id}', '${u.name}', '${pin}')">ম্যানেজার করুন</button>
              </div>
