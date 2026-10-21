@@ -597,42 +597,100 @@
     }
   };
 
-   // ==================== ADDRESS & MAP LOGIC (STEP 11) ====================
+  // ==================== ADDRESS & MAP LOGIC (STEP 11 - UPDATED) ====================
   let pickerMap = null;
   let pickerMarker = null;
   let pickedLatLng = null;
-  let customerAddresses = []; // ডেমো অ্যাড্রেস অ্যারে (পরবর্তীতে প্রোফাইলে সেভ হবে)
+  let customerAddresses = []; 
+  let currentTileLayer = null;
+  let isSatelliteView = false;
 
   // ১. অ্যাড্রেস মডাল ওপেন এবং ম্যাপ ইনিশিয়ালাইজ
   window.openAddressModal = function() {
     document.getElementById('dlv-address-modal').classList.add('active');
     
-    // ম্যাপ যদি আগে থেকে লোড না হয়, তবে লোড করব
     setTimeout(() => {
       if (!pickerMap) {
-        // ডিফল্ট লোকেশন (যেমন: কলকাতা)
+        // ম্যাপ তৈরি (ডিফল্ট লোকেশন)
         pickerMap = L.map('map-picker').setView([22.5726, 88.3639], 13);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // স্ট্যান্ডার্ড ম্যাপ লেয়ার
+        currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap'
         }).addTo(pickerMap);
 
         // ম্যাপে ক্লিক করলে পিন বসবে
         pickerMap.on('click', function(e) {
-          if (pickerMarker) pickerMap.removeLayer(pickerMarker);
-          
-          pickerMarker = L.marker(e.latlng).addTo(pickerMap);
-          pickedLatLng = e.latlng;
-          
-          document.getElementById('map-coords').innerText = `Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`;
+          setPickerMarker(e.latlng);
         });
+        
+        // ডিফল্ট পিন বসানো (যদি আগে থেকে কিছু না থাকে)
+        setPickerMarker(L.latLng(22.5726, 88.3639));
       }
-      // ম্যাপের সাইজ ঠিক করা (মডাল ওপেন হলে)
       pickerMap.invalidateSize();
     }, 300);
   };
 
-  // ২. নতুন অ্যাড্রেস সেভ করা
+  // ২. পিন সেট করার হেল্পার ফাংশন (ড্র্যাগেবল)
+  function setPickerMarker(latLng) {
+    if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+    
+    // 📍 পিন তৈরি (Dragable)
+    pickerMarker = L.marker(latLng, { draggable: true }).addTo(pickerMap);
+    pickedLatLng = latLng;
+    
+    document.getElementById('map-coords').innerText = `Lat: ${latLng.lat.toFixed(4)}, Lng: ${latLng.lng.toFixed(4)}`;
+    
+    // পিন টেনে সরালে (Drag) কো-অর্ডিনেট আপডেট হবে
+    pickerMarker.on('dragend', function(event) {
+      const position = pickerMarker.getLatLng();
+      pickedLatLng = position;
+      document.getElementById('map-coords').innerText = `Lat: ${position.lat.toFixed(4)}, Lng: ${position.lng.toFixed(4)}`;
+    });
+  }
+
+  // ৩. ইউজারের কারেন্ট লোকেশন নেওয়া
+  window.getCurrentLocation = function() {
+    if (!navigator.geolocation) {
+      alert("আপনার ব্রাউজারে লোকেশন সাপোর্ট করছে না।");
+      return;
+    }
+    
+    document.getElementById('map-coords').innerText = "লোকেশন খোঁজা হচ্ছে...";
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const latLng = L.latLng(lat, lng);
+        
+        pickerMap.setView(latLng, 16); // ম্যাপ জুম ইন হবে
+        setPickerMarker(latLng);       // পিন সেট হবে
+      },
+      (error) => {
+        alert("লোকেশন পাওয়া যায়নি। দয়া করে ব্রাউজারের লোকেশন পারমিশন চেক করুন।");
+        document.getElementById('map-coords').innerText = "লোকেশন পাওয়া যায়নি।";
+      }
+    );
+  };
+
+  // ৪. স্যাটেলাইট ভিউ টগল
+  window.toggleMapLayer = function() {
+    if (isSatelliteView) {
+      pickerMap.removeLayer(currentTileLayer);
+      currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pickerMap);
+      isSatelliteView = false;
+    } else {
+      pickerMap.removeLayer(currentTileLayer);
+      // Esri World Imagery (Satellite View Alternative)
+      currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles © Esri'
+      }).addTo(pickerMap);
+      isSatelliteView = true;
+    }
+  };
+
+  // ৫. নতুন অ্যাড্রেস সেভ করা (আগের মতোই আছে, শুধু নিচের অংশটুকু)
   window.saveNewAddress = function() {
     const type = document.getElementById('new-addr-type').value;
     const text = document.getElementById('new-addr-text').value.trim();
@@ -650,14 +708,10 @@
     };
 
     customerAddresses.push(newAddr);
-    
-    // UI তে দেখানো
     renderCustomerAddress();
     
     // রিসেট
     document.getElementById('new-addr-text').value = '';
-    pickedLatLng = null;
-    document.getElementById('map-coords').innerText = 'কোনো পিন সেট করা হয়নি';
     document.getElementById('dlv-address-modal').classList.remove('active');
     
     alert("অ্যাড্রেস সফলভাবে সেভ হয়েছে!");
@@ -1223,6 +1277,11 @@
     <div class="dlv-form-group">
       <label>ম্যাপে লোকেশন পিন করুন (ঐচ্ছিক)</label>
       <div id="map-picker" style="height: 200px; width: 100%; border-radius: 8px; border: 1px solid #ccc; z-index: 1;"></div>
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button class="mp-btn" style="margin: 0; padding: 6px; font-size: 12px; background: #e8f0fe; color: var(--mp-primary); flex: 1;" onclick="getCurrentLocation()">📍 আমার লোকেশন</button>
+        <button class="mp-btn" style="margin: 0; padding: 6px; font-size: 12px; background: #f0f2f5; color: #333; flex: 1;" onclick="toggleMapLayer()">🛰️ স্যাটেলাইট ভিউ</button>
+      </div>
+      
       <div style="font-size: 11px; color: var(--mp-text-light); margin-top: 5px;" id="map-coords">কোনো পিন সেট করা হয়নি</div>
     </div>
 
