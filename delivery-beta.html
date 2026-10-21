@@ -322,15 +322,39 @@
 
     <!-- ROLE: ADMIN DASHBOARD -->
     <div id="dlv-view-admin" class="mp-hidden">
-      <div class="dlv-dashboard-title">অ্যাডমিন প্যানেল</div>
+      <div class="dlv-dashboard-title">👑 অ্যাডমিন কন্ট্রোল প্যানেল</div>
+      
+      <!-- রেভিনিউ সামারি -->
+      <div class="dlv-wallet-header" style="background: linear-gradient(135deg, #1a73e8, #4285f4);">
+        <div>
+          <div style="font-size: 12px; opacity: 0.9;">সিস্টেমের মোট রেভিনিউ (১%)</div>
+          <div class="dlv-wallet-balance" id="admin-total-revenue">₹0.00</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+        <div class="mp-card" style="margin: 0; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🏪</div>
+          <div style="font-size: 13px; font-weight: 600;">মোট দোকানদার</div>
+          <div style="font-size: 16px; font-weight: bold; color: var(--mp-primary);" id="admin-total-shops">0</div>
+        </div>
+        <div class="mp-card" style="margin: 0; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 5px;">🛵</div>
+          <div style="font-size: 13px; font-weight: 600;">মোট ডেলিভারি বয়</div>
+          <div style="font-size: 16px; font-weight: bold; color: var(--mp-success);" id="admin-total-delivery">0</div>
+        </div>
+      </div>
+
+      <!-- ইউজার ম্যানেজমেন্ট -->
       <div class="mp-card">
-        <h3>💰 সিস্টেম রেভিনিউ</h3>
-        <p style="font-size: 13px; color: var(--mp-text-light);">অ্যাডমিন কন্ট্রোল প্যানেল ডেভেলপমেন্টের অধীনে আছে।</p>
+        <h3>👥 ইউজার রোল ম্যানেজমেন্ট</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">নতুন ইউজারদের রোল পরিবর্তন করে ডেলিভারি সিস্টেমে যুক্ত করুন।</p>
+        <div id="admin-user-list">
+          <!-- Users will load here -->
+          <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
+        </div>
       </div>
     </div>
-
-  </div>
-</div>
 
 <script type="module">
   // ============================================================
@@ -394,7 +418,7 @@
     }
   }
 
-  function setupUIForRole(role, userData) {
+   function setupUIForRole(role, userData) {
     // ১. লোডার লুকানো এবং অ্যাপ দেখানো
     document.getElementById('dlv-loader').classList.add('mp-hidden');
     document.getElementById('mp-app').classList.remove('mp-hidden');
@@ -421,7 +445,7 @@
     if (role === 'shopkeeper') {
       if (typeof renderShopProducts === 'function') renderShopProducts();
       if (typeof loadShopTotalDue === 'function') loadShopTotalDue(); 
-      if (typeof loadShopNewOrders === 'function') loadShopNewOrders(); // ঠিক করা হয়েছে
+      if (typeof loadShopNewOrders === 'function') loadShopNewOrders(); 
     } else if (role === 'customer') {
       if (typeof renderCustomerProducts === 'function') renderCustomerProducts();
       
@@ -433,30 +457,31 @@
         if (khataEl) khataEl.innerText = `₹${(userData.khataDue || 0).toFixed(2)}`;
       }
     } else if (role === 'delivery') {
-      // ডেলিভারি বয়ের অফলাইন স্ক্রিন
+       // ডেলিভারি বয়ের অফলাইন স্ক্রিন
       const offlineMsg = document.getElementById('dlv-offline-msg');
       const ordersContainer = document.getElementById('dlv-live-orders-container');
       if (offlineMsg) offlineMsg.style.display = 'block';
       if (ordersContainer) ordersContainer.style.display = 'none';
+    } else if (role === 'admin') {
+      // অ্যাডমিন ড্যাশবোর্ড লোড করা (নতুন যোগ করা হয়েছে)
+      if (typeof loadAdminDashboard === 'function') loadAdminDashboard();
     }
 
-        // URL থেকে রোল চেক করা (যদি কেউ লিংকে ক্লিক করে আসে)
+    // URL থেকে রোল চেক করা (যদি কেউ লিংকে ক্লিক করে আসে)
     const urlParams = new URLSearchParams(window.location.search);
     const urlRole = urlParams.get('role');
     
     if (urlRole && !userData.role) {
-      // ভবিষ্যতে ডেটাবেসে রোল সেভ করার লজিক এখানে আসবে
       console.log("User needs to register as:", urlRole);
       alert(`আপনি ${urlRole} হিসেবে রেজিস্ট্রেশন পেজে যাচ্ছেন...`);
-      // window.location.href = `beta.html?role=${urlRole}`; // মূল রেজিস্ট্রেশন পেজে পাঠানো
+      // window.location.href = `beta.html?role=${urlRole}`; 
     }
 
-    // শেয়ার সেকশনটি শুধু অ্যাডমিন বা ম্যানেজার দেখবে (ঐচ্ছিক)
+    // শেয়ার সেকশনটি শুধু অ্যাডমিন বা ম্যানেজার দেখবে
     const shareSection = document.getElementById('dlv-role-share-section');
     if (shareSection && (role === 'admin' || role === 'manager')) {
       shareSection.style.display = 'block';
     }
-    
   }
 
   // ভূমিকা (Role) অনুযায়ী WhatsApp-এ লিংক শেয়ার করার ফাংশন
@@ -1340,6 +1365,74 @@
       alert("রেটিং সেভ করতে সমস্যা হয়েছে!");
     }
   };
+  
+  // ==================== ADMIN FUNCTIONS (STEP 14) ====================
+  
+  function loadAdminDashboard() {
+    // ১. ইউজার লিস্ট লোড করা (dummy logic for now, real data will come from admins collection)
+    const usersQ = query(collection(db, "admins")); // সব ইউজার
+    onSnapshot(usersQ, (snap) => {
+      let shops = 0;
+      let delivery = 0;
+      let userHtml = '';
+      
+      snap.forEach(docSnap => {
+        const u = docSnap.data();
+        
+        if (u.role === 'shopkeeper') shops++;
+        if (u.role === 'delivery') delivery++;
+        
+        // রোল পরিবর্তনের ড্রপডাউন
+        userHtml += `
+          <div style="border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 14px; font-weight: 600;">${u.name || 'Unknown'}</div>
+              <div style="font-size: 11px; color: #666;">${u.role ? u.role.toUpperCase() : 'NO ROLE'}</div>
+            </div>
+            <select onchange="changeUserRole('${docSnap.id}', this.value)" style="padding: 6px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px;">
+              <option value="" disabled selected>রোল দিন</option>
+              <option value="shopkeeper" ${u.role === 'shopkeeper' ? 'selected' : ''}>দোকানদার</option>
+              <option value="delivery" ${u.role === 'delivery' ? 'selected' : ''}>ডেলিভারি বয়</option>
+              <option value="customer" ${u.role === 'customer' ? 'selected' : ''}>কাস্টমার</option>
+            </select>
+          </div>
+        `;
+      });
+      
+      document.getElementById('admin-total-shops').innerText = shops;
+      document.getElementById('admin-total-delivery').innerText = delivery;
+      document.getElementById('admin-user-list').innerHTML = userHtml || '<div style="text-align:center; color:#999;">কোনো ইউজার নেই।</div>';
+    });
+
+    // ২. রেভিনিউ লোড করা (ডামি ১% ক্যালকুলেশন)
+    // বাস্তবে এটি একটি আলাদা কালেকশন থেকে আসবে
+    const ordersQ = query(collection(db, "orders"), where("status", "==", "delivered"));
+    onSnapshot(ordersQ, (snap) => {
+      let revenue = 0;
+      snap.forEach(d => {
+        const order = d.data();
+        // ধরা যাক প্রতি অর্ডার থেকে ১% কমিশন
+        revenue += (order.price * 0.01); 
+      });
+      document.getElementById('admin-total-revenue').innerText = `₹${revenue.toFixed(2)}`;
+    });
+  }
+
+  // ইউজার রোল পরিবর্তন করা
+  window.changeUserRole = async function(uid, newRole) {
+    if (!newRole) return;
+    if(!confirm(`ইউজারের রোল পরিবর্তন করে "${newRole}" করবেন?`)) return;
+    
+    try {
+      await updateDoc(doc(db, "admins", uid), {
+        role: newRole
+      });
+      alert("রোল সফলভাবে আপডেট হয়েছে!");
+    } catch (e) {
+      console.error(e);
+      alert("রোল আপডেট করতে সমস্যা হয়েছে!");
+    }
+  };  
   
   // ডেলিভারি বয়ের জন্য গুগল ম্যাপে লোকেশন ওপেন
   window.openGoogleMap = function(lat, lng) {
