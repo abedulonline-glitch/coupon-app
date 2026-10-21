@@ -859,16 +859,26 @@
       }
       
       let html = '';
-      snap.forEach(doc => {
+          snap.forEach(doc => {
         const o = doc.data();
-        let statusColor = o.status === 'delivered' ? '#0f9d58' : (o.status === 'ready' ? '#1a73e8' : '#f9a825');
+        let statusColor = o.status === 'delivered' ? '#0f9d58' : '#f9a825';
         
         const orderStatus = o.status ? o.status.toUpperCase() : 'PENDING';
         const payMethod = o.paymentMethod ? o.paymentMethod.toUpperCase() : 'COD';
         const payStatus = o.paymentStatus || 'pending';
         
+        // যদি অর্ডার ডেলিভারি হয়ে যায়, তবে রেটিং বাটন দেখাবে
+        let ratingBtnHtml = '';
+        if (o.status === 'delivered') {
+           if(o.rating) {
+              ratingBtnHtml = `<div style="color: #f9a825; font-size:16px; margin-top:8px;">রেটিং: ${'⭐'.repeat(o.rating)}</div>`;
+           } else {
+              ratingBtnHtml = `<button class="mp-btn" style="margin-top:8px; padding:6px; background:#fef7e0; color:#b06000; font-size:12px;" onclick="openRatingModal('${doc.id}', '${o.deliveryBoyId}')">⭐ রেটিং দিন</button>`;
+           }
+        }
+
         html += `
-          <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: white;">
+          <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
             <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
               <span>${o.productName}</span>
               <span>₹${o.price}</span>
@@ -878,6 +888,7 @@
               <span>Status: <b style="color:${statusColor};">${orderStatus}</b></span>
               <span>Pay: ${payMethod} (${payStatus})</span>
             </div>
+            ${ratingBtnHtml}
           </div>
         `;
       });
@@ -1260,7 +1271,77 @@
     }
   };
 
-   // ডেলিভারি বয়ের জন্য গুগল ম্যাপে লোকেশন ওপেন
+   // ==================== RATING SYSTEM (STEP 13) ====================
+  let currentRatingOrderId = null;
+  let currentRatingDeliveryBoyId = null;
+  let selectedRating = 0;
+
+  // ১. রেটিং মডাল ওপেন
+  window.openRatingModal = function(orderId, deliveryBoyId) {
+    currentRatingOrderId = orderId;
+    currentRatingDeliveryBoyId = deliveryBoyId;
+    selectedRating = 0;
+    updateStars(0); // রিসেট
+    document.getElementById('dlv-rating-modal').classList.add('active');
+  };
+
+  // ২. স্টার সিলেক্ট
+  window.setRating = function(rating) {
+    selectedRating = rating;
+    updateStars(rating);
+  };
+
+  function updateStars(rating) {
+    const stars = document.querySelectorAll('#star-container span');
+    stars.forEach((star, index) => {
+      star.style.color = index < rating ? '#f9a825' : '#ccc';
+    });
+  }
+
+  // ৩. রেটিং সাবমিট এবং ডেলিভারি বয়ের ওয়ালেট আপডেট
+  window.submitRating = async function() {
+    if (selectedRating === 0) {
+      alert("দয়া করে অন্তত ১ স্টার রেটিং দিন!");
+      return;
+    }
+
+    try {
+      // ক) অর্ডারে রেটিং সেভ করা
+      await updateDoc(doc(db, "orders", currentRatingOrderId), {
+        rating: selectedRating,
+        ratedAt: serverTimestamp()
+      });
+
+      // খ) ডেলিভারি বয়ের ওয়ালেটে টাকা যোগ করা (যদি ডেলিভারি বয় থাকে)
+      if (currentRatingDeliveryBoyId) {
+        const orderSnap = await getDoc(doc(db, "orders", currentRatingOrderId));
+        const orderData = orderSnap.data();
+        const deliveryCharge = orderData.deliveryCharge || 0;
+
+        const boyRef = doc(db, "admins", currentRatingDeliveryBoyId);
+        const boySnap = await getDoc(boyRef);
+        
+        if (boySnap.exists()) {
+          const currentBal = boySnap.data().walletBalance || 0;
+          const currentEarnings = boySnap.data().totalEarnings || 0;
+          
+          await updateDoc(boyRef, {
+            walletBalance: currentBal + deliveryCharge,
+            totalEarnings: currentEarnings + deliveryCharge
+          });
+        }
+      }
+
+      alert("ধন্যবাদ! আপনার রেটিং সফলভাবে জমা হয়েছে।");
+      document.getElementById('dlv-rating-modal').classList.remove('active');
+      
+    } catch (e) {
+      console.error(e);
+      alert("রেটিং সেভ করতে সমস্যা হয়েছে!");
+    }
+  };
+  
+  // ডেলিভারি বয়ের জন্য গুগল ম্যাপে লোকেশন ওপেন
   window.openGoogleMap = function(lat, lng) {
     if (!lat || !lng) {
       alert("দুঃখিত, এই অর্ডারের জন্য কোনো ম্যাপ লোকেশন পাওয়া যায়নি। কাস্টমারকে ফোন করুন।");
@@ -1287,8 +1368,13 @@
             status: "delivered",
             deliveredAt: serverTimestamp()
           });
+
+                    alert("🎉 সফলভাবে ডেলিভারি সম্পন্ন হয়েছে!");
           
-          alert("🎉 সফলভাবে ডেলিভারি সম্পন্ন হয়েছে!");
+          // UI তে আয় আপডেট (লোকাল স্টোরেজ বা সেশন থেকে)
+          let currentEarning = parseFloat(document.getElementById('dlv-today-earnings').innerText.replace('₹', '')) || 0;
+          currentEarning += (orderData.deliveryCharge || 0);
+          document.getElementById('dlv-today-earnings').innerText = `₹${currentEarning.toFixed(2)}`;
           
           // আয় আপডেট
           let currentEarning = parseFloat(document.getElementById('dlv-today-earnings').innerText.replace('₹', '')) || 0;
@@ -1423,6 +1509,25 @@
     <div id="customer-orders-list">
       <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
     </div>
+  </div>
+</div>
+
+  <!-- Rating Modal -->
+<div id="dlv-rating-modal" class="dlv-modal-overlay">
+  <div class="dlv-modal-content" style="text-align: center;">
+    <h3 style="margin-bottom: 10px; color: var(--mp-primary);">⭐ ডেলিভারি বয়কে রেটিং দিন</h3>
+    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">আপনার অর্ডারটি কেমন ছিল?</p>
+    
+    <div id="star-container" style="font-size: 35px; color: #ccc; cursor: pointer; margin-bottom: 20px; user-select: none;">
+      <span onclick="setRating(1)">★</span>
+      <span onclick="setRating(2)">★</span>
+      <span onclick="setRating(3)">★</span>
+      <span onclick="setRating(4)">★</span>
+      <span onclick="setRating(5)">★</span>
+    </div>
+
+    <button class="mp-btn mp-btn-success" onclick="submitRating()">রেটিং সাবমিট করুন</button>
+    <button class="mp-btn" onclick="document.getElementById('dlv-rating-modal').classList.remove('active')" style="background: transparent; color: #999; margin-top: 5px;">বাতিল</button>
   </div>
 </div>
 
