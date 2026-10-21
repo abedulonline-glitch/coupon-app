@@ -1466,20 +1466,32 @@
            
            let managerTag = "";
            if (u.isManager) {
-             const pinsList = u.managerPins ? u.managerPins.join(', ') : '';
-             managerTag = `<div style="font-size:10px; color:var(--mp-success); margin-top:3px;">✅ ম্যানেজার (পিন: ${pinsList})</div>`;
+             const pinsList = u.managerPins ? u.managerPins : [];
+             let pinTagsHtml = '';
+             
+             // প্রতিটি পিনের পাশে ❌ (রিমুভ) বাটন তৈরি করা হচ্ছে
+             pinsList.forEach(p => {
+               pinTagsHtml += `
+                 <span style="display:inline-block; background:#ffebee; color:#d93025; padding:2px 6px; border-radius:4px; font-size:10px; margin-right:5px; margin-bottom:3px;">
+                   ${p} <span onclick="removeManagerPin('${docSnap.id}', '${u.name}', '${p}')" style="cursor:pointer; font-weight:bold; margin-left:3px;" title="রিমুভ করুন">×</span>
+                 </span>`;
+             });
+             
+             managerTag = `<div style="font-size:10px; color:var(--mp-success); margin-top:5px; line-height: 1.5;">
+               ✅ ম্যানেজার: <br> ${pinTagsHtml}
+             </div>`;
            }
            
            const delBoyTag = u.role === 'delivery' ? "<span style='color:#666;'>(ডেলিভারি বয়)</span>" : "";
 
            html += `
              <div style="display:flex; justify-content:space-between; padding: 10px 0; border-bottom: 1px solid #eee;">
-               <div>
+               <div style="flex: 1; padding-right: 10px;">
                  <div style="font-size:13px; font-weight:600;">${u.name || 'Unknown'}</div>
                  <div style="font-size:11px; color:#666;">${u.role ? u.role.toUpperCase() : 'NO ROLE'} ${delBoyTag}</div>
                  ${managerTag}
                </div>
-               <button class="mp-btn mp-btn-success" style="width:auto; margin:0; padding:6px 10px; font-size:11px;" onclick="assignPinManager('${docSnap.id}', '${u.name}', '${pin}')">+ পিন যোগ করুন</button>
+               <button class="mp-btn mp-btn-success" style="width:auto; margin:0; padding:6px 10px; font-size:11px; height: fit-content;" onclick="assignPinManager('${docSnap.id}', '${u.name}', '${pin}')">+ পিন যোগ করুন</button>
              </div>
            `;
         }
@@ -1532,7 +1544,39 @@
     }
   };
   
-                   // ইউজার রোল পরিবর্তন করা
+  // পিন রিমুভ করার ফাংশন
+  window.removeManagerPin = async function(uid, name, pinToRemove) {
+    if(!confirm(`${name}-এর প্রোফাইল থেকে পিনকোড ${pinToRemove} রিমুভ করবেন?`)) return;
+    
+    try {
+      const userRef = doc(db, "admins", uid);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        let currentPins = userData.managerPins || [];
+        
+        // পিনটি বাদ দিয়ে নতুন অ্যারে তৈরি
+        const updatedPins = currentPins.filter(p => p !== pinToRemove);
+        
+        // ফায়ারবেসে আপডেট
+        await updateDoc(userRef, {
+          managerPins: updatedPins,
+          isManager: updatedPins.length > 0 // যদি আর কোনো পিন না থাকে তবে isManager false হবে
+        });
+        
+        alert(`পিনকোড ${pinToRemove} সফলভাবে রিমুভ হয়েছে!`);
+        
+        // সার্চ রেজাল্ট রিফ্রেশ করা
+        searchPinUsers();
+      }
+    } catch(e) {
+      console.error(e);
+      alert("পিন রিমুভ করতে সমস্যা হয়েছে।");
+    }
+  };
+  
+  // ইউজার রোল পরিবর্তন করা
   window.changeUserRole = async function(uid, newRole) {
     if (!newRole) return;
     if(!confirm(`ইউজারের রোল পরিবর্তন করে "${newRole}" করবেন?`)) return;
