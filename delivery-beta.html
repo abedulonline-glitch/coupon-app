@@ -354,6 +354,21 @@
           <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
         </div>
       </div>
+
+      <!-- Pin-wise Manager Section (নতুন যুক্ত করা হলো) -->
+      <div class="mp-card" style="border-left: 4px solid var(--mp-warning);">
+        <h3>📍 পিনকোড ভিত্তিক ম্যানেজার</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">কোন পিনকোডের দায়িত্বে কে ম্যানেজার থাকবে তা নির্ধারণ করুন।</p>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <input type="text" id="admin-pin-input" class="dlv-input" placeholder="পিনকোড (যেমন: 700001)" style="flex: 1;">
+          <button class="mp-btn mp-btn-primary" style="width: auto; margin: 0; padding: 0 15px;" onclick="searchPinUsers()">🔍 খুঁজুন</button>
+        </div>
+        
+        <div id="admin-pin-user-list">
+          <!-- Searched users for manager will appear here -->
+        </div>
+      </div>
     </div>
 
 <script type="module">
@@ -1418,7 +1433,67 @@
     });
   }
 
-  // ইউজার রোল পরিবর্তন করা
+   // পিনকোড দিয়ে ইউজার খোঁজা (ম্যানেজার অ্যাসাইন করার জন্য)
+  window.searchPinUsers = async function() {
+    const pin = document.getElementById('admin-pin-input').value.trim();
+    if (!pin) {
+      alert("দয়া করে পিনকোড লিখুন।");
+      return;
+    }
+    
+    const listContainer = document.getElementById('admin-pin-user-list');
+    listContainer.innerHTML = '<div style="font-size:12px; color:#666;">খোঁজা হচ্ছে...</div>';
+    
+    try {
+      // ডেমো হিসেবে সব ইউজার খোঁজা হচ্ছে (বাস্তবে আমরা পিনকোড ফিল্ড দিয়ে ফিল্টার করব)
+      const q = query(collection(db, "admins")); 
+      const snap = await getDocs(q);
+      
+      let html = '';
+      snap.forEach(docSnap => {
+        const u = docSnap.data();
+        // শুধু দোকানদার বা ডেলিভারি বয়কে ম্যানেজার বানানো যাবে
+        if(u.role === 'shopkeeper' || u.role === 'delivery' || u.role === 'admin') {
+           html += `
+             <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+               <div>
+                 <div style="font-size:13px; font-weight:600;">${u.name || 'Unknown'}</div>
+                 <div style="font-size:11px; color:#666;">${u.role.toUpperCase()}</div>
+               </div>
+               <button class="mp-btn mp-btn-success" style="width:auto; margin:0; padding:6px 10px; font-size:11px;" onclick="assignPinManager('${docSnap.id}', '${u.name}', '${pin}')">ম্যানেজার করুন</button>
+             </div>
+           `;
+        }
+      });
+      
+      listContainer.innerHTML = html || '<div style="font-size:12px; color:#666;">কোনো ইউজার পাওয়া যায়নি।</div>';
+      
+    } catch(e) {
+      console.error(e);
+      listContainer.innerHTML = '<div style="font-size:12px; color:red;">খুঁজতে সমস্যা হয়েছে।</div>';
+    }
+  };
+
+  // পিনকোডে ম্যানেজার অ্যাসাইন করা
+  window.assignPinManager = async function(uid, name, pin) {
+    if(!confirm(`${name}-কে পিনকোড ${pin}-এর ম্যানেজার হিসেবে অ্যাসাইন করবেন?`)) return;
+    
+    try {
+      // ইউজারের ডেটাতে পিনকোড ও ম্যানেজার ফ্ল্যাগ সেভ করা
+      await updateDoc(doc(db, "admins", uid), {
+        managerPin: pin,
+        isManager: true
+      });
+      alert("সফলভাবে ম্যানেজার অ্যাসাইন হয়েছে!");
+      document.getElementById('admin-pin-input').value = '';
+      document.getElementById('admin-pin-user-list').innerHTML = '';
+    } catch(e) {
+      console.error(e);
+      alert("ম্যানেজার অ্যাসাইন করতে সমস্যা হয়েছে।");
+    }
+  };
+  
+                   // ইউজার রোল পরিবর্তন করা
   window.changeUserRole = async function(uid, newRole) {
     if (!newRole) return;
     if(!confirm(`ইউজারের রোল পরিবর্তন করে "${newRole}" করবেন?`)) return;
@@ -1443,6 +1518,28 @@
     // গুগল ম্যাপের লিংক ফরম্যাট
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     window.open(mapUrl, '_blank'); // নতুন ট্যাবে ম্যাপ ওপেন হবে
+  };
+  
+   // ডেলিভারি বয়ের লাইভ লোকেশন আপডেট
+  window.startLiveTracking = function(orderId) {
+    if (!navigator.geolocation) return;
+    
+    // প্রতি ১০ সেকেন্ডে লোকেশন আপডেট হবে
+    const trackingInterval = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+          await updateDoc(doc(db, "orders", orderId), {
+            deliveryBoyLat: position.coords.latitude,
+            deliveryBoyLng: position.coords.longitude,
+            lastLocationUpdate: serverTimestamp()
+          });
+        } catch(e) { console.error("Location update failed", e); }
+      });
+    }, 10000);
+
+    // OTP সাবমিট করার পর বা কাজ শেষ হলে এই ইন্টারভ্যাল বন্ধ করতে হবে
+    // (সিম্পল রাখার জন্য আমরা গ্লোবালি সেভ রাখছি)
+    window.activeTrackingInterval = trackingInterval;
   };
   
   window.promptOTP = async function(orderId) {
