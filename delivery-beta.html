@@ -200,6 +200,14 @@
     <div id="dlv-view-shopkeeper" class="mp-hidden">
       <div class="dlv-dashboard-title">দোকানদার ড্যাশবোর্ড</div>
       
+           <!-- Shopkeeper New Orders Section -->
+      <div class="mp-card" style="border-left: 4px solid var(--mp-danger);">
+        <h3>🔔 নতুন অর্ডার (পেন্ডিং)</h3>
+        <div id="shop-new-orders-list">
+          <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
+        </div>
+      </div>
+      
       <div class="mp-card">
         <h3 style="justify-content: space-between;">
           📦 আমার প্রোডাক্ট লিস্ট
@@ -382,6 +390,7 @@
       if (typeof renderShopProducts === 'function') renderShopProducts();
       if (typeof loadShopTotalDue === 'function') loadShopTotalDue(); 
     } else if (role === 'customer') {
+      if (typeof loadShopNewOrders === 'function') loadShopNewOrders();
       if (typeof renderCustomerProducts === 'function') renderCustomerProducts();
       
       // ওয়ালেট ব্যালেন্স আপডেট (Step 7)
@@ -679,7 +688,58 @@
     }
   }
 
-   // ১. খাতা মডাল ওপেন করা
+   // ১. দোকানদারের নতুন অর্ডার লোড করা
+  function loadShopNewOrders() {
+    // যে অর্ডারগুলো এখনো পেন্ডিং আছে, সেগুলো লিসেন করা
+    const q = query(collection(db, "orders"), where("shopId", "==", currentUser.uid), where("status", "==", "pending"));
+    
+    onSnapshot(q, (snap) => {
+      const list = document.getElementById('shop-new-orders-list');
+      if (!list) return;
+
+      if (snap.empty) {
+        list.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px;">বর্তমানে কোনো নতুন অর্ডার নেই।</div>';
+        return;
+      }
+
+      let html = '';
+      snap.forEach(docSnap => {
+        const order = docSnap.data();
+        html += `
+          <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff;">
+            <div style="display:flex; justify-content:space-between; font-weight:bold;">
+              <span>${order.productName}</span>
+              <span>₹${order.price}</span>
+            </div>
+            <div style="font-size:12px; color:#666; margin-top:5px;">কাস্টমার: ${order.customerName}</div>
+            <div style="font-size:12px; color:#666; margin-bottom:10px;">পেমেন্ট: ${order.paymentMethod.toUpperCase()} (${order.paymentStatus})</div>
+            
+            <button class="mp-btn mp-btn-success" style="margin: 0; padding: 8px;" onclick="markOrderReady('${docSnap.id}')">
+              ✅ রেডি করুন (বিডিং শুরু করুন)
+            </button>
+          </div>
+        `;
+      });
+      list.innerHTML = html;
+    });
+  }
+
+  // ২. অর্ডার Ready মার্ক করা
+  window.markOrderReady = async function(orderId) {
+    if(!confirm("আপনি কি প্রোডাক্টটি রেডি করেছেন? এরপর ডেলিভারি বয়রা বিড শুরু করবে।")) return;
+    
+    try {
+      await updateDoc(doc(db, "orders", orderId), {
+        status: "ready"
+      });
+      alert("অর্ডারটি রেডি হিসেবে মার্ক করা হলো! ডেলিভারি বয়রা এখন বিড করতে পারবে।");
+    } catch (e) {
+      console.error(e);
+      alert("সমস্যা হয়েছে!");
+    }
+  };
+  
+  // ১. খাতা মডাল ওপেন করা
   window.openShopKhataModal = async function() {
     document.getElementById('dlv-shop-khata-modal').classList.add('active');
     const listContainer = document.getElementById('shop-khata-list');
@@ -815,7 +875,8 @@
       offlineMsg.style.display = 'none';
       
       // ডেটাবেস থেকে pending, bidding এবং assigned অর্ডারগুলো লিসেন করা
-      const q = query(collection(db, "orders"), where("status", "in", ["pending", "bidding", "assigned"]));
+           // pending এর জায়গায় ready হবে
+      const q = query(collection(db, "orders"), where("status", "in", ["ready", "bidding", "assigned"]));
       
       unsubscribeOrders = onSnapshot(q, (snapshot) => {
         const ordersList = document.getElementById('dlv-live-orders');
@@ -830,7 +891,7 @@
           const orderId = docSnap.id;
 
           // ১. লাইভ অর্ডার (যেগুলো এখনো কেউ নেয়নি)
-          if (order.status === 'pending') {
+          if (order.status === 'ready') {
             liveOrdersHtml += `
               <div class="dlv-live-card" id="live-card-${orderId}">
                 <h4>📦 ${order.productName}</h4>
