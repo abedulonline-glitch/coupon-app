@@ -440,15 +440,9 @@
       if (ordersContainer) ordersContainer.style.display = 'none';
     }
 
-    // ৬. URL থেকে রোল চেক (WhatsApp Share লিংকের জন্য)
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlRole = urlParams.get('role');
-    
-    if (urlRole && !userData.role) {
-      console.log("User needs to register as:", urlRole);
-    }
 
-    // ৭. শেয়ার সেকশনটি শুধু অ্যাডমিন বা ম্যানেজার দেখবে
+
+    // 6. শেয়ার সেকশনটি শুধু অ্যাডমিন বা ম্যানেজার দেখবে
     const shareSection = document.getElementById('dlv-role-share-section');
     if (shareSection && (role === 'admin' || role === 'manager')) {
       shareSection.style.display = 'block';
