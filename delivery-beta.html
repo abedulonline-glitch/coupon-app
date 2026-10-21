@@ -1083,16 +1083,24 @@
   </div>
 </div>
 
-<!-- Khata Modal -->
+<!-- Customer Khata Modal -->
 <div id="dlv-khata-modal" class="dlv-modal-overlay">
   <div class="dlv-modal-content">
-    <span class="dlv-modal-close" onclick="closeKhataModal()">&times;</span>
+    <span class="dlv-modal-close" onclick="document.getElementById('dlv-khata-modal').classList.remove('active')">&times;</span>
     <h3 style="margin-bottom: 15px; color: var(--mp-primary);">📒 আমার খাতা (বাকি)</h3>
     
     <div style="background: #fce8e6; color: var(--mp-danger); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
       <div style="font-size: 12px;">মোট বাকি</div>
       <div style="font-size: 24px; font-weight: bold;" id="khata-total-due">₹0.00</div>
     </div>
+
+    <div id="khata-shop-list" style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 15px; max-height: 200px; overflow-y: auto;">
+      <div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>
+    </div>
+
+    <button class="mp-btn mp-btn-success" onclick="alert('খাতা শোধ করার সিস্টেম পরবর্তী স্টেপে যুক্ত হবে।')">টাকা পরিশোধ করুন</button>
+  </div>
+</div>
 
 <!-- Customer Order History Modal -->
 <div id="dlv-customer-orders-modal" class="dlv-modal-overlay">
