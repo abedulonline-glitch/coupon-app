@@ -171,11 +171,11 @@
           <div style="font-size: 13px; font-weight: 600;">আমার খাতা</div>
           <div style="font-size: 11px; color: var(--mp-danger);">বাকি: <span id="cst-khata-due">₹0.00</span></div>
         </div>
-        <div class="mp-card" style="margin-bottom: 0; text-align: center; cursor: pointer;" onclick="openCustomerOrdersModal()">
-          <div style="font-size: 24px; margin-bottom: 5px;">📦</div>
-          <div style="font-size: 13px; font-weight: 600;">আমার অর্ডার</div>
-          <div style="font-size: 11px; color: var(--mp-text-light);">সব অর্ডার দেখুন</div>
-        </div>
+<div class="mp-card" style="margin-bottom: 0; text-align: center; cursor: pointer;" onclick="openCustomerOrdersModal()">
+  <div style="font-size: 24px; margin-bottom: 5px;">📦</div>
+  <div style="font-size: 13px; font-weight: 600;">আমার অর্ডার</div>
+  <div style="font-size: 11px; color: var(--mp-text-light);">সব অর্ডার দেখুন</div>
+</div>
       </div>
 
       <!-- Product Browsing -->
@@ -589,6 +589,7 @@
   window.openCustomerOrdersModal = function() {
     document.getElementById('dlv-customer-orders-modal').classList.add('active');
     const list = document.getElementById('customer-orders-list');
+    list.innerHTML = '<div style="text-align: center; color: #999; font-size: 13px;">লোড হচ্ছে...</div>';
     
     const q = query(collection(db, "orders"), where("customerId", "==", currentUser.uid));
     onSnapshot(q, (snap) => {
@@ -600,15 +601,14 @@
       let html = '';
       snap.forEach(doc => {
         const o = doc.data();
-        let statusColor = o.status === 'delivered' ? '#0f9d58' : '#f9a825';
+        let statusColor = o.status === 'delivered' ? '#0f9d58' : (o.status === 'ready' ? '#1a73e8' : '#f9a825');
         
-        // পুরোনো ডেটার জন্য ডিফল্ট ভ্যালু সেট করা (Safe Check)
         const orderStatus = o.status ? o.status.toUpperCase() : 'PENDING';
         const payMethod = o.paymentMethod ? o.paymentMethod.toUpperCase() : 'COD';
         const payStatus = o.paymentStatus || 'pending';
         
         html += `
-          <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+          <div style="border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: white;">
             <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:5px;">
               <span>${o.productName}</span>
               <span>₹${o.price}</span>
@@ -1094,7 +1094,7 @@
       <div style="font-size: 24px; font-weight: bold;" id="khata-total-due">₹0.00</div>
     </div>
 
-    <!-- Customer Order History Modal -->
+<!-- Customer Order History Modal -->
 <div id="dlv-customer-orders-modal" class="dlv-modal-overlay">
   <div class="dlv-modal-content" style="max-height: 85vh; overflow-y: auto;">
     <span class="dlv-modal-close" onclick="document.getElementById('dlv-customer-orders-modal').classList.remove('active')">&times;</span>
